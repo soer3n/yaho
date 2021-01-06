@@ -1,0 +1,7 @@
+apiVersion: helm.soer3n.info/v1alpha1
+kind: RepoGroup
+metadata:
+  name: repogroup-sample
+spec:
+  # Add fields here
+  foo: bar

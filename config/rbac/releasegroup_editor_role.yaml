@@ -1,0 +1,24 @@
+# permissions for end users to edit releasegroups.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: releasegroup-editor-role
+rules:
+- apiGroups:
+  - helm.soer3n.info
+  resources:
+  - releasegroups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - helm.soer3n.info
+  resources:
+  - releasegroups/status
+  verbs:
+  - get

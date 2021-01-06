@@ -1,0 +1,26 @@
+domain: soer3n.info
+layout: go.kubebuilder.io/v3
+multigroup: true
+projectName: apps-operators
+repo: github.com/soer3n/apps-operator
+resources:
+- crdVersion: v1
+  group: helm
+  kind: Repo
+  version: v1alpha1
+- crdVersion: v1
+  group: helm
+  kind: RepoGroup
+  version: v1alpha1
+- crdVersion: v1
+  group: helm
+  kind: Release
+  version: v1alpha1
+- crdVersion: v1
+  group: helm
+  kind: ReleaseGroup
+  version: v1alpha1
+version: 3-alpha
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}

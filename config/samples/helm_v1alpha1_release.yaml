@@ -1,0 +1,7 @@
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Release
+metadata:
+  name: release-sample
+spec:
+  # Add fields here
+  foo: bar
