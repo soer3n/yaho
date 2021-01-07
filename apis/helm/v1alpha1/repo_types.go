@@ -27,9 +27,17 @@ import (
 type RepoSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Name string `json:"name"`
+	Url  string `json:"url"`
+	Auth *Auth  `json:"auth,omitempty"`
+}
 
-	// Foo is an example field of Repo. Edit Repo_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+type Auth struct {
+	User     string `json:"user,omitempty"`
+	Password string `json:"pw,omitempty"`
+	Cert     string `json:"cert,omitempty"`
+	Key      string `json:"key,omitempty"`
+	Ca       string `json:"ca,omitempty"`
 }
 
 // RepoStatus defines the observed state of Repo

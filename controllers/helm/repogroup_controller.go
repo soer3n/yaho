@@ -20,11 +20,14 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	"github.com/prometheus/common/log"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // RepoGroupReconciler reconciles a RepoGroup object
@@ -48,9 +51,63 @@ type RepoGroupReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("repogroup", req.NamespacedName)
+	_ = r.Log.WithValues("repos", req.NamespacedName)
+	_ = r.Log.WithValues("reposreq", req)
 
-	// your logic here
+	// fetch app instance
+	instance := &helmv1alpha1.RepoGroup{}
+
+	log.Infof("Request: %v.\n", req)
+
+	err := r.Get(ctx, req.NamespacedName, instance)
+
+	log.Infof("Get: %v.\n", err)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		log.Error(err, "Failed to get HelmRepo")
+		return ctrl.Result{}, err
+	}
+
+	var helmRepo *helmv1alpha1.Repo
+	spec := instance.Spec.Repos
+
+	for key, repository := range spec {
+
+		log.Infof("Trying to install HelmRepo %v index %v", repository.Name, key)
+		helmRepo = &helmv1alpha1.Repo{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: repository.Name,
+			},
+			Spec: helmv1alpha1.RepoSpec{
+				Name: repository.Name,
+				Url:  repository.Url,
+			},
+		}
+
+		if repository.Auth != nil {
+			helmRepo.Spec.Auth = &helmv1alpha1.Auth{
+				User:     repository.Auth.User,
+				Password: repository.Auth.Password,
+				Cert:     repository.Auth.Cert,
+				Key:      repository.Auth.Key,
+				Ca:       repository.Auth.Ca,
+			}
+		}
+
+		err = r.Client.Create(context.TODO(), helmRepo)
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	return ctrl.Result{}, nil
 }

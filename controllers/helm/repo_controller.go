@@ -20,11 +20,14 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	"github.com/prometheus/common/log"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	"github.com/soer3n/go-utils/k8sutils"
 )
 
 // RepoReconciler reconciles a Repo object
@@ -48,9 +51,67 @@ type RepoReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("repo", req.NamespacedName)
+	_ = r.Log.WithValues("repos", req.NamespacedName)
+	_ = r.Log.WithValues("reposreq", req)
 
-	// your logic here
+	// fetch app instance
+	instance := &helmv1alpha1.Repo{}
+
+	log.Infof("Request: %v.\n", req)
+
+	err := r.Get(ctx, req.NamespacedName, instance)
+
+	log.Infof("Get: %v.\n", err)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		log.Error(err, "Failed to get HelmRepo")
+		return ctrl.Result{}, err
+	}
+
+	hc := &k8sutils.HelmClient{
+		Repos: &k8sutils.HelmRepos{},
+	}
+
+	var repoList []*k8sutils.HelmRepo
+	var helmRepo *k8sutils.HelmRepo
+
+	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
+
+	helmRepo = &k8sutils.HelmRepo{
+		Name:     instance.Spec.Name,
+		Url:      instance.Spec.Url,
+		Settings: hc.GetEnvSettings(),
+	}
+
+	if instance.Spec.Auth != nil {
+		helmRepo.Auth = k8sutils.HelmAuth{
+			User:     instance.Spec.Auth.User,
+			Password: instance.Spec.Auth.Password,
+			Cert:     instance.Spec.Auth.Cert,
+			Key:      instance.Spec.Auth.Key,
+			Ca:       instance.Spec.Auth.Ca,
+		}
+	}
+
+	repoList = append(repoList, helmRepo)
+
+	hc.Repos.Entries = repoList
+
+	if err = hc.CreateOrUpdateRepos(); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	log.Info("Repos number: ", len(hc.Repos.Entries))
+	log.Info("Charts number: ", len(hc.Charts.Entries))
+	log.Info("Error msg: ", err)
 
 	return ctrl.Result{}, nil
 }

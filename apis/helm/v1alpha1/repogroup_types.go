@@ -28,8 +28,9 @@ type RepoGroupSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of RepoGroup. Edit RepoGroup_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	LabelSelector string            `json:"labelSelector"`
+	Repos         []RepoSpec        `json:"repos"`
+	Env           map[string]string `json:"env,omitempty"`
 }
 
 // RepoGroupStatus defines the observed state of RepoGroup
