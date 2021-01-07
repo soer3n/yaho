@@ -109,7 +109,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	if repoName, ok := instance.ObjectMeta.Labels["repo"]; !ok {
+	if _, ok := instance.ObjectMeta.Labels["repo"]; !ok {
 
 		instance.ObjectMeta.Labels = map[string]string{
 			"repo": instance.Spec.Name,
