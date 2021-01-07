@@ -20,11 +20,14 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	"github.com/prometheus/common/log"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	"github.com/soer3n/go-utils/k8sutils"
 )
 
 // ReleaseReconciler reconciles a Release object
@@ -48,9 +51,66 @@ type ReleaseReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("release", req.NamespacedName)
+	_ = r.Log.WithValues("repos", req.NamespacedName)
+	_ = r.Log.WithValues("reposreq", req)
 
-	// your logic here
+	// fetch app instance
+	instance := &helmv1alpha1.Release{}
+
+	log.Infof("Request: %v.\n", req)
+
+	err := r.Get(ctx, req.NamespacedName, instance)
+
+	log.Infof("Get: %v.\n", err)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			log.Info("HelmRelease resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		log.Error(err, "Failed to get HelmRelease")
+		return ctrl.Result{}, err
+	}
+
+	var helmRelease *k8sutils.HelmChart
+
+	log.Infof("Trying HelmRelease %v", instance.Spec.Name)
+
+	helmRelease = &k8sutils.HelmChart{
+		Name:  instance.Spec.Name,
+		Repo:  instance.Spec.Repo,
+		Chart: instance.Spec.Chart,
+	}
+
+	if instance.Spec.ValuesTemplate != nil {
+		if instance.Spec.ValuesTemplate.Values != nil {
+			helmRelease.ValuesTemplate.Values = instance.Spec.ValuesTemplate.Values
+		}
+		if instance.Spec.ValuesTemplate.ValueFiles != nil {
+			helmRelease.ValuesTemplate.ValueFiles = instance.Spec.ValuesTemplate.ValueFiles
+		}
+	}
+
+	if err = helmRelease.Update(); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if _, ok := instance.ObjectMeta.Labels["release"]; !ok {
+
+		instance.ObjectMeta.Labels = map[string]string{
+			"release": instance.Spec.Name,
+		}
+
+		err = r.Update(ctx, instance)
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
