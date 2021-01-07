@@ -28,8 +28,9 @@ type ReleaseGroupSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of ReleaseGroup. Edit ReleaseGroup_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	LabelSelector string            `json:"labelSelector"`
+	Releases      []ReleaseSpec     `json:"releases"`
+	Env           map[string]string `json:"env,omitempty"`
 }
 
 // ReleaseGroupStatus defines the observed state of ReleaseGroup

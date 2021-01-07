@@ -28,8 +28,16 @@ type ReleaseSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Release. Edit Release_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Name           string         `json:"name"`
+	Repo           string         `json:"repo"`
+	Chart          string         `json:"chart"`
+	Version        string         `json:"version,omitempty"`
+	ValuesTemplate *ValueTemplate `json:"releaseSpec,omitempty"`
+}
+
+type ValueTemplate struct {
+	Values     map[string]string
+	ValueFiles []string
 }
 
 // ReleaseStatus defines the observed state of Release

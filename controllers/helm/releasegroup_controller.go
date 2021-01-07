@@ -20,6 +20,9 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	"github.com/prometheus/common/log"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,9 +51,67 @@ type ReleaseGroupReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("releasegroup", req.NamespacedName)
+	_ = r.Log.WithValues("releases", req.NamespacedName)
+	_ = r.Log.WithValues("releasessreq", req)
 
-	// your logic here
+	// fetch app instance
+	instance := &helmv1alpha1.ReleaseGroup{}
+
+	log.Infof("Request: %v.\n", req)
+
+	err := r.Get(ctx, req.NamespacedName, instance)
+
+	log.Infof("Get: %v.\n", err)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			log.Info("HelmRelease resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		log.Error(err, "Failed to get HelmRelease")
+		return ctrl.Result{}, err
+	}
+
+	var helmRelease *helmv1alpha1.Release
+	spec := instance.Spec.Releases
+
+	for key, release := range spec {
+
+		log.Infof("Trying to install HelmRepo %v index %v", release.Name, key)
+		helmRelease = &helmv1alpha1.Release{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: release.Name,
+				Labels: map[string]string{
+					"repo":      release.Repo,
+					"repoGroup": instance.Spec.LabelSelector,
+				},
+			},
+			Spec: helmv1alpha1.ReleaseSpec{
+				Name:  release.Name,
+				Repo:  release.Repo,
+				Chart: release.Chart,
+			},
+		}
+
+		if release.ValuesTemplate != nil {
+			if release.ValuesTemplate.Values != nil {
+				helmRelease.Spec.ValuesTemplate.Values = release.ValuesTemplate.Values
+			}
+			if release.ValuesTemplate.ValueFiles != nil {
+				helmRelease.Spec.ValuesTemplate.ValueFiles = release.ValuesTemplate.ValueFiles
+			}
+		}
+
+		err = r.Client.Create(context.TODO(), helmRelease)
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
