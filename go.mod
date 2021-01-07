@@ -11,5 +11,6 @@ require (
 	helm.sh/helm/v3 v3.4.2 // indirect
 	k8s.io/apimachinery v0.19.4
 	k8s.io/client-go v0.19.4
+	github.com/Azure/go-autorest v12.2.0+incompatible
 	sigs.k8s.io/controller-runtime v0.7.0
 )
