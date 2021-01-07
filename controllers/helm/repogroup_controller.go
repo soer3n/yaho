@@ -85,6 +85,10 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		helmRepo = &helmv1alpha1.Repo{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: repository.Name,
+				Labels: map[string]string{
+					"repo":      repository.Name,
+					"repoGroup": instance.Spec.LabelSelector,
+				},
 			},
 			Spec: helmv1alpha1.RepoSpec{
 				Name: repository.Name,

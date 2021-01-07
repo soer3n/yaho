@@ -109,6 +109,19 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
+	if repoName, ok := instance.ObjectMeta.Labels["repo"]; !ok {
+
+		instance.ObjectMeta.Labels = map[string]string{
+			"repo": repoName,
+		}
+
+		err = r.Update(ctx, instance)
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	log.Info("Repos number: ", len(hc.Repos.Entries))
 	log.Info("Charts number: ", len(hc.Charts.Entries))
 	log.Info("Error msg: ", err)
