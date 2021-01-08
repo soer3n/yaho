@@ -31,29 +31,29 @@ import (
 	"github.com/soer3n/go-utils/k8sutils"
 )
 
-// RepoReconciler reconciles a Repo object
+// ReleaseGroupReconciler reconciles a ReleaseGroup object
 type ReleaseGroupReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repoes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repoes/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repoes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releasegroups,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releasegroups/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releasegroups/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the Repo object against the actual cluster state, and then
+// the ReleaseGroup object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("repos", req.NamespacedName)
-	_ = r.Log.WithValues("reposreq", req)
+	_ = r.Log.WithValues("releasegroup", req.NamespacedName)
+	_ = r.Log.WithValues("releasegroupsreq", req)
 
 	// fetch app instance
 	instance := &helmv1alpha1.ReleaseGroup{}
@@ -69,11 +69,11 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
+			log.Info("HelmReleaseGroup resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get HelmRepo")
+		log.Error(err, "Failed to get HelmReleaseGroup")
 		return ctrl.Result{}, err
 	}
 
@@ -106,16 +106,16 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + instance.Spec.LabelSelector
 	}
 
-	repoResource := &helmv1alpha1.Repo{}
+	//repoResource := &helmv1alpha1.Repo{}
 
 	spec := instance.Spec.Releases
 
 	for key, release := range spec {
 
-		err = r.Get(context.Background(), client.ObjectKey{
-			Namespace: instance.ObjectMeta.Namespace,
-			Name:      repoName,
-		}, repoResource)
+		//	err = r.Get(context.Background(), client.ObjectKey{
+		//		Namespace: instance.ObjectMeta.Namespace,
+		//		Name:      repoName,
+		//	}, repoResource)
 
 		if err != nil {
 			return ctrl.Result{}, err
@@ -166,6 +166,6 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 // SetupWithManager sets up the controller with the Manager.
 func (r *ReleaseGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&helmv1alpha1.Repo{}).
+		For(&helmv1alpha1.ReleaseGroup{}).
 		Complete(r)
 }

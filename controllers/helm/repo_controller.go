@@ -18,6 +18,7 @@ package helm
 
 import (
 	"context"
+	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
@@ -93,8 +94,8 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
 
 	if repoLabelOk {
-		repoPath = hc.Env["RepositoryConfig"]
-		repoCache = hc.Env["RepositoryCache"]
+		repoPath = filepath.Dir(hc.Env["RepositoryConfig"])
+		repoCache = filepath.Dir(hc.Env["RepositoryCache"])
 		if repoGroupLabelOk {
 			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
 			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel

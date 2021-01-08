@@ -35,6 +35,32 @@ rules:
 - apiGroups:
   - helm.soer3n.info
   resources:
+  - releasegroups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - helm.soer3n.info
+  resources:
+  - releasegroups/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - helm.soer3n.info
+  resources:
+  - releasegroups/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - helm.soer3n.info
+  resources:
   - releases
   verbs:
   - create
