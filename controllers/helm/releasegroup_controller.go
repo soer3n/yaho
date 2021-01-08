@@ -156,10 +156,6 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 	}
 
-	log.Info("Repos number: ", len(hc.Repos.Entries))
-	log.Info("Charts number: ", len(hc.Charts.Entries))
-	log.Info("Error msg: ", err)
-
 	return ctrl.Result{}, nil
 }
 

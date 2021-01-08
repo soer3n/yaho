@@ -7,3 +7,9 @@ spec:
   repos:
     - name: smallstep
       url: https://smallstep.github.io/helm-charts/
+    - name: rook-release
+      url: https://charts.rook.io/release
+    - name: appscode
+      url: https://charts.appscode.com/stable/
+    - name: submariner
+      url: https://submariner-io.github.io/submariner-charts/charts
