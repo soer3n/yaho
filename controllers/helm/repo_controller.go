@@ -82,17 +82,20 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	var repoList []*k8sutils.HelmRepo
 	var helmRepo *k8sutils.HelmRepo
-	var repoPath string
+	var repoPath, repoCache string
 
 	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
 	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
 
 	if repoLabelOk {
 		repoPath = hc.Env["RepositoryConfig"]
+		repoCache = hc.Env["RepositoryCache"]
 		if repoGroupLabelOk {
 			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
+			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
 		} else {
 			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
+			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
 		}
 	}
 
