@@ -1,0 +1,97 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: releasegroups.helm.soer3n.info
+spec:
+  group: helm.soer3n.info
+  names:
+    kind: ReleaseGroup
+    listKind: ReleaseGroupList
+    plural: releasegroups
+    singular: releasegroup
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ReleaseGroup is the Schema for the releasegroups API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ReleaseGroupSpec defines the desired state of ReleaseGroup
+            properties:
+              env:
+                additionalProperties:
+                  type: string
+                type: object
+              labelSelector:
+                type: string
+              name:
+                type: string
+              releases:
+                items:
+                  description: ReleaseSpec defines the desired state of Release
+                  properties:
+                    chart:
+                      type: string
+                    name:
+                      type: string
+                    releaseSpec:
+                      properties:
+                        valueFiles:
+                          items:
+                            type: string
+                          type: array
+                        values:
+                          additionalProperties:
+                            type: string
+                          type: object
+                      required:
+                      - valueFiles
+                      - values
+                      type: object
+                    repo:
+                      type: string
+                    version:
+                      type: string
+                  required:
+                  - chart
+                  - name
+                  - repo
+                  type: object
+                type: array
+            required:
+            - labelSelector
+            - name
+            - releases
+            type: object
+          status:
+            description: ReleaseGroupStatus defines the observed state of ReleaseGroup
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

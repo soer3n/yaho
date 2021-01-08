@@ -36,8 +36,8 @@ type ReleaseSpec struct {
 }
 
 type ValueTemplate struct {
-	Values     map[string]string
-	ValueFiles []string
+	Values     map[string]string `json:"values"`
+	ValueFiles []string          `json:"valueFiles"`
 }
 
 // ReleaseStatus defines the observed state of Release

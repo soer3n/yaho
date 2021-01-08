@@ -78,7 +78,12 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	hc := &k8sutils.HelmClient{
 		Repos: &k8sutils.HelmRepos{},
+		Env:   map[string]string{},
 	}
+
+	settings := hc.GetEnvSettings()
+	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
+	hc.Env["RepositoryCache"] = settings.RepositoryCache
 
 	var repoList []*k8sutils.HelmRepo
 	var helmRepo *k8sutils.HelmRepo
@@ -124,6 +129,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	hc.Repos.Entries = repoList
+	hc.Repos.Settings = hc.GetEnvSettings()
 
 	err, entryObj := helmRepo.GetEntryObj()
 

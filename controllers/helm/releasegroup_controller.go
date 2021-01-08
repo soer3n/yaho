@@ -127,6 +127,8 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			ObjectMeta: metav1.ObjectMeta{
 				Name: release.Name,
 				Labels: map[string]string{
+					"release":   release.Name,
+					"chart":     release.Chart,
 					"repo":      release.Name,
 					"repoGroup": repoGroupLabel,
 				},

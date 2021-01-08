@@ -84,7 +84,8 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Infof("Trying to install HelmRepo %v index %v", repository.Name, key)
 		helmRepo = &helmv1alpha1.Repo{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: repository.Name,
+				Name:      repository.Name,
+				Namespace: instance.ObjectMeta.Namespace,
 				Labels: map[string]string{
 					"repo":      repository.Name,
 					"repoGroup": instance.Spec.LabelSelector,
