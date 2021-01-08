@@ -82,6 +82,19 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	var repoList []*k8sutils.HelmRepo
 	var helmRepo *k8sutils.HelmRepo
+	var repoPath string
+
+	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
+	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
+
+	if repoLabelOk {
+		repoPath = hc.Env["RepositoryConfig"]
+		if repoGroupLabelOk {
+			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
+		} else {
+			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
+		}
+	}
 
 	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
 
@@ -103,13 +116,25 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	repoList = append(repoList, helmRepo)
 
-	hc.Repos.Entries = repoList
-
-	if err = hc.CreateOrUpdateRepos(); err != nil {
+	if err = helmRepo.Update(); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if _, ok := instance.ObjectMeta.Labels["repo"]; !ok {
+	hc.Repos.Entries = repoList
+
+	err, entryObj := helmRepo.GetEntryObj()
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = hc.Repos.UpdateRepoFile(entryObj)
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if !repoLabelOk {
 
 		instance.ObjectMeta.Labels = map[string]string{
 			"repo": instance.Spec.Name,
