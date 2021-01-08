@@ -28,6 +28,7 @@ type ReleaseGroupSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	Name          string            `json:"name"`
 	LabelSelector string            `json:"labelSelector"`
 	Releases      []ReleaseSpec     `json:"releases"`
 	Env           map[string]string `json:"env,omitempty"`
