@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/soer3n/go-utils/k8sutils"
@@ -52,7 +53,7 @@ type RepoReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("repos", req.NamespacedName)
+	reqLogger := r.Log.WithValues("repos", req.NamespacedName)
 	_ = r.Log.WithValues("reposreq", req)
 
 	// fetch app instance
@@ -75,6 +76,12 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		// Error reading the object - requeue the request.
 		log.Error(err, "Failed to get HelmRepo")
 		return ctrl.Result{}, err
+	}
+
+	if !contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
+		if err := r.addFinalizer(reqLogger, instance); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	hc := &k8sutils.HelmClient{
@@ -125,14 +132,43 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	repoList = append(repoList, helmRepo)
 
+	hc.Repos.Entries = repoList
+	hc.Repos.Settings = hc.GetEnvSettings()
+	err = hc.Repos.SetInstalledRepos()
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
+	if isRepoMarkedToBeDeleted {
+		// Run finalization logic for memcachedFinalizer. If the
+		// finalization logic fails, don't remove the finalizer so
+		// that we can retry during the next reconciliation.
+		log.Infof("Deletion: %v.\n", helmRepo)
+		if err = hc.Repos.SetInstalledRepos(); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if err := hc.Repos.RemoveByName(instance.Spec.Name); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// Remove memcachedFinalizer. Once all finalizers have been
+		// removed, the object will be deleted.
+		controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
+		err := r.Update(ctx, instance)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
 	log.Infof("Get: %v.\n", helmRepo.Settings)
 
 	if err = helmRepo.Update(); err != nil {
 		return ctrl.Result{}, err
 	}
-
-	hc.Repos.Entries = repoList
-	hc.Repos.Settings = hc.GetEnvSettings()
 
 	err, entryObj := helmRepo.GetEntryObj()
 
@@ -160,6 +196,28 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Repo) error {
+	reqLogger.Info("Adding Finalizer for the Repo")
+	controllerutil.AddFinalizer(m, "finalizer.repo.helm.soer3n.info")
+
+	// Update CR
+	err := r.Update(context.TODO(), m)
+	if err != nil {
+		reqLogger.Error(err, "Failed to update Repo with finalizer")
+		return err
+	}
+	return nil
+}
+
+func contains(list []string, s string) bool {
+	for _, v := range list {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
 
 // SetupWithManager sets up the controller with the Manager.
