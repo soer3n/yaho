@@ -95,13 +95,13 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	if repoLabelOk {
 		repoPath = filepath.Dir(hc.Env["RepositoryConfig"])
-		repoCache = filepath.Dir(hc.Env["RepositoryCache"])
+		repoCache = hc.Env["RepositoryCache"]
 		if repoGroupLabelOk {
-			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
+			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
 			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
 		} else {
-			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
-			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
+			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel + "/repositories.yaml"
+			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
 		}
 	}
 
@@ -124,6 +124,8 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	repoList = append(repoList, helmRepo)
+
+	log.Infof("Get: %v.\n", helmRepo.Settings)
 
 	if err = helmRepo.Update(); err != nil {
 		return ctrl.Result{}, err

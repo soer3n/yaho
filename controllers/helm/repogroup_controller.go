@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,6 +80,8 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	var helmRepo *helmv1alpha1.Repo
 	spec := instance.Spec.Repos
 
+	log.Infof("Trying to install HelmRepoSpec: %v", spec)
+
 	for key, repository := range spec {
 
 		log.Infof("Trying to install HelmRepo %v index %v", repository.Name, key)
@@ -107,11 +110,31 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			}
 		}
 
-		err = r.Client.Create(context.TODO(), helmRepo)
+		err = controllerutil.SetControllerReference(instance, helmRepo, r.Scheme)
 
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+
+		installedRepo := &helmv1alpha1.Repo{}
+		err = r.Client.Get(context.Background(), client.ObjectKey{
+			Namespace: helmRepo.ObjectMeta.Namespace,
+			Name:      helmRepo.Spec.Name,
+		}, installedRepo)
+
+		if err != nil {
+			if errors.IsNotFound(err) {
+				err = r.Client.Create(context.TODO(), helmRepo)
+
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+			return ctrl.Result{}, err
+		}
+
+		installedRepo.Spec = helmRepo.Spec
+		r.Client.Update(context.TODO(), installedRepo)
 	}
 
 	return ctrl.Result{}, nil
@@ -121,5 +144,6 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 func (r *RepoGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&helmv1alpha1.RepoGroup{}).
+		Owns(&helmv1alpha1.Repo{}).
 		Complete(r)
 }
