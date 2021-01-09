@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"helm.sh/helm/v3/pkg/chart"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,8 +29,40 @@ type ChartSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Chart. Edit Chart_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Name string `json:"name,omitempty"`
+	// The URL to a relevant project page, git repo, or contact person
+	Home string `json:"home,omitempty"`
+	// Source is the URL to the source code of this chart
+	Sources []string `json:"sources,omitempty"`
+	// A SemVer 2 conformant version string of the chart
+	Version string `json:"version,omitempty"`
+	// A one-sentence description of the chart
+	Description string `json:"description,omitempty"`
+	// A list of string keywords
+	Keywords []string `json:"keywords,omitempty"`
+	// A list of name and URL/email address combinations for the maintainer(s)
+	Maintainers []*chart.Maintainer `json:"maintainers,omitempty"`
+	// The URL to an icon file.
+	Icon string `json:"icon,omitempty"`
+	// The API Version of this chart.
+	APIVersion string `json:"apiVersion,omitempty"`
+	// The condition to check to enable chart
+	Condition string `json:"condition,omitempty"`
+	// The tags to check to enable chart
+	Tags string `json:"tags,omitempty"`
+	// The version of the application enclosed inside of this chart.
+	AppVersion string `json:"appVersion,omitempty"`
+	// Whether or not this chart is deprecated
+	Deprecated bool `json:"deprecated,omitempty"`
+	// Annotations are additional mappings uninterpreted by Helm,
+	// made available for inspection by other applications.
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
+	KubeVersion string `json:"kubeVersion,omitempty"`
+	// Dependencies are a list of dependencies for a chart.
+	Dependencies []*chart.Dependency `json:"dependencies,omitempty"`
+	// Specifies the chart type: application or library
+	Type string `json:"type,omitempty"`
 }
 
 // ChartStatus defines the observed state of Chart

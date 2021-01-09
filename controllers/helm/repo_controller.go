@@ -23,6 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -134,11 +135,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	hc.Repos.Entries = repoList
 	hc.Repos.Settings = hc.GetEnvSettings()
-	err = hc.Repos.SetInstalledRepos()
-
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
@@ -146,11 +142,14 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		// finalization logic fails, don't remove the finalizer so
 		// that we can retry during the next reconciliation.
 		log.Infof("Deletion: %v.\n", helmRepo)
-		if err = hc.Repos.SetInstalledRepos(); err != nil {
+		log.Infof("Deletion: %v.\n", helmRepo.Settings.RepositoryConfig)
+		err = hc.Repos.SetInstalledRepos()
+		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		if err := hc.Repos.RemoveByName(instance.Spec.Name); err != nil {
+		err = hc.Repos.RemoveByName(helmRepo.Name)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -180,6 +179,73 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	chartList, err := helmRepo.GetCharts()
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	for key, chartMeta := range chartList {
+
+		log.Infof("Trying to install HelmChart %v index %v", chartMeta.Name, key)
+		helmChart = &helmv1alpha1.Chart{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      chartMeta.Name,
+				Namespace: instance.ObjectMeta.Namespace,
+				Labels: map[string]string{
+					"chart":     chartMeta.Name,
+					"repo":      instance.Spec.Name,
+					"repoGroup": instance.Spec.LabelSelector,
+				},
+			},
+			Spec: helmv1alpha1.ChartSpec{
+				Name:         chartMeta.Metadata.Name,
+				Home:         chartMeta.Home,
+				Sources:      chartMeta.Sources,
+				Version:      chartMeta.Version,
+				Description:  chartMeta.Description,
+				Keywords:     chartMeta.Keywords,
+				Maintainers:  chartMeta.Maintainer,
+				Icon:         chartMeta.Icon,
+				APIVersion:   chartMeta.APIVersion,
+				Condition:    chartMeta.Condition,
+				Tags:         chartMeta.Tags,
+				AppVersion:   chartMeta.AppVersion,
+				Deprecated:   chartMeta.Deprecated,
+				Annotations:  chartMeta.Annotations,
+				KubeVersion:  chartMeta.KubeVersion,
+				Dependencies: chartMeta.Dependencies,
+				Type:         chartMeta.Type,
+			},
+		}
+
+		err = controllerutil.SetControllerReference(instance, helmChart, r.Scheme)
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		installedChart := &helmv1alpha1.Chart{}
+		err = r.Client.Get(context.Background(), client.ObjectKey{
+			Namespace: helmChart.ObjectMeta.Namespace,
+			Name:      helmChart.Spec.Name,
+		}, installedChart)
+
+		if err != nil {
+			if errors.IsNotFound(err) {
+				err = r.Client.Create(context.TODO(), helmChart)
+
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+			return ctrl.Result{}, err
+		}
+
+		installedChart.Spec = helmChart.Spec
+		r.Client.Update(context.TODO(), installedChart)
 	}
 
 	if !repoLabelOk {
