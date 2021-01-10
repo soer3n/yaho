@@ -18,6 +18,7 @@ package helm
 
 import (
 	"context"
+	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
@@ -90,20 +91,15 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
 
 	if repoLabelOk {
-		repoPath = hc.Env["RepositoryConfig"]
+		repoPath = filepath.Dir(hc.Env["RepositoryConfig"])
 		repoCache = hc.Env["RepositoryCache"]
 		if repoGroupLabelOk {
-			repoName = repoGroupLabel
-			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
+			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
 			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
 		} else {
-			repoName = repoLabel
-			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
+			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel + "/repositories.yaml"
 			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
 		}
-	} else {
-		repoName = instance.Spec.LabelSelector
-		hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + instance.Spec.LabelSelector
 	}
 
 	//repoResource := &helmv1alpha1.Repo{}
