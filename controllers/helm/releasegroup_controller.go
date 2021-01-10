@@ -90,7 +90,6 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// var repoList []*k8sutils.HelmRepo
 	// var helmRepo *k8sutils.HelmRepo
-	var helmRelease *helmv1alpha1.Release
 	var repoPath, repoCache string
 
 	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
@@ -119,67 +118,76 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		//		Name:      repoName,
 		//	}, repoResource)
 
+		_, err = r.deployRelease(&release, instance)
+
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
 		log.Infof("Trying HelmRelease %v", release.Name)
 
-		helmRelease = &helmv1alpha1.Release{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      release.Name,
-				Namespace: instance.ObjectMeta.Namespace,
-				Labels: map[string]string{
-					"release":   release.Name,
-					"chart":     release.Chart,
-					"repo":      release.Repo,
-					"repoGroup": instance.Spec.LabelSelector,
-				},
-			},
-			Spec: helmv1alpha1.ReleaseSpec{
-				Name:  release.Name,
-				Repo:  release.Repo,
-				Chart: release.Chart,
-			},
-		}
-
-		if release.ValuesTemplate != nil {
-			if release.ValuesTemplate.Values != nil {
-				helmRelease.Spec.ValuesTemplate.Values = release.ValuesTemplate.Values
-			}
-			if release.ValuesTemplate.ValueFiles != nil {
-				helmRelease.Spec.ValuesTemplate.ValueFiles = release.ValuesTemplate.ValueFiles
-			}
-		}
-
-		err = controllerutil.SetControllerReference(instance, helmRelease, r.Scheme)
-
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		installedRelease := &helmv1alpha1.Release{}
-		err = r.Client.Get(context.Background(), client.ObjectKey{
-			Namespace: helmRelease.ObjectMeta.Namespace,
-			Name:      helmRelease.Spec.Name,
-		}, installedRelease)
-
-		if err != nil {
-			if errors.IsNotFound(err) {
-				err = r.Client.Create(context.TODO(), helmRelease)
-
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-			}
-			return ctrl.Result{}, err
-		}
-
-		installedRelease.Spec = helmRelease.Spec
-		r.Client.Update(context.TODO(), installedRelease)
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *ReleaseGroupReconciler) deployRelease(release *helmv1alpha1.ReleaseSpec, instance *helmv1alpha1.ReleaseGroup) (ctrl.Result, error) {
+
+	var helmRelease *helmv1alpha1.Release
+
+	helmRelease = &helmv1alpha1.Release{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      release.Name,
+			Namespace: instance.ObjectMeta.Namespace,
+			Labels: map[string]string{
+				"release":   release.Name,
+				"chart":     release.Chart,
+				"repo":      release.Repo,
+				"repoGroup": instance.Spec.LabelSelector,
+			},
+		},
+		Spec: helmv1alpha1.ReleaseSpec{
+			Name:  release.Name,
+			Repo:  release.Repo,
+			Chart: release.Chart,
+		},
+	}
+
+	if release.ValuesTemplate != nil {
+		if release.ValuesTemplate.Values != nil {
+			helmRelease.Spec.ValuesTemplate.Values = release.ValuesTemplate.Values
+		}
+		if release.ValuesTemplate.ValueFiles != nil {
+			helmRelease.Spec.ValuesTemplate.ValueFiles = release.ValuesTemplate.ValueFiles
+		}
+	}
+
+	err := controllerutil.SetControllerReference(instance, helmRelease, r.Scheme)
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	installedRelease := &helmv1alpha1.Release{}
+	err = r.Client.Get(context.Background(), client.ObjectKey{
+		Namespace: helmRelease.ObjectMeta.Namespace,
+		Name:      helmRelease.Spec.Name,
+	}, installedRelease)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			err = r.Client.Create(context.TODO(), helmRelease)
+
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, err
+	}
+
+	installedRelease.Spec = helmRelease.Spec
+	err = r.Client.Update(context.TODO(), installedRelease)
+	return ctrl.Result{}, err
 }
 
 // SetupWithManager sets up the controller with the Manager.

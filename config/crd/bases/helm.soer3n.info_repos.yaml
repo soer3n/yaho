@@ -21,9 +21,9 @@ spec:
     - name: group
       type: string
       jsonPath: .metadata.labels.repoGroup
-    - name: phase
+    - name: created_at
       type: string
-      jsonPath: .status
+      jsonPath: .metadata.creationTimestamp
     schema:
       openAPIV3Schema:
         description: Repo is the Schema for the repos API
