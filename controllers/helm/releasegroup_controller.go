@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/soer3n/go-utils/k8sutils"
@@ -80,7 +81,12 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	hc := &k8sutils.HelmClient{
 		Repos: &k8sutils.HelmRepos{},
+		Env:   map[string]string{},
 	}
+
+	settings := hc.GetEnvSettings()
+	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
+	hc.Env["RepositoryCache"] = settings.RepositoryCache
 
 	// var repoList []*k8sutils.HelmRepo
 	// var helmRepo *k8sutils.HelmRepo
@@ -121,7 +127,8 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 		helmRelease = &helmv1alpha1.Release{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: release.Name,
+				Name:      release.Name,
+				Namespace: instance.ObjectMeta.Namespace,
 				Labels: map[string]string{
 					"release":   release.Name,
 					"chart":     release.Chart,
@@ -145,11 +152,31 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			}
 		}
 
-		err = r.Client.Create(context.TODO(), helmRelease)
+		err = controllerutil.SetControllerReference(instance, helmRelease, r.Scheme)
 
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+
+		installedRelease := &helmv1alpha1.Release{}
+		err = r.Client.Get(context.Background(), client.ObjectKey{
+			Namespace: helmRelease.ObjectMeta.Namespace,
+			Name:      helmRelease.Spec.Name,
+		}, installedRelease)
+
+		if err != nil {
+			if errors.IsNotFound(err) {
+				err = r.Client.Create(context.TODO(), helmRelease)
+
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+			return ctrl.Result{}, err
+		}
+
+		installedRelease.Spec = helmRelease.Spec
+		r.Client.Update(context.TODO(), installedRelease)
 	}
 
 	return ctrl.Result{}, nil

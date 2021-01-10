@@ -18,6 +18,7 @@ package helm
 
 import (
 	"context"
+	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
@@ -80,10 +81,37 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	log.Infof("Trying HelmRelease %v", instance.Spec.Name)
 
+	hc := &k8sutils.HelmClient{
+		Repos: &k8sutils.HelmRepos{},
+		Env:   map[string]string{},
+	}
+
+	settings := hc.GetEnvSettings()
+	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
+	hc.Env["RepositoryCache"] = settings.RepositoryCache
+
+	var repoPath, repoCache string
+
+	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
+	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
+
+	if repoLabelOk {
+		repoPath = filepath.Dir(hc.Env["RepositoryConfig"])
+		repoCache = hc.Env["RepositoryCache"]
+		if repoGroupLabelOk {
+			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
+			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
+		} else {
+			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel + "/repositories.yaml"
+			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
+		}
+	}
+
 	helmRelease = &k8sutils.HelmChart{
-		Name:  instance.Spec.Name,
-		Repo:  instance.Spec.Repo,
-		Chart: instance.Spec.Chart,
+		Name:     instance.Spec.Name,
+		Repo:     instance.Spec.Repo,
+		Chart:    instance.Spec.Chart,
+		Settings: hc.GetEnvSettings(),
 	}
 
 	if instance.Spec.ValuesTemplate != nil {

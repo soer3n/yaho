@@ -3,6 +3,7 @@ kind: ReleaseGroup
 metadata:
   name: releasegroup-sample
 spec:
+  name: sample
   labelSelector: foo
   releases:
   - name: kubed
