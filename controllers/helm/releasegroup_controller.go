@@ -91,7 +91,7 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	// var repoList []*k8sutils.HelmRepo
 	// var helmRepo *k8sutils.HelmRepo
 	var helmRelease *helmv1alpha1.Release
-	var repoPath, repoCache, repoName string
+	var repoPath, repoCache string
 
 	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
 	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
@@ -112,7 +112,7 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	spec := instance.Spec.Releases
 
-	for key, release := range spec {
+	for _, release := range spec {
 
 		//	err = r.Get(context.Background(), client.ObjectKey{
 		//		Namespace: instance.ObjectMeta.Namespace,
@@ -123,7 +123,7 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, err
 		}
 
-		log.Infof("Trying HelmRelease %v index %v", release.Name, key)
+		log.Infof("Trying HelmRelease %v", release.Name)
 
 		helmRelease = &helmv1alpha1.Release{
 			ObjectMeta: metav1.ObjectMeta{
@@ -132,13 +132,13 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 				Labels: map[string]string{
 					"release":   release.Name,
 					"chart":     release.Chart,
-					"repo":      release.Name,
-					"repoGroup": repoGroupLabel,
+					"repo":      release.Repo,
+					"repoGroup": instance.Spec.LabelSelector,
 				},
 			},
 			Spec: helmv1alpha1.ReleaseSpec{
 				Name:  release.Name,
-				Repo:  repoName,
+				Repo:  release.Repo,
 				Chart: release.Chart,
 			},
 		}

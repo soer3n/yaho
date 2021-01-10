@@ -114,6 +114,16 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		Settings: hc.GetEnvSettings(),
 	}
 
+	actionConfig, err := helmRelease.GetActionConfig(helmRelease.Settings)
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	helmRelease.Config = actionConfig
+
+	log.Infof("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
+
 	if instance.Spec.ValuesTemplate != nil {
 		if instance.Spec.ValuesTemplate.Values != nil {
 			helmRelease.ValuesTemplate.Values = instance.Spec.ValuesTemplate.Values

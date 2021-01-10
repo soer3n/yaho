@@ -9,7 +9,7 @@ require (
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/prometheus/common v0.10.0
-	github.com/soer3n/go-utils v0.0.0-20210110114003-d3cdd012f54a
+	github.com/soer3n/go-utils v0.0.0-20210110172429-4d4605168aac
 	helm.sh/helm/v3 v3.4.2
 	k8s.io/apimachinery v0.19.4
 	k8s.io/client-go v0.19.4
