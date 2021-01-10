@@ -59,8 +59,6 @@ type ChartSpec struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
 	KubeVersion string `json:"kubeVersion,omitempty"`
-	// Dependencies are a list of dependencies for a chart.
-	Dependencies []*chart.Dependency `json:"dependencies,omitempty"`
 	// Specifies the chart type: application or library
 	Type string `json:"type,omitempty"`
 }

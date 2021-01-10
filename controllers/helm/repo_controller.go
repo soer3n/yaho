@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
+	"helm.sh/helm/v3/pkg/repo"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -96,7 +97,8 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	var repoList []*k8sutils.HelmRepo
 	var helmRepo *k8sutils.HelmRepo
-	var repoPath, repoCache string
+	var repoPath string
+	var repoCache string
 
 	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
 	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
@@ -181,71 +183,25 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
+	//if repoGroupLabelOk {
+	//	helmRepo.Name = repoGroupLabel
+	//}
+
 	chartList, err := helmRepo.GetCharts()
 
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	for key, chartMeta := range chartList {
+	log.Infof("HelmChartCount: %v", len(chartList))
 
-		log.Infof("Trying to install HelmChart %v index %v", chartMeta.Name, key)
-		helmChart = &helmv1alpha1.Chart{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      chartMeta.Name,
-				Namespace: instance.ObjectMeta.Namespace,
-				Labels: map[string]string{
-					"chart":     chartMeta.Name,
-					"repo":      instance.Spec.Name,
-					"repoGroup": instance.Spec.LabelSelector,
-				},
-			},
-			Spec: helmv1alpha1.ChartSpec{
-				Name:         chartMeta.Metadata.Name,
-				Home:         chartMeta.Home,
-				Sources:      chartMeta.Sources,
-				Version:      chartMeta.Version,
-				Description:  chartMeta.Description,
-				Keywords:     chartMeta.Keywords,
-				Maintainers:  chartMeta.Maintainer,
-				Icon:         chartMeta.Icon,
-				APIVersion:   chartMeta.APIVersion,
-				Condition:    chartMeta.Condition,
-				Tags:         chartMeta.Tags,
-				AppVersion:   chartMeta.AppVersion,
-				Deprecated:   chartMeta.Deprecated,
-				Annotations:  chartMeta.Annotations,
-				KubeVersion:  chartMeta.KubeVersion,
-				Dependencies: chartMeta.Dependencies,
-				Type:         chartMeta.Type,
-			},
-		}
-
-		err = controllerutil.SetControllerReference(instance, helmChart, r.Scheme)
+	for _, chartMeta := range chartList {
+		log.Infof("Trying to install HelmChart %v", chartMeta.Name)
+		_, err = r.deployChart(chartMeta, instance)
 
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-
-		installedChart := &helmv1alpha1.Chart{}
-		err = r.Client.Get(context.Background(), client.ObjectKey{
-			Namespace: helmChart.ObjectMeta.Namespace,
-			Name:      helmChart.Spec.Name,
-		}, installedChart)
-
-		if err != nil {
-			if errors.IsNotFound(err) {
-				err = r.Client.Create(context.TODO(), helmChart)
-
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-			}
-			return ctrl.Result{}, err
-		}
-
-		installedChart.Spec = helmChart.Spec
-		r.Client.Update(context.TODO(), installedChart)
 	}
 
 	if !repoLabelOk {
@@ -284,6 +240,66 @@ func contains(list []string, s string) bool {
 		}
 	}
 	return false
+}
+
+func (r *RepoReconciler) deployChart(chartMeta *repo.ChartVersion, instance *helmv1alpha1.Repo) (ctrl.Result, error) {
+
+	helmChart := &helmv1alpha1.Chart{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      chartMeta.Name,
+			Namespace: instance.ObjectMeta.Namespace,
+			Labels: map[string]string{
+				"chart":     chartMeta.Name,
+				"repo":      instance.Spec.Name,
+				"repoGroup": instance.ObjectMeta.Labels["repoGroup"],
+			},
+		},
+		Spec: helmv1alpha1.ChartSpec{
+			Name:        chartMeta.Name,
+			Home:        chartMeta.Home,
+			Sources:     chartMeta.Sources,
+			Version:     chartMeta.Version,
+			Description: chartMeta.Description,
+			Keywords:    chartMeta.Keywords,
+			Maintainers: chartMeta.Maintainers,
+			Icon:        chartMeta.Icon,
+			APIVersion:  chartMeta.APIVersion,
+			Condition:   chartMeta.Condition,
+			Tags:        chartMeta.Tags,
+			AppVersion:  chartMeta.AppVersion,
+			Deprecated:  chartMeta.Deprecated,
+			Annotations: chartMeta.Annotations,
+			KubeVersion: chartMeta.KubeVersion,
+			Type:        chartMeta.Type,
+		},
+	}
+
+	err := controllerutil.SetControllerReference(instance, helmChart, r.Scheme)
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	installedChart := &helmv1alpha1.Chart{}
+	err = r.Client.Get(context.Background(), client.ObjectKey{
+		Namespace: helmChart.ObjectMeta.Namespace,
+		Name:      helmChart.Spec.Name,
+	}, installedChart)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			err = r.Client.Create(context.TODO(), helmChart)
+
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, err
+	}
+
+	installedChart.Spec = helmChart.Spec
+	err = r.Client.Update(context.TODO(), installedChart)
+	return ctrl.Result{}, err
 }
 
 // SetupWithManager sets up the controller with the Manager.
