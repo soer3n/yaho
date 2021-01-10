@@ -743,6 +743,8 @@ github.com/soer3n/go-utils v0.0.0-20210110151526-ef77fff33c98 h1:0GZvDfJaapsO6CP
 github.com/soer3n/go-utils v0.0.0-20210110151526-ef77fff33c98/go.mod h1:LaZyVSjJSvdZfTxMVT56HF9+Z3xWghrprmj/Bxpp/qk=
 github.com/soer3n/go-utils v0.0.0-20210110172429-4d4605168aac h1:bsaEXOvhld3uwCt7Y7MVmBVxhGcvolxRcohA45q3Lac=
 github.com/soer3n/go-utils v0.0.0-20210110172429-4d4605168aac/go.mod h1:LaZyVSjJSvdZfTxMVT56HF9+Z3xWghrprmj/Bxpp/qk=
+github.com/soer3n/go-utils v0.0.0-20210110173340-0e3296096656 h1:G9SJzn/cGAry+25ekCbOyqFrrejwls5abcFJF3aPqUo=
+github.com/soer3n/go-utils v0.0.0-20210110173340-0e3296096656/go.mod h1:LaZyVSjJSvdZfTxMVT56HF9+Z3xWghrprmj/Bxpp/qk=
 github.com/soheilhy/cmux v0.1.4/go.mod h1:IM3LyeVVIOuxMH7sFAkER9+bJ4dT7Ms6E4xg4kGIyLM=
 github.com/sony/gobreaker v0.4.1/go.mod h1:ZKptC7FHNvhBz7dN2LGjPVBz2sZJmc0/PkyDJOjmxWY=
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=

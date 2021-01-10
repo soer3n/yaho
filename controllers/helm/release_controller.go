@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/soer3n/go-utils/k8sutils"
@@ -52,7 +53,7 @@ type ReleaseReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("repos", req.NamespacedName)
+	reqLogger := r.Log.WithValues("repos", req.NamespacedName)
 	_ = r.Log.WithValues("reposreq", req)
 
 	// fetch app instance
@@ -80,6 +81,12 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	var helmRelease *k8sutils.HelmChart
 
 	log.Infof("Trying HelmRelease %v", instance.Spec.Name)
+
+	if !contains(instance.GetFinalizers(), "finalizer.releases.helm.soer3n.info") {
+		if err := r.addFinalizer(reqLogger, instance); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	hc := &k8sutils.HelmClient{
 		Repos: &k8sutils.HelmRepos{},
@@ -122,6 +129,27 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	helmRelease.Config = actionConfig
 
+	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
+	if isRepoMarkedToBeDeleted {
+		// Run finalization logic for memcachedFinalizer. If the
+		// finalization logic fails, don't remove the finalizer so
+		// that we can retry during the next reconciliation.
+		log.Infof("Deletion: %v.\n", helmRelease)
+		err = helmRelease.Remove()
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		// Remove memcachedFinalizer. Once all finalizers have been
+		// removed, the object will be deleted.
+		controllerutil.RemoveFinalizer(instance, "finalizer.releases.helm.soer3n.info")
+		err := r.Update(ctx, instance)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
 	log.Infof("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
 
 	if instance.Spec.ValuesTemplate != nil {
@@ -151,6 +179,19 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *ReleaseReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Release) error {
+	reqLogger.Info("Adding Finalizer for the Release")
+	controllerutil.AddFinalizer(m, "finalizer.releases.helm.soer3n.info")
+
+	// Update CR
+	err := r.Update(context.TODO(), m)
+	if err != nil {
+		reqLogger.Error(err, "Failed to update Release with finalizer")
+		return err
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
