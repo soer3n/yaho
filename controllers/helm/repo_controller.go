@@ -86,62 +86,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	}
 
-	hc := &k8sutils.HelmClient{
-		Repos: &k8sutils.HelmRepos{},
-		Env:   map[string]string{},
-	}
-
-	settings := hc.GetEnvSettings()
-	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
-	hc.Env["RepositoryCache"] = settings.RepositoryCache
-
-	var repoList []*k8sutils.HelmRepo
-	var helmRepo *k8sutils.HelmRepo
-
-	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
-
-	err = r.Update(ctx, instance)
-
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
-
-	helmRepo = &k8sutils.HelmRepo{
-		Name:     instance.Spec.Name,
-		Url:      instance.Spec.Url,
-		Settings: hc.GetEnvSettings(),
-	}
-
-	if instance.Spec.Auth != nil {
-		helmRepo.Auth = k8sutils.HelmAuth{
-			User:     instance.Spec.Auth.User,
-			Password: instance.Spec.Auth.Password,
-			Cert:     instance.Spec.Auth.Cert,
-			Key:      instance.Spec.Auth.Key,
-			Ca:       instance.Spec.Auth.Ca,
-		}
-	}
-
-	repoList = append(repoList, helmRepo)
-
-	hc.Repos.Entries = repoList
-	hc.Repos.Settings = hc.GetEnvSettings()
-
-	log.Infof("Get: %v.\n", helmRepo.Settings)
-
-	if err = helmRepo.Update(); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	err, entryObj := helmRepo.GetEntryObj()
-
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	err = hc.Repos.UpdateRepoFile(entryObj)
+	_, helmRepo, err := r.deployRepo(instance)
 
 	if err != nil {
 		return ctrl.Result{}, err
@@ -162,7 +107,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	var chartObjMap map[string]*helmv1alpha1.Chart
 
 	for _, chartMeta := range chartList {
-		log.Infof("Trying to install HelmChart %v", chartMeta.Name)
 		chartObjMap, err = r.addOrUpdateChatMap(chartObjMap, chartMeta, instance)
 
 		if err != nil {
@@ -170,7 +114,8 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	}
 
-	for _, chartObj := range chartObjMap {
+	for key, chartObj := range chartObjMap {
+		log.Infof("Trying to install HelmChart %v", key)
 		_, err = r.deployChart(chartObj, instance)
 
 		if err != nil {
@@ -240,6 +185,72 @@ func contains(list []string, s string) bool {
 		}
 	}
 	return false
+}
+
+func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *k8sutils.HelmRepo, error) {
+
+	hc := &k8sutils.HelmClient{
+		Repos: &k8sutils.HelmRepos{},
+		Env:   map[string]string{},
+	}
+
+	settings := hc.GetEnvSettings()
+	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
+	hc.Env["RepositoryCache"] = settings.RepositoryCache
+
+	var repoList []*k8sutils.HelmRepo
+	var helmRepo *k8sutils.HelmRepo
+
+	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
+
+	err := r.Update(context.TODO(), instance)
+
+	if err != nil {
+		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+	}
+
+	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
+
+	helmRepo = &k8sutils.HelmRepo{
+		Name:     instance.Spec.Name,
+		Url:      instance.Spec.Url,
+		Settings: hc.GetEnvSettings(),
+	}
+
+	if instance.Spec.Auth != nil {
+		helmRepo.Auth = k8sutils.HelmAuth{
+			User:     instance.Spec.Auth.User,
+			Password: instance.Spec.Auth.Password,
+			Cert:     instance.Spec.Auth.Cert,
+			Key:      instance.Spec.Auth.Key,
+			Ca:       instance.Spec.Auth.Ca,
+		}
+	}
+
+	repoList = append(repoList, helmRepo)
+
+	hc.Repos.Entries = repoList
+	hc.Repos.Settings = hc.GetEnvSettings()
+
+	log.Infof("Get: %v.\n", helmRepo.Settings)
+
+	if err = helmRepo.Update(); err != nil {
+		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+	}
+
+	err, entryObj := helmRepo.GetEntryObj()
+
+	if err != nil {
+		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+	}
+
+	err = hc.Repos.UpdateRepoFile(entryObj)
+
+	if err != nil {
+		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+	}
+
+	return ctrl.Result{}, helmRepo, nil
 }
 
 func (r *RepoReconciler) getLabelsByInstance(instance *helmv1alpha1.Repo, env map[string]string) (string, string) {
