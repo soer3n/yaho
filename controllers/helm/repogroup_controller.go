@@ -146,7 +146,12 @@ func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, insta
 
 	installedRepo.Spec = helmRepo.Spec
 	err = r.Client.Update(context.TODO(), installedRepo)
-	return ctrl.Result{}, err
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

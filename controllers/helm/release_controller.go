@@ -107,7 +107,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	helmRelease = &k8sutils.HelmChart{
 		Name:     instance.Spec.Name,
 		Repo:     instance.Spec.Repo,
-		Chart:return ctrl.Result{}, nil    instance.Spec.Chart,
+		Chart:    instance.Spec.Chart,
 		Settings: hc.GetEnvSettings(),
 	}
 

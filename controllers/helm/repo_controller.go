@@ -98,8 +98,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	var repoList []*k8sutils.HelmRepo
 	var helmRepo *k8sutils.HelmRepo
 
-	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
-	hc.Env["RepositoryCache"] = settings.RepositoryCache
 	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
 
 	err = r.Update(ctx, instance)
@@ -309,7 +307,12 @@ func (r *RepoReconciler) deployChart(chartMeta *repo.ChartVersion, instance *hel
 
 	installedChart.Spec = helmChart.Spec
 	err = r.Client.Update(context.TODO(), installedChart)
-	return ctrl.Result{}, err
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
