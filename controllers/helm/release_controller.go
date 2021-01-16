@@ -136,6 +136,10 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	_, err = r.handleFinalizer(helmRelease, instance)
 
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	err = r.Update(ctx, instance)
 
 	if err != nil {
