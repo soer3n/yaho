@@ -116,9 +116,11 @@ spec:
               type:
                 description: 'Specifies the chart type: application or library'
                 type: string
-              version:
+              versions:
                 description: A SemVer 2 conformant version string of the chart
-                type: string
+                items:
+                  type: string
+                type: array
             type: object
           status:
             description: ChartStatus defines the observed state of Chart

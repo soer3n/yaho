@@ -159,9 +159,19 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	log.Infof("HelmChartCount: %v", len(chartList))
 
+	var chartObjMap map[string]*helmv1alpha1.Chart
+
 	for _, chartMeta := range chartList {
 		log.Infof("Trying to install HelmChart %v", chartMeta.Name)
-		_, err = r.deployChart(chartMeta, instance)
+		chartObjMap, err = r.addOrUpdateChatMap(chartObjMap, chartMeta, instance)
+
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	for _, chartObj := range chartObjMap {
+		_, err = r.deployChart(chartObj, instance)
 
 		if err != nil {
 			return ctrl.Result{}, err
@@ -171,12 +181,16 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	_, err = r.handleFinalizer(helmRepo, hc, instance)
 
 	if err != nil {
-		err = r.Update(ctx, instance)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+		return ctrl.Result{}, err
 	}
 
+	err = r.Update(ctx, instance)
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	log.Info("Don't reconcile.")
 	return ctrl.Result{}, nil
 }
 
@@ -258,7 +272,12 @@ func (r *RepoReconciler) getLabelsByInstance(instance *helmv1alpha1.Repo, env ma
 	return repoPath, repoCache
 }
 
-func (r *RepoReconciler) deployChart(chartMeta *repo.ChartVersion, instance *helmv1alpha1.Repo) (ctrl.Result, error) {
+func (r *RepoReconciler) addOrUpdateChatMap(chartObjMap map[string]*helmv1alpha1.Chart, chartMeta *repo.ChartVersion, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
+
+	if _, ok := chartObjMap[chartMeta.Name]; ok {
+		chartObjMap[chartMeta.Name].Spec.Versions = append(chartObjMap[chartMeta.Name].Spec.Versions, chartMeta.Version)
+		return chartObjMap, nil
+	}
 
 	helmChart := &helmv1alpha1.Chart{
 		ObjectMeta: metav1.ObjectMeta{
@@ -274,7 +293,7 @@ func (r *RepoReconciler) deployChart(chartMeta *repo.ChartVersion, instance *hel
 			Name:        chartMeta.Name,
 			Home:        chartMeta.Home,
 			Sources:     chartMeta.Sources,
-			Version:     chartMeta.Version,
+			Versions:    []string{chartMeta.Version},
 			Description: chartMeta.Description,
 			Keywords:    chartMeta.Keywords,
 			Maintainers: chartMeta.Maintainers,
@@ -289,6 +308,12 @@ func (r *RepoReconciler) deployChart(chartMeta *repo.ChartVersion, instance *hel
 			Type:        chartMeta.Type,
 		},
 	}
+
+	chartObjMap[chartMeta.Name] = helmChart
+	return chartObjMap, nil
+}
+
+func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo) (ctrl.Result, error) {
 
 	err := controllerutil.SetControllerReference(instance, helmChart, r.Scheme)
 

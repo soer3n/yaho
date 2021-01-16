@@ -35,7 +35,7 @@ type ChartSpec struct {
 	// Source is the URL to the source code of this chart
 	Sources []string `json:"sources,omitempty"`
 	// A SemVer 2 conformant version string of the chart
-	Version string `json:"version,omitempty"`
+	Versions []string `json:"versions,omitempty"`
 	// A one-sentence description of the chart
 	Description string `json:"description,omitempty"`
 	// A list of string keywords

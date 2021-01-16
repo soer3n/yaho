@@ -107,6 +107,11 @@ func (in *ChartSpec) DeepCopyInto(out *ChartSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.Versions != nil {
+		in, out := &in.Versions, &out.Versions
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Keywords != nil {
 		in, out := &in.Keywords, &out.Keywords
 		*out = make([]string, len(*in))
