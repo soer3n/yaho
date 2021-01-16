@@ -97,22 +97,15 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	var repoList []*k8sutils.HelmRepo
 	var helmRepo *k8sutils.HelmRepo
-	var repoPath string
-	var repoCache string
 
-	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
-	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
+	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
+	hc.Env["RepositoryCache"] = settings.RepositoryCache
+	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
 
-	if repoLabelOk {
-		repoPath = filepath.Dir(hc.Env["RepositoryConfig"])
-		repoCache = hc.Env["RepositoryCache"]
-		if repoGroupLabelOk {
-			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
-			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
-		} else {
-			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel + "/repositories.yaml"
-			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
-		}
+	err = r.Update(ctx, instance)
+
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
@@ -204,19 +197,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	}
 
-	if !repoLabelOk {
-
-		instance.ObjectMeta.Labels = map[string]string{
-			"repo": instance.Spec.Name,
-		}
-
-		err = r.Update(ctx, instance)
-
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -240,6 +220,36 @@ func contains(list []string, s string) bool {
 		}
 	}
 	return false
+}
+
+func (r *RepoReconciler) getLabelsByInstance(instance *helmv1alpha1.Repo, env map[string]string) (string, string) {
+
+	var repoPath, repoCache string
+
+	repoPath = filepath.Dir(env["RepositoryConfig"])
+	repoCache = env["RepositoryCache"]
+
+	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
+	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
+
+	if repoLabelOk {
+		if repoGroupLabelOk {
+			repoPath = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
+			repoCache = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
+		} else {
+			repoPath = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel + "/repositories.yaml"
+			repoCache = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
+		}
+	}
+
+	if !repoLabelOk {
+
+		instance.ObjectMeta.Labels = map[string]string{
+			"repo": instance.Spec.Name,
+		}
+	}
+
+	return repoPath, repoCache
 }
 
 func (r *RepoReconciler) deployChart(chartMeta *repo.ChartVersion, instance *helmv1alpha1.Repo) (ctrl.Result, error) {

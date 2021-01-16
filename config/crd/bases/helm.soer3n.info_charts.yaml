@@ -16,7 +16,17 @@ spec:
     singular: chart
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.labels['repoGroup']
+      name: Group
+      type: string
+    - jsonPath: .metadata.labels['repo']
+      name: Repo
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Created_at
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Chart is the Schema for the charts API

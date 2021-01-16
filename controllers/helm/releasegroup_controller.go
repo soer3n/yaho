@@ -87,25 +87,7 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	settings := hc.GetEnvSettings()
 	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
-
-	// var repoList []*k8sutils.HelmRepo
-	// var helmRepo *k8sutils.HelmRepo
-	var repoPath, repoCache string
-
-	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
-	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
-
-	if repoLabelOk {
-		repoPath = filepath.Dir(hc.Env["RepositoryConfig"])
-		repoCache = hc.Env["RepositoryCache"]
-		if repoGroupLabelOk {
-			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
-			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
-		} else {
-			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel + "/repositories.yaml"
-			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
-		}
-	}
+	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
 
 	//repoResource := &helmv1alpha1.Repo{}
 
@@ -131,11 +113,32 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return ctrl.Result{}, nil
 }
 
+func (r *ReleaseGroupReconciler) getLabelsByInstance(instance *helmv1alpha1.ReleaseGroup, env map[string]string) (string, string) {
+
+	var repoPath, repoCache string
+
+	repoPath = filepath.Dir(env["RepositoryConfig"])
+	repoCache = env["RepositoryCache"]
+
+	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
+	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
+
+	if repoLabelOk {
+		if repoGroupLabelOk {
+			repoPath = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
+			repoCache = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
+		} else {
+			repoPath = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel + "/repositories.yaml"
+			repoCache = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
+		}
+	}
+
+	return repoPath, repoCache
+}
+
 func (r *ReleaseGroupReconciler) deployRelease(release *helmv1alpha1.ReleaseSpec, instance *helmv1alpha1.ReleaseGroup) (ctrl.Result, error) {
 
-	var helmRelease *helmv1alpha1.Release
-
-	helmRelease = &helmv1alpha1.Release{
+	helmRelease := &helmv1alpha1.Release{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      release.Name,
 			Namespace: instance.ObjectMeta.Namespace,

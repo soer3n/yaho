@@ -96,22 +96,12 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	settings := hc.GetEnvSettings()
 	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
+	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
 
-	var repoPath, repoCache string
+	err = r.Update(ctx, instance)
 
-	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
-	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
-
-	if repoLabelOk {
-		repoPath = filepath.Dir(hc.Env["RepositoryConfig"])
-		repoCache = hc.Env["RepositoryCache"]
-		if repoGroupLabelOk {
-			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
-			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
-		} else {
-			hc.Env["RepositoryConfig"] = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel + "/repositories.yaml"
-			hc.Env["RepositoryCache"] = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
-		}
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	helmRelease = &k8sutils.HelmChart{
@@ -165,19 +155,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if _, ok := instance.ObjectMeta.Labels["release"]; !ok {
-
-		instance.ObjectMeta.Labels = map[string]string{
-			"release": instance.Spec.Name,
-		}
-
-		err = r.Update(ctx, instance)
-
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -192,6 +169,36 @@ func (r *ReleaseReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.
 		return err
 	}
 	return nil
+}
+
+func (r *ReleaseReconciler) getLabelsByInstance(instance *helmv1alpha1.Release, env map[string]string) (string, string) {
+
+	var repoPath, repoCache string
+
+	repoPath = filepath.Dir(env["RepositoryConfig"])
+	repoCache = env["RepositoryCache"]
+
+	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
+	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
+
+	if repoLabelOk {
+		if repoGroupLabelOk {
+			repoPath = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
+			repoCache = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
+		} else {
+			repoPath = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel + "/repositories.yaml"
+			repoCache = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
+		}
+	}
+
+	if _, ok := instance.ObjectMeta.Labels["release"]; !ok {
+
+		instance.ObjectMeta.Labels = map[string]string{
+			"release": instance.Spec.Name,
+		}
+	}
+
+	return repoPath, repoCache
 }
 
 // SetupWithManager sets up the controller with the Manager.

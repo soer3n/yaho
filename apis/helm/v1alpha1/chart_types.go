@@ -71,6 +71,9 @@ type ChartStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Group",type="string",JSONPath=`.metadata.labels['repoGroup']`
+// +kubebuilder:printcolumn:name="Repo",type="string",JSONPath=`.metadata.labels['repo']`
+// +kubebuilder:printcolumn:name="Created_at",type="string",JSONPath=`.metadata.creationTimestamp`
 
 // Chart is the Schema for the charts API
 type Chart struct {

@@ -48,6 +48,10 @@ type ReleaseStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Group",type="string",JSONPath=`.metadata.labels['repoGroup']`
+// +kubebuilder:printcolumn:name="Repo",type="string",JSONPath=`.metadata.labels['repo']`
+// +kubebuilder:printcolumn:name="Chart",type="string",JSONPath=`.metadata.labels['chart']`
+// +kubebuilder:printcolumn:name="Created_at",type="string",JSONPath=`.metadata.creationTimestamp`
 
 // Release is the Schema for the releases API
 type Release struct {

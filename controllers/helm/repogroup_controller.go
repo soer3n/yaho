@@ -77,67 +77,76 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	var helmRepo *helmv1alpha1.Repo
 	spec := instance.Spec.Repos
 
 	log.Infof("Trying to install HelmRepoSpec: %v", spec)
 
-	for key, repository := range spec {
+	for _, repository := range spec {
 
-		log.Infof("Trying to install HelmRepo %v index %v", repository.Name, key)
-		helmRepo = &helmv1alpha1.Repo{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      repository.Name,
-				Namespace: instance.ObjectMeta.Namespace,
-				Labels: map[string]string{
-					"repo":      repository.Name,
-					"repoGroup": instance.Spec.LabelSelector,
-				},
-			},
-			Spec: helmv1alpha1.RepoSpec{
-				Name: repository.Name,
-				Url:  repository.Url,
-			},
-		}
-
-		if repository.Auth != nil {
-			helmRepo.Spec.Auth = &helmv1alpha1.Auth{
-				User:     repository.Auth.User,
-				Password: repository.Auth.Password,
-				Cert:     repository.Auth.Cert,
-				Key:      repository.Auth.Key,
-				Ca:       repository.Auth.Ca,
-			}
-		}
-
-		err = controllerutil.SetControllerReference(instance, helmRepo, r.Scheme)
+		_, err = r.deployRepo(repository, instance)
 
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-
-		installedRepo := &helmv1alpha1.Repo{}
-		err = r.Client.Get(context.Background(), client.ObjectKey{
-			Namespace: helmRepo.ObjectMeta.Namespace,
-			Name:      helmRepo.Spec.Name,
-		}, installedRepo)
-
-		if err != nil {
-			if errors.IsNotFound(err) {
-				err = r.Client.Create(context.TODO(), helmRepo)
-
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-			}
-			return ctrl.Result{}, err
-		}
-
-		installedRepo.Spec = helmRepo.Spec
-		r.Client.Update(context.TODO(), installedRepo)
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, instance *helmv1alpha1.RepoGroup) (ctrl.Result, error) {
+
+	log.Infof("Trying to install HelmRepo %v", repository.Name)
+	helmRepo := &helmv1alpha1.Repo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      repository.Name,
+			Namespace: instance.ObjectMeta.Namespace,
+			Labels: map[string]string{
+				"repo":      repository.Name,
+				"repoGroup": instance.Spec.LabelSelector,
+			},
+		},
+		Spec: helmv1alpha1.RepoSpec{
+			Name: repository.Name,
+			Url:  repository.Url,
+		},
+	}
+
+	if repository.Auth != nil {
+		helmRepo.Spec.Auth = &helmv1alpha1.Auth{
+			User:     repository.Auth.User,
+			Password: repository.Auth.Password,
+			Cert:     repository.Auth.Cert,
+			Key:      repository.Auth.Key,
+			Ca:       repository.Auth.Ca,
+		}
+	}
+
+	err := controllerutil.SetControllerReference(instance, helmRepo, r.Scheme)
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	installedRepo := &helmv1alpha1.Repo{}
+	err = r.Client.Get(context.Background(), client.ObjectKey{
+		Namespace: helmRepo.ObjectMeta.Namespace,
+		Name:      helmRepo.Spec.Name,
+	}, installedRepo)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			err = r.Client.Create(context.TODO(), helmRepo)
+
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, err
+	}
+
+	installedRepo.Spec = helmRepo.Spec
+	err = r.Client.Update(context.TODO(), installedRepo)
+	return ctrl.Result{}, err
 }
 
 // SetupWithManager sets up the controller with the Manager.
