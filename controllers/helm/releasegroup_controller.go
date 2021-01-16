@@ -89,16 +89,9 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
 	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
 
-	//repoResource := &helmv1alpha1.Repo{}
-
 	spec := instance.Spec.Releases
 
 	for _, release := range spec {
-
-		//	err = r.Get(context.Background(), client.ObjectKey{
-		//		Namespace: instance.ObjectMeta.Namespace,
-		//		Name:      repoName,
-		//	}, repoResource)
 
 		_, err = r.deployRelease(&release, instance)
 

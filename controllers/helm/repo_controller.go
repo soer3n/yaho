@@ -129,33 +129,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	hc.Repos.Entries = repoList
 	hc.Repos.Settings = hc.GetEnvSettings()
 
-	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
-	if isRepoMarkedToBeDeleted {
-		// Run finalization logic for memcachedFinalizer. If the
-		// finalization logic fails, don't remove the finalizer so
-		// that we can retry during the next reconciliation.
-		log.Infof("Deletion: %v.\n", helmRepo)
-		log.Infof("Deletion: %v.\n", helmRepo.Settings.RepositoryConfig)
-		err = hc.Repos.SetInstalledRepos()
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		err = hc.Repos.RemoveByName(helmRepo.Name)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		// Remove memcachedFinalizer. Once all finalizers have been
-		// removed, the object will be deleted.
-		controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
-		err := r.Update(ctx, instance)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, nil
-	}
-
 	log.Infof("Get: %v.\n", helmRepo.Settings)
 
 	if err = helmRepo.Update(); err != nil {
@@ -195,6 +168,15 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	}
 
+	_, err = r.handleFinalizer(helmRepo, hc, instance)
+
+	if err != nil {
+		err = r.Update(ctx, instance)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -209,6 +191,32 @@ func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Rep
 		return err
 	}
 	return nil
+}
+
+func (r *RepoReconciler) handleFinalizer(helmRepo *k8sutils.HelmRepo, hc *k8sutils.HelmClient, instance *helmv1alpha1.Repo) (ctrl.Result, error) {
+
+	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
+	if isRepoMarkedToBeDeleted {
+		// Run finalization logic for memcachedFinalizer. If the
+		// finalization logic fails, don't remove the finalizer so
+		// that we can retry during the next reconciliation.
+		log.Infof("Deletion: %v.\n", helmRepo)
+		log.Infof("Deletion: %v.\n", helmRepo.Settings.RepositoryConfig)
+		err := hc.Repos.SetInstalledRepos()
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		err = hc.Repos.RemoveByName(helmRepo.Name)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// Remove memcachedFinalizer. Once all finalizers have been
+		// removed, the object will be deleted.
+		controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
+	}
+	return ctrl.Result{}, nil
 }
 
 func contains(list []string, s string) bool {

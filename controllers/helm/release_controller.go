@@ -119,13 +119,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	helmRelease.Config = actionConfig
 
-	_, err = r.handleFinalizer(helmRelease, instance)
-
-	err = r.Update(ctx, instance)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	log.Infof("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
 
 	if instance.Spec.ValuesTemplate != nil {
@@ -138,6 +131,14 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if err = helmRelease.Update(); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	_, err = r.handleFinalizer(helmRelease, instance)
+
+	err = r.Update(ctx, instance)
+
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
