@@ -88,15 +88,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	hc := &k8sutils.HelmClient{
-		Repos: &k8sutils.HelmRepos{},
-		Env:   map[string]string{},
-	}
+	hc, err := r.getHelmClient(instance)
 
-	settings := hc.GetEnvSettings()
-	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
-	hc.Env["RepositoryCache"] = settings.RepositoryCache
-	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	err = r.Update(ctx, instance)
 
@@ -104,31 +100,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	helmRelease = &k8sutils.HelmChart{
-		Name:     instance.Spec.Name,
-		Repo:     instance.Spec.Repo,
-		Chart:    instance.Spec.Chart,
-		Settings: hc.GetEnvSettings(),
-	}
-
-	actionConfig, err := helmRelease.GetActionConfig(helmRelease.Settings)
-
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	helmRelease.Config = actionConfig
-
-	log.Infof("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
-
-	if instance.Spec.ValuesTemplate != nil {
-		if instance.Spec.ValuesTemplate.Values != nil {
-			helmRelease.ValuesTemplate.Values = instance.Spec.ValuesTemplate.Values
-		}
-		if instance.Spec.ValuesTemplate.ValueFiles != nil {
-			helmRelease.ValuesTemplate.ValueFiles = instance.Spec.ValuesTemplate.ValueFiles
-		}
-	}
+	helmRelease = hc.Charts.Entries[0]
 
 	if err = helmRelease.Update(); err != nil {
 		return ctrl.Result{}, err
@@ -180,6 +152,63 @@ func (r *ReleaseReconciler) handleFinalizer(helmRelease *k8sutils.HelmChart, ins
 		controllerutil.RemoveFinalizer(instance, "finalizer.releases.helm.soer3n.info")
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *ReleaseReconciler) getHelmClient(instance *helmv1alpha1.Release) (*k8sutils.HelmClient, error) {
+
+	hc := &k8sutils.HelmClient{
+		Repos: &k8sutils.HelmRepos{},
+		Env:   map[string]string{},
+	}
+
+	settings := hc.GetEnvSettings()
+	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
+	hc.Env["RepositoryCache"] = settings.RepositoryCache
+
+	var releaseList []*k8sutils.HelmChart
+	var helmRelease *k8sutils.HelmChart
+
+	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
+
+	err := r.Update(context.TODO(), instance)
+
+	if err != nil {
+		return &k8sutils.HelmClient{}, err
+	}
+
+	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
+
+	helmRelease = &k8sutils.HelmChart{
+		Name:     instance.Spec.Name,
+		Repo:     instance.Spec.Repo,
+		Chart:    instance.Spec.Chart,
+		Settings: hc.GetEnvSettings(),
+	}
+
+	actionConfig, err := helmRelease.GetActionConfig(helmRelease.Settings)
+
+	if err != nil {
+		return &k8sutils.HelmClient{}, err
+	}
+
+	helmRelease.Config = actionConfig
+
+	log.Infof("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
+
+	if instance.Spec.ValuesTemplate != nil {
+		if instance.Spec.ValuesTemplate.Values != nil {
+			helmRelease.ValuesTemplate.Values = instance.Spec.ValuesTemplate.Values
+		}
+		if instance.Spec.ValuesTemplate.ValueFiles != nil {
+			helmRelease.ValuesTemplate.ValueFiles = instance.Spec.ValuesTemplate.ValueFiles
+		}
+	}
+
+	releaseList = append(releaseList, helmRelease)
+
+	hc.Charts.Entries = releaseList
+	hc.Charts.Settings = hc.GetEnvSettings()
+	return hc, nil
 }
 
 func (r *ReleaseReconciler) getLabelsByInstance(instance *helmv1alpha1.Release, env map[string]string) (string, string) {

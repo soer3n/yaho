@@ -107,7 +107,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	var chartObjMap map[string]*helmv1alpha1.Chart
 
 	for _, chartMeta := range chartList {
-		chartObjMap, err = r.addOrUpdateChatMap(chartObjMap, chartMeta, instance)
+		chartObjMap, err = r.addOrUpdateChartMap(chartObjMap, chartMeta, instance)
 
 		if err != nil {
 			return ctrl.Result{}, err
@@ -121,6 +121,12 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+	}
+
+	hc, err := r.getHelmClient(instance)
+
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	_, err = r.handleFinalizer(helmRepo, hc, instance)
@@ -189,6 +195,37 @@ func contains(list []string, s string) bool {
 
 func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *k8sutils.HelmRepo, error) {
 
+	hc, err := r.getHelmClient(instance)
+
+	if err != nil {
+		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+	}
+
+	helmRepo := hc.Repos.Entries[0]
+
+	log.Infof("Get: %v.\n", helmRepo.Settings)
+
+	if err = helmRepo.Update(); err != nil {
+		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+	}
+
+	err, entryObj := helmRepo.GetEntryObj()
+
+	if err != nil {
+		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+	}
+
+	err = hc.Repos.UpdateRepoFile(entryObj)
+
+	if err != nil {
+		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+	}
+
+	return ctrl.Result{}, helmRepo, nil
+}
+
+func (r *RepoReconciler) getHelmClient(instance *helmv1alpha1.Repo) (*k8sutils.HelmClient, error) {
+
 	hc := &k8sutils.HelmClient{
 		Repos: &k8sutils.HelmRepos{},
 		Env:   map[string]string{},
@@ -206,7 +243,7 @@ func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *
 	err := r.Update(context.TODO(), instance)
 
 	if err != nil {
-		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+		return &k8sutils.HelmClient{}, err
 	}
 
 	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
@@ -231,26 +268,7 @@ func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *
 
 	hc.Repos.Entries = repoList
 	hc.Repos.Settings = hc.GetEnvSettings()
-
-	log.Infof("Get: %v.\n", helmRepo.Settings)
-
-	if err = helmRepo.Update(); err != nil {
-		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
-	}
-
-	err, entryObj := helmRepo.GetEntryObj()
-
-	if err != nil {
-		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
-	}
-
-	err = hc.Repos.UpdateRepoFile(entryObj)
-
-	if err != nil {
-		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
-	}
-
-	return ctrl.Result{}, helmRepo, nil
+	return hc, nil
 }
 
 func (r *RepoReconciler) getLabelsByInstance(instance *helmv1alpha1.Repo, env map[string]string) (string, string) {
@@ -283,7 +301,7 @@ func (r *RepoReconciler) getLabelsByInstance(instance *helmv1alpha1.Repo, env ma
 	return repoPath, repoCache
 }
 
-func (r *RepoReconciler) addOrUpdateChatMap(chartObjMap map[string]*helmv1alpha1.Chart, chartMeta *repo.ChartVersion, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
+func (r *RepoReconciler) addOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, chartMeta *repo.ChartVersion, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
 
 	if _, ok := chartObjMap[chartMeta.Name]; ok {
 		chartObjMap[chartMeta.Name].Spec.Versions = append(chartObjMap[chartMeta.Name].Spec.Versions, chartMeta.Version)
