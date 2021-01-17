@@ -80,12 +80,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	if !contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
-		if err := r.addFinalizer(reqLogger, instance); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
 	_, helmRepo, err := r.deployRepo(instance)
 
 	if err != nil {
@@ -98,9 +92,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	_, err = r.handleFinalizer(helmRepo, hc, instance)
-
-	if err != nil {
+	if _, err := r.handleFinalizer(reqLogger, helmRepo, hc, instance); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -152,7 +144,13 @@ func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Rep
 	return nil
 }
 
-func (r *RepoReconciler) handleFinalizer(helmRepo *k8sutils.HelmRepo, hc *k8sutils.HelmClient, instance *helmv1alpha1.Repo) (ctrl.Result, error) {
+func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *k8sutils.HelmRepo, hc *k8sutils.HelmClient, instance *helmv1alpha1.Repo) (ctrl.Result, error) {
+
+	if !contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
+		if err := r.addFinalizer(reqLogger, instance); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
@@ -233,12 +231,6 @@ func (r *RepoReconciler) getHelmClient(instance *helmv1alpha1.Repo) (*k8sutils.H
 	var helmRepo *k8sutils.HelmRepo
 
 	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
-
-	err := r.Update(context.TODO(), instance)
-
-	if err != nil {
-		return &k8sutils.HelmClient{}, err
-	}
 
 	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
 
