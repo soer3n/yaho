@@ -92,6 +92,18 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
+	hc, err := r.getHelmClient(instance)
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	_, err = r.handleFinalizer(helmRepo, hc, instance)
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	//if repoGroupLabelOk {
 	//	helmRepo.Name = repoGroupLabel
 	//}
@@ -104,7 +116,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	log.Infof("HelmChartCount: %v", len(chartList))
 
-	var chartObjMap map[string]*helmv1alpha1.Chart
+	chartObjMap := make(map[string]*helmv1alpha1.Chart)
 
 	for _, chartMeta := range chartList {
 		chartObjMap, err = r.addOrUpdateChartMap(chartObjMap, chartMeta, instance)
@@ -121,24 +133,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-	}
-
-	hc, err := r.getHelmClient(instance)
-
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	_, err = r.handleFinalizer(helmRepo, hc, instance)
-
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	err = r.Update(ctx, instance)
-
-	if err != nil {
-		return ctrl.Result{}, err
 	}
 
 	log.Info("Don't reconcile.")
@@ -303,7 +297,9 @@ func (r *RepoReconciler) getLabelsByInstance(instance *helmv1alpha1.Repo, env ma
 
 func (r *RepoReconciler) addOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, chartMeta *repo.ChartVersion, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
 
-	if _, ok := chartObjMap[chartMeta.Name]; ok {
+	_, ok := chartObjMap[chartMeta.Name]
+
+	if ok {
 		chartObjMap[chartMeta.Name].Spec.Versions = append(chartObjMap[chartMeta.Name].Spec.Versions, chartMeta.Version)
 		return chartObjMap, nil
 	}

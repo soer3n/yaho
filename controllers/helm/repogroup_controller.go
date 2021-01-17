@@ -140,9 +140,8 @@ func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, insta
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
 	}
 
 	installedRepo.Spec = helmRepo.Spec
