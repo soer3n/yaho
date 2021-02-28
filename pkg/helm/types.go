@@ -8,18 +8,18 @@ import (
 
 type HelmClient struct {
 	Repos  *HelmRepos
-	Charts *HelmCharts
+	Releases *HelmReleases
 	Env    map[string]string
 }
 
-type HelmCharts struct {
-	Entries     []*HelmChart
+type HelmReleases struct {
+	Entries     []*HelmRelease
 	Conditional ResourceConditional
 	Config      *action.Configuration
 	Settings    *cli.EnvSettings
 }
 
-type HelmChart struct {
+type HelmRelease struct {
 	Name           string
 	Repo           string
 	Chart          string

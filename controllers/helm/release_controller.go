@@ -78,7 +78,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	var helmRelease *helmutils.HelmChart
+	var helmRelease *helmutils.HelmRelease
 
 	log.Infof("Trying HelmRelease %v", instance.Spec.Name)
 
@@ -100,7 +100,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	helmRelease = hc.Charts.Entries[0]
+	helmRelease = hc.Releases.Entries[0]
 
 	if err = helmRelease.Update(); err != nil {
 		return ctrl.Result{}, err
@@ -134,7 +134,7 @@ func (r *ReleaseReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.
 	return nil
 }
 
-func (r *ReleaseReconciler) handleFinalizer(helmRelease *helmutils.HelmChart, instance *helmv1alpha1.Release) (ctrl.Result, error) {
+func (r *ReleaseReconciler) handleFinalizer(helmRelease *helmutils.HelmRelease, instance *helmv1alpha1.Release) (ctrl.Result, error) {
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
@@ -157,7 +157,7 @@ func (r *ReleaseReconciler) handleFinalizer(helmRelease *helmutils.HelmChart, in
 func (r *ReleaseReconciler) getHelmClient(instance *helmv1alpha1.Release) (*helmutils.HelmClient, error) {
 
 	hc := &helmutils.HelmClient{
-		Charts: &helmutils.HelmCharts{},
+		Releases: &helmutils.HelmReleases{},
 		Env:    map[string]string{},
 	}
 
@@ -165,8 +165,8 @@ func (r *ReleaseReconciler) getHelmClient(instance *helmv1alpha1.Release) (*helm
 	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
 
-	var releaseList []*helmutils.HelmChart
-	var helmRelease *helmutils.HelmChart
+	var releaseList []*helmutils.HelmRelease
+	var helmRelease *helmutils.HelmRelease
 
 	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(instance.ObjectMeta, hc.Env)
 
@@ -178,7 +178,7 @@ func (r *ReleaseReconciler) getHelmClient(instance *helmv1alpha1.Release) (*helm
 
 	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
 
-	helmRelease = &helmutils.HelmChart{
+	helmRelease = &helmutils.HelmRelease{
 		Name:     instance.Spec.Name,
 		Repo:     instance.Spec.Repo,
 		Chart:    instance.Spec.Chart,
@@ -206,8 +206,8 @@ func (r *ReleaseReconciler) getHelmClient(instance *helmv1alpha1.Release) (*helm
 
 	releaseList = append(releaseList, helmRelease)
 
-	hc.Charts.Entries = releaseList
-	hc.Charts.Settings = hc.GetEnvSettings()
+	hc.Releases.Entries = releaseList
+	hc.Releases.Settings = hc.GetEnvSettings()
 	return hc, nil
 }
 
