@@ -150,27 +150,11 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 		}
 	}
 
-	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
-	if isRepoMarkedToBeDeleted {
-		// Run finalization logic for memcachedFinalizer. If the
-		// finalization logic fails, don't remove the finalizer so
-		// that we can retry during the next reconciliation.
-		log.Infof("Deletion: %v.\n", helmRepo)
-		log.Infof("Deletion: %v.\n", helmRepo.Settings.RepositoryConfig)
-		err := hc.Repos.SetInstalledRepos()
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		err = hc.Repos.RemoveByName(helmRepo.Name)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		// Remove memcachedFinalizer. Once all finalizers have been
-		// removed, the object will be deleted.
-		controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
+	if err = oputils.HandleFinalizer(helmRepo, hc, instance); err != nil {
+		return ctrl.Result{}, nil
 	}
+
+	controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
 	return ctrl.Result{}, nil
 }
 
