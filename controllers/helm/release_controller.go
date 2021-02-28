@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	"github.com/soer3n/go-utils/k8sutils"
+	helmutils "github.com/soer3n/apps-operator/pkg/helm"
 )
 
 // ReleaseReconciler reconciles a Release object
@@ -78,7 +78,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	var helmRelease *k8sutils.HelmChart
+	var helmRelease *helmutils.HelmChart
 
 	log.Infof("Trying HelmRelease %v", instance.Spec.Name)
 
@@ -134,7 +134,7 @@ func (r *ReleaseReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.
 	return nil
 }
 
-func (r *ReleaseReconciler) handleFinalizer(helmRelease *k8sutils.HelmChart, instance *helmv1alpha1.Release) (ctrl.Result, error) {
+func (r *ReleaseReconciler) handleFinalizer(helmRelease *helmutils.HelmChart, instance *helmv1alpha1.Release) (ctrl.Result, error) {
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
@@ -154,31 +154,31 @@ func (r *ReleaseReconciler) handleFinalizer(helmRelease *k8sutils.HelmChart, ins
 	return ctrl.Result{}, nil
 }
 
-func (r *ReleaseReconciler) getHelmClient(instance *helmv1alpha1.Release) (*k8sutils.HelmClient, error) {
+func (r *ReleaseReconciler) getHelmClient(instance *helmv1alpha1.Release) (*helmutils.HelmClient, error) {
 
-	hc := &k8sutils.HelmClient{
-		Repos: &k8sutils.HelmRepos{},
-		Env:   map[string]string{},
+	hc := &helmutils.HelmClient{
+		Charts: &helmutils.HelmCharts{},
+		Env:    map[string]string{},
 	}
 
 	settings := hc.GetEnvSettings()
 	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
 
-	var releaseList []*k8sutils.HelmChart
-	var helmRelease *k8sutils.HelmChart
+	var releaseList []*helmutils.HelmChart
+	var helmRelease *helmutils.HelmChart
 
 	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
 
 	err := r.Update(context.TODO(), instance)
 
 	if err != nil {
-		return &k8sutils.HelmClient{}, err
+		return &helmutils.HelmClient{}, err
 	}
 
 	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
 
-	helmRelease = &k8sutils.HelmChart{
+	helmRelease = &helmutils.HelmChart{
 		Name:     instance.Spec.Name,
 		Repo:     instance.Spec.Repo,
 		Chart:    instance.Spec.Chart,
@@ -188,7 +188,7 @@ func (r *ReleaseReconciler) getHelmClient(instance *helmv1alpha1.Release) (*k8su
 	actionConfig, err := helmRelease.GetActionConfig(helmRelease.Settings)
 
 	if err != nil {
-		return &k8sutils.HelmClient{}, err
+		return &helmutils.HelmClient{}, err
 	}
 
 	helmRelease.Config = actionConfig

@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	"github.com/soer3n/go-utils/k8sutils"
+	helmutils "github.com/soer3n/apps-operator/pkg/helm"
 )
 
 // RepoReconciler reconciles a Repo object
@@ -144,7 +144,7 @@ func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Rep
 	return nil
 }
 
-func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *k8sutils.HelmRepo, hc *k8sutils.HelmClient, instance *helmv1alpha1.Repo) (ctrl.Result, error) {
+func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmutils.HelmRepo, hc *helmutils.HelmClient, instance *helmv1alpha1.Repo) (ctrl.Result, error) {
 
 	if !contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
 		if err := r.addFinalizer(reqLogger, instance); err != nil {
@@ -185,12 +185,12 @@ func contains(list []string, s string) bool {
 	return false
 }
 
-func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *k8sutils.HelmRepo, error) {
+func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *helmutils.HelmRepo, error) {
 
 	hc, err := r.getHelmClient(instance)
 
 	if err != nil {
-		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+		return ctrl.Result{}, &helmutils.HelmRepo{}, err
 	}
 
 	helmRepo := hc.Repos.Entries[0]
@@ -198,28 +198,28 @@ func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *
 	log.Infof("Get: %v.\n", helmRepo.Settings)
 
 	if err = helmRepo.Update(); err != nil {
-		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+		return ctrl.Result{}, &helmutils.HelmRepo{}, err
 	}
 
 	err, entryObj := helmRepo.GetEntryObj()
 
 	if err != nil {
-		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+		return ctrl.Result{}, &helmutils.HelmRepo{}, err
 	}
 
 	err = hc.Repos.UpdateRepoFile(entryObj)
 
 	if err != nil {
-		return ctrl.Result{}, &k8sutils.HelmRepo{}, err
+		return ctrl.Result{}, &helmutils.HelmRepo{}, err
 	}
 
 	return ctrl.Result{}, helmRepo, nil
 }
 
-func (r *RepoReconciler) getHelmClient(instance *helmv1alpha1.Repo) (*k8sutils.HelmClient, error) {
+func (r *RepoReconciler) getHelmClient(instance *helmv1alpha1.Repo) (*helmutils.HelmClient, error) {
 
-	hc := &k8sutils.HelmClient{
-		Repos: &k8sutils.HelmRepos{},
+	hc := &helmutils.HelmClient{
+		Repos: &helmutils.HelmRepos{},
 		Env:   map[string]string{},
 	}
 
@@ -227,21 +227,21 @@ func (r *RepoReconciler) getHelmClient(instance *helmv1alpha1.Repo) (*k8sutils.H
 	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
 
-	var repoList []*k8sutils.HelmRepo
-	var helmRepo *k8sutils.HelmRepo
+	var repoList []*helmutils.HelmRepo
+	var helmRepo *helmutils.HelmRepo
 
 	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
 
 	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
 
-	helmRepo = &k8sutils.HelmRepo{
+	helmRepo = &helmutils.HelmRepo{
 		Name:     instance.Spec.Name,
 		Url:      instance.Spec.Url,
 		Settings: hc.GetEnvSettings(),
 	}
 
 	if instance.Spec.Auth != nil {
-		helmRepo.Auth = k8sutils.HelmAuth{
+		helmRepo.Auth = helmutils.HelmAuth{
 			User:     instance.Spec.Auth.User,
 			Password: instance.Spec.Auth.Password,
 			Cert:     instance.Spec.Auth.Cert,

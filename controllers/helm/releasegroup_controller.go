@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	"github.com/soer3n/go-utils/k8sutils"
+	helmutils "github.com/soer3n/apps-operator/pkg/helm"
 )
 
 // ReleaseGroupReconciler reconciles a ReleaseGroup object
@@ -79,8 +79,8 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	hc := &k8sutils.HelmClient{
-		Repos: &k8sutils.HelmRepos{},
+	hc := &helmutils.HelmClient{
+		Repos: &helmutils.HelmRepos{},
 		Env:   map[string]string{},
 	}
 
