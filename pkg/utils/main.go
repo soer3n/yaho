@@ -5,6 +5,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func Contains(list []string, s string) bool {
+	for _, v := range list {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
 func GetLabelsByInstance(instance metav1.ObjectMeta, env map[string]string) (string, string) {
 
 	var repoPath, repoCache string

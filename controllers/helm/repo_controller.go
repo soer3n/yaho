@@ -21,9 +21,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
-	"helm.sh/helm/v3/pkg/repo"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -111,7 +109,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	chartObjMap := make(map[string]*helmv1alpha1.Chart)
 
 	for _, chartMeta := range chartList {
-		chartObjMap, err = r.addOrUpdateChartMap(chartObjMap, chartMeta, instance)
+		chartObjMap, err = helmutils.AddOrUpdateChartMap(chartObjMap, chartMeta, instance)
 
 		if err != nil {
 			return ctrl.Result{}, err
@@ -146,7 +144,7 @@ func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Rep
 
 func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmutils.HelmRepo, hc *helmutils.HelmClient, instance *helmv1alpha1.Repo) (ctrl.Result, error) {
 
-	if !contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
+	if !oputils.Contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
 		if err := r.addFinalizer(reqLogger, instance); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -174,15 +172,6 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 		controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
 	}
 	return ctrl.Result{}, nil
-}
-
-func contains(list []string, s string) bool {
-	for _, v := range list {
-		if v == s {
-			return true
-		}
-	}
-	return false
 }
 
 func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *helmutils.HelmRepo, error) {
@@ -255,49 +244,6 @@ func (r *RepoReconciler) getHelmClient(instance *helmv1alpha1.Repo) (*helmutils.
 	hc.Repos.Entries = repoList
 	hc.Repos.Settings = hc.GetEnvSettings()
 	return hc, nil
-}
-
-func (r *RepoReconciler) addOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, chartMeta *repo.ChartVersion, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
-
-	_, ok := chartObjMap[chartMeta.Name]
-
-	if ok {
-		chartObjMap[chartMeta.Name].Spec.Versions = append(chartObjMap[chartMeta.Name].Spec.Versions, chartMeta.Version)
-		return chartObjMap, nil
-	}
-
-	helmChart := &helmv1alpha1.Chart{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      chartMeta.Name,
-			Namespace: instance.ObjectMeta.Namespace,
-			Labels: map[string]string{
-				"chart":     chartMeta.Name,
-				"repo":      instance.Spec.Name,
-				"repoGroup": instance.ObjectMeta.Labels["repoGroup"],
-			},
-		},
-		Spec: helmv1alpha1.ChartSpec{
-			Name:        chartMeta.Name,
-			Home:        chartMeta.Home,
-			Sources:     chartMeta.Sources,
-			Versions:    []string{chartMeta.Version},
-			Description: chartMeta.Description,
-			Keywords:    chartMeta.Keywords,
-			Maintainers: chartMeta.Maintainers,
-			Icon:        chartMeta.Icon,
-			APIVersion:  chartMeta.APIVersion,
-			Condition:   chartMeta.Condition,
-			Tags:        chartMeta.Tags,
-			AppVersion:  chartMeta.AppVersion,
-			Deprecated:  chartMeta.Deprecated,
-			Annotations: chartMeta.Annotations,
-			KubeVersion: chartMeta.KubeVersion,
-			Type:        chartMeta.Type,
-		},
-	}
-
-	chartObjMap[chartMeta.Name] = helmChart
-	return chartObjMap, nil
 }
 
 func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo) (ctrl.Result, error) {

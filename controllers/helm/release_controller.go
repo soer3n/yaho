@@ -82,7 +82,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	log.Infof("Trying HelmRelease %v", instance.Spec.Name)
 
-	if !contains(instance.GetFinalizers(), "finalizer.releases.helm.soer3n.info") {
+	if !oputils.Contains(instance.GetFinalizers(), "finalizer.releases.helm.soer3n.info") {
 		if err := r.addFinalizer(reqLogger, instance); err != nil {
 			return ctrl.Result{}, err
 		}
