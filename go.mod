@@ -12,6 +12,7 @@ require (
 	github.com/prometheus/common v0.10.0
 	github.com/soer3n/go-utils v0.0.0-20210117144211-6828f7e699f4
 	helm.sh/helm/v3 v3.4.2
+	k8s.io/api v0.19.4
 	k8s.io/apimachinery v0.19.4
 	k8s.io/client-go v0.19.4
 	k8s.io/helm v2.17.0+incompatible

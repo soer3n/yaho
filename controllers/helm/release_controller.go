@@ -18,7 +18,6 @@ package helm
 
 import (
 	"context"
-	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
@@ -30,6 +29,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	helmutils "github.com/soer3n/apps-operator/pkg/helm"
+	oputils "github.com/soer3n/apps-operator/pkg/utils"
 )
 
 // ReleaseReconciler reconciles a Release object
@@ -168,7 +168,7 @@ func (r *ReleaseReconciler) getHelmClient(instance *helmv1alpha1.Release) (*helm
 	var releaseList []*helmutils.HelmChart
 	var helmRelease *helmutils.HelmChart
 
-	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
+	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(instance.ObjectMeta, hc.Env)
 
 	err := r.Update(context.TODO(), instance)
 
@@ -209,36 +209,6 @@ func (r *ReleaseReconciler) getHelmClient(instance *helmv1alpha1.Release) (*helm
 	hc.Charts.Entries = releaseList
 	hc.Charts.Settings = hc.GetEnvSettings()
 	return hc, nil
-}
-
-func (r *ReleaseReconciler) getLabelsByInstance(instance *helmv1alpha1.Release, env map[string]string) (string, string) {
-
-	var repoPath, repoCache string
-
-	repoPath = filepath.Dir(env["RepositoryConfig"])
-	repoCache = env["RepositoryCache"]
-
-	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
-	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
-
-	if repoLabelOk {
-		if repoGroupLabelOk {
-			repoPath = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
-			repoCache = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
-		} else {
-			repoPath = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel + "/repositories.yaml"
-			repoCache = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
-		}
-	}
-
-	if _, ok := instance.ObjectMeta.Labels["release"]; !ok {
-
-		instance.ObjectMeta.Labels = map[string]string{
-			"release": instance.Spec.Name,
-		}
-	}
-
-	return repoPath, repoCache
 }
 
 // SetupWithManager sets up the controller with the Manager.

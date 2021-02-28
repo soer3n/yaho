@@ -18,7 +18,6 @@ package helm
 
 import (
 	"context"
-	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
@@ -32,6 +31,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	helmutils "github.com/soer3n/apps-operator/pkg/helm"
+	oputils "github.com/soer3n/apps-operator/pkg/utils"
 )
 
 // RepoReconciler reconciles a Repo object
@@ -230,7 +230,7 @@ func (r *RepoReconciler) getHelmClient(instance *helmv1alpha1.Repo) (*helmutils.
 	var repoList []*helmutils.HelmRepo
 	var helmRepo *helmutils.HelmRepo
 
-	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
+	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(instance.ObjectMeta, hc.Env)
 
 	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
 
@@ -255,36 +255,6 @@ func (r *RepoReconciler) getHelmClient(instance *helmv1alpha1.Repo) (*helmutils.
 	hc.Repos.Entries = repoList
 	hc.Repos.Settings = hc.GetEnvSettings()
 	return hc, nil
-}
-
-func (r *RepoReconciler) getLabelsByInstance(instance *helmv1alpha1.Repo, env map[string]string) (string, string) {
-
-	var repoPath, repoCache string
-
-	repoPath = filepath.Dir(env["RepositoryConfig"])
-	repoCache = env["RepositoryCache"]
-
-	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
-	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
-
-	if repoLabelOk {
-		if repoGroupLabelOk {
-			repoPath = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
-			repoCache = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
-		} else {
-			repoPath = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel + "/repositories.yaml"
-			repoCache = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
-		}
-	}
-
-	if !repoLabelOk {
-
-		instance.ObjectMeta.Labels = map[string]string{
-			"repo": instance.Spec.Name,
-		}
-	}
-
-	return repoPath, repoCache
 }
 
 func (r *RepoReconciler) addOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, chartMeta *repo.ChartVersion, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
