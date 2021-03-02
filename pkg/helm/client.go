@@ -23,7 +23,7 @@ func GetHelmClient(instance interface{}) (*HelmClient, error) {
 	var repoList []*HelmRepo
 	var helmRepo *HelmRepo
 
-	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(instance.ObjectMeta, hc.Env)
+	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(metaObj, hc.Env)
 
 	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
 
