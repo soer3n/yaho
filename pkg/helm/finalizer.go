@@ -1,11 +1,10 @@
-package utils
+package helm
 
 import (
-	helmutils "github.com/soer3n/apps-operator/pkg/helm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func HandleFinalizer(hc *helmutils.HelmClient, instance interface{}) error {
+func HandleFinalizer(hc *HelmClient, instance interface{}) error {
 
 	var metaObj *metav1.ObjectMeta
 	metaObj, ok := instance.(*metav1.ObjectMeta)
@@ -32,7 +31,7 @@ func HandleFinalizer(hc *helmutils.HelmClient, instance interface{}) error {
 	return nil
 }
 
-func removeRepo(hc *helmutils.HelmClient) error {
+func removeRepo(hc *HelmClient) error {
 
 	helmRepo := hc.Repos.Entries[0]
 	name := helmRepo.Name
@@ -48,7 +47,7 @@ func removeRepo(hc *helmutils.HelmClient) error {
 	return nil
 }
 
-func removeRelease(helmRelease *helmutils.HelmRelease) error {
+func removeRelease(helmRelease *HelmRelease) error {
 
 	if err := helmRelease.Remove(); err != nil {
 		return err
