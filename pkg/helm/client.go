@@ -2,28 +2,53 @@ package helm
 
 import (
 	"github.com/prometheus/common/log"
+	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func GetHelmClient(instance interface{}) (*HelmClient, error) {
 
-	var metaObj *metav1.ObjectMeta
-	metaObj, ok := instance.(*metav1.ObjectMeta)
-
 	hc := &HelmClient{
-		Repos: &HelmRepos{},
-		Env:   map[string]string{},
+		Repos:    &HelmRepos{},
+		Releases: &HelmReleases{},
+		Env:      map[string]string{},
+	}
+
+	var metaObj metav1.ObjectMeta
+	metaObj, ok := instance.(metav1.ObjectMeta)
+
+	if !ok {
+		return hc, nil
 	}
 
 	settings := hc.GetEnvSettings()
 	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
+	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(metaObj, hc.Env)
+
+	repoObj, ok := instance.(helmv1alpha1.Repo)
+
+	if ok {
+		_ = hc.setRepo(repoObj)
+	}
+
+	releaseObj, ok := instance.(helmv1alpha1.Release)
+
+	if ok {
+		if err := hc.setRelease(releaseObj); err != nil {
+			return hc, err
+		}
+	}
+
+	hc.Repos.Settings = hc.GetEnvSettings()
+	return hc, nil
+}
+
+func (hc *HelmClient) setRepo(instance helmv1alpha1.Repo) error {
 
 	var repoList []*HelmRepo
 	var helmRepo *HelmRepo
-
-	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(metaObj, hc.Env)
 
 	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
 
@@ -46,6 +71,42 @@ func GetHelmClient(instance interface{}) (*HelmClient, error) {
 	repoList = append(repoList, helmRepo)
 
 	hc.Repos.Entries = repoList
-	hc.Repos.Settings = hc.GetEnvSettings()
-	return hc, nil
+	return nil
+}
+
+func (hc *HelmClient) setRelease(instance helmv1alpha1.Release) error {
+	var releaseList []*HelmRelease
+	var helmRelease *HelmRelease
+
+	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
+
+	helmRelease = &HelmRelease{
+		Name:     instance.Spec.Name,
+		Repo:     instance.Spec.Repo,
+		Chart:    instance.Spec.Chart,
+		Settings: hc.GetEnvSettings(),
+	}
+
+	actionConfig, err := helmRelease.GetActionConfig(helmRelease.Settings)
+
+	if err != nil {
+		return err
+	}
+
+	helmRelease.Config = actionConfig
+
+	log.Infof("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
+
+	if instance.Spec.ValuesTemplate != nil {
+		if instance.Spec.ValuesTemplate.Values != nil {
+			helmRelease.ValuesTemplate.Values = instance.Spec.ValuesTemplate.Values
+		}
+		if instance.Spec.ValuesTemplate.ValueFiles != nil {
+			helmRelease.ValuesTemplate.ValueFiles = instance.Spec.ValuesTemplate.ValueFiles
+		}
+	}
+
+	releaseList = append(releaseList, helmRelease)
+	hc.Releases.Entries = releaseList
+	return nil
 }

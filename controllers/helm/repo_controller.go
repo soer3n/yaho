@@ -84,7 +84,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	hc, err := r.getHelmClient(instance)
+	hc, err := helmutils.GetHelmClient(instance)
 
 	if err != nil {
 		return ctrl.Result{}, err
@@ -160,7 +160,7 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 
 func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *helmutils.HelmRepo, error) {
 
-	hc, err := r.getHelmClient(instance)
+	hc, err := helmutils.GetHelmClient(instance)
 
 	if err != nil {
 		return ctrl.Result{}, &helmutils.HelmRepo{}, err
@@ -187,47 +187,6 @@ func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *
 	}
 
 	return ctrl.Result{}, helmRepo, nil
-}
-
-func (r *RepoReconciler) getHelmClient(instance *helmv1alpha1.Repo) (*helmutils.HelmClient, error) {
-
-	hc := &helmutils.HelmClient{
-		Repos: &helmutils.HelmRepos{},
-		Env:   map[string]string{},
-	}
-
-	settings := hc.GetEnvSettings()
-	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
-	hc.Env["RepositoryCache"] = settings.RepositoryCache
-
-	var repoList []*helmutils.HelmRepo
-	var helmRepo *helmutils.HelmRepo
-
-	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(instance.ObjectMeta, hc.Env)
-
-	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
-
-	helmRepo = &helmutils.HelmRepo{
-		Name:     instance.Spec.Name,
-		Url:      instance.Spec.Url,
-		Settings: hc.GetEnvSettings(),
-	}
-
-	if instance.Spec.Auth != nil {
-		helmRepo.Auth = helmutils.HelmAuth{
-			User:     instance.Spec.Auth.User,
-			Password: instance.Spec.Auth.Password,
-			Cert:     instance.Spec.Auth.Cert,
-			Key:      instance.Spec.Auth.Key,
-			Ca:       instance.Spec.Auth.Ca,
-		}
-	}
-
-	repoList = append(repoList, helmRepo)
-
-	hc.Repos.Entries = repoList
-	hc.Repos.Settings = hc.GetEnvSettings()
-	return hc, nil
 }
 
 func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo) (ctrl.Result, error) {

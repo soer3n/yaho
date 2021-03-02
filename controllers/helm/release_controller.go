@@ -88,7 +88,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	hc, err := r.getHelmClient(instance)
+	hc, err := helmutils.GetHelmClient(instance)
 
 	if err != nil {
 		return ctrl.Result{}, err
@@ -145,63 +145,6 @@ func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, in
 		controllerutil.RemoveFinalizer(instance, "finalizer.releases.helm.soer3n.info")
 	}
 	return ctrl.Result{}, nil
-}
-
-func (r *ReleaseReconciler) getHelmClient(instance *helmv1alpha1.Release) (*helmutils.HelmClient, error) {
-
-	hc := &helmutils.HelmClient{
-		Releases: &helmutils.HelmReleases{},
-		Env:      map[string]string{},
-	}
-
-	settings := hc.GetEnvSettings()
-	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
-	hc.Env["RepositoryCache"] = settings.RepositoryCache
-
-	var releaseList []*helmutils.HelmRelease
-	var helmRelease *helmutils.HelmRelease
-
-	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(instance.ObjectMeta, hc.Env)
-
-	err := r.Update(context.TODO(), instance)
-
-	if err != nil {
-		return &helmutils.HelmClient{}, err
-	}
-
-	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
-
-	helmRelease = &helmutils.HelmRelease{
-		Name:     instance.Spec.Name,
-		Repo:     instance.Spec.Repo,
-		Chart:    instance.Spec.Chart,
-		Settings: hc.GetEnvSettings(),
-	}
-
-	actionConfig, err := helmRelease.GetActionConfig(helmRelease.Settings)
-
-	if err != nil {
-		return &helmutils.HelmClient{}, err
-	}
-
-	helmRelease.Config = actionConfig
-
-	log.Infof("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
-
-	if instance.Spec.ValuesTemplate != nil {
-		if instance.Spec.ValuesTemplate.Values != nil {
-			helmRelease.ValuesTemplate.Values = instance.Spec.ValuesTemplate.Values
-		}
-		if instance.Spec.ValuesTemplate.ValueFiles != nil {
-			helmRelease.ValuesTemplate.ValueFiles = instance.Spec.ValuesTemplate.ValueFiles
-		}
-	}
-
-	releaseList = append(releaseList, helmRelease)
-
-	hc.Releases.Entries = releaseList
-	hc.Releases.Settings = hc.GetEnvSettings()
-	return hc, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
