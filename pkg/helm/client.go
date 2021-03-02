@@ -45,13 +45,13 @@ func GetHelmClient(instance interface{}) (*HelmClient, error) {
 
 func (hc *HelmClient) manageEntries(instance interface{}) error {
 
-	repoObj, ok := instance.(helmv1alpha1.Repo)
+	repoObj, ok := instance.(*helmv1alpha1.Repo)
 
 	if ok {
 		_ = hc.setRepo(repoObj)
 	}
 
-	releaseObj, ok := instance.(helmv1alpha1.Release)
+	releaseObj, ok := instance.(*helmv1alpha1.Release)
 
 	if ok {
 		if err := hc.setRelease(releaseObj); err != nil {
