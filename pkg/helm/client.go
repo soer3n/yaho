@@ -15,17 +15,35 @@ func GetHelmClient(instance interface{}) (*HelmClient, error) {
 		Env:      map[string]string{},
 	}
 
-	var metaObj metav1.ObjectMeta
-	metaObj, ok := instance.(metav1.ObjectMeta)
+	var repoObj *helmv1alpha1.Repo
+	var metaStruct metav1.ObjectMeta
+	repoObj, ok := instance.(*helmv1alpha1.Repo)
 
-	if !ok {
-		return hc, nil
+	if ok {
+		metaStruct = repoObj.ObjectMeta
+	}
+
+	var releaseObj *helmv1alpha1.Release
+	releaseObj, ok = instance.(*helmv1alpha1.Release)
+
+	if ok {
+		metaStruct = releaseObj.ObjectMeta
 	}
 
 	settings := hc.GetEnvSettings()
 	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
-	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(metaObj, hc.Env)
+	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(metaStruct, hc.Env)
+
+	if err := hc.manageEntries(instance); err != nil {
+		return hc, err
+	}
+
+	hc.Repos.Settings = hc.GetEnvSettings()
+	return hc, nil
+}
+
+func (hc *HelmClient) manageEntries(instance interface{}) error {
 
 	repoObj, ok := instance.(helmv1alpha1.Repo)
 
@@ -37,12 +55,11 @@ func GetHelmClient(instance interface{}) (*HelmClient, error) {
 
 	if ok {
 		if err := hc.setRelease(releaseObj); err != nil {
-			return hc, err
+			return err
 		}
 	}
 
-	hc.Repos.Settings = hc.GetEnvSettings()
-	return hc, nil
+	return nil
 }
 
 func (hc *HelmClient) setRepo(instance helmv1alpha1.Repo) error {

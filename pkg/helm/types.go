@@ -7,9 +7,9 @@ import (
 )
 
 type HelmClient struct {
-	Repos  *HelmRepos
+	Repos    *HelmRepos
 	Releases *HelmReleases
-	Env    map[string]string
+	Env      map[string]string
 }
 
 type HelmReleases struct {

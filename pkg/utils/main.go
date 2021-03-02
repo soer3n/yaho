@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"path/filepath"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"path/filepath"
 )
 
 func Contains(list []string, s string) bool {

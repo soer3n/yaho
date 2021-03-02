@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 )
 
 func initActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) {
