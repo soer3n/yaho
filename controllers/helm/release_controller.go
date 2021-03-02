@@ -106,7 +106,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	_, err = r.handleFinalizer(helmRelease, instance)
+	_, err = r.handleFinalizer(hc, instance)
 
 	if err != nil {
 		return ctrl.Result{}, err
@@ -134,21 +134,14 @@ func (r *ReleaseReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.
 	return nil
 }
 
-func (r *ReleaseReconciler) handleFinalizer(helmRelease *helmutils.HelmRelease, instance *helmv1alpha1.Release) (ctrl.Result, error) {
+func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, instance *helmv1alpha1.Release) (ctrl.Result, error) {
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
-		// Run finalization logic for memcachedFinalizer. If the
-		// finalization logic fails, don't remove the finalizer so
-		// that we can retry during the next reconciliation.
-		log.Infof("Deletion: %v.\n", helmRelease)
-		err := helmRelease.Remove()
-
-		if err != nil {
-			return ctrl.Result{}, err
+		if err := oputils.HandleFinalizer(helmClient, instance); err != nil {
+			return ctrl.Result{}, nil
 		}
-		// Remove memcachedFinalizer. Once all finalizers have been
-		// removed, the object will be deleted.
+
 		controllerutil.RemoveFinalizer(instance, "finalizer.releases.helm.soer3n.info")
 	}
 	return ctrl.Result{}, nil
@@ -158,7 +151,7 @@ func (r *ReleaseReconciler) getHelmClient(instance *helmv1alpha1.Release) (*helm
 
 	hc := &helmutils.HelmClient{
 		Releases: &helmutils.HelmReleases{},
-		Env:    map[string]string{},
+		Env:      map[string]string{},
 	}
 
 	settings := hc.GetEnvSettings()

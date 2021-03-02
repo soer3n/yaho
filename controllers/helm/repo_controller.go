@@ -150,7 +150,7 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 		}
 	}
 
-	if err = oputils.HandleFinalizer(helmRepo, hc, instance); err != nil {
+	if err := oputils.HandleFinalizer(hc, instance); err != nil {
 		return ctrl.Result{}, nil
 	}
 
