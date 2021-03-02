@@ -62,7 +62,7 @@ func (hc *HelmClient) manageEntries(instance interface{}) error {
 	return nil
 }
 
-func (hc *HelmClient) setRepo(instance helmv1alpha1.Repo) error {
+func (hc *HelmClient) setRepo(instance *helmv1alpha1.Repo) error {
 
 	var repoList []*HelmRepo
 	var helmRepo *HelmRepo
@@ -91,7 +91,7 @@ func (hc *HelmClient) setRepo(instance helmv1alpha1.Repo) error {
 	return nil
 }
 
-func (hc *HelmClient) setRelease(instance helmv1alpha1.Release) error {
+func (hc *HelmClient) setRelease(instance *helmv1alpha1.Release) error {
 	var releaseList []*HelmRelease
 	var helmRelease *HelmRelease
 
