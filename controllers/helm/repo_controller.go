@@ -21,15 +21,15 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
+	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	helmutils "github.com/soer3n/apps-operator/pkg/helm"
+	oputils "github.com/soer3n/apps-operator/pkg/utils"
+	"helm.sh/helm/v3/pkg/repo"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	helmutils "github.com/soer3n/apps-operator/pkg/helm"
-	oputils "github.com/soer3n/apps-operator/pkg/utils"
 )
 
 // RepoReconciler reconciles a Repo object
@@ -78,15 +78,15 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	_, helmRepo, err := r.deployRepo(instance)
+	var hc *helmutils.HelmClient
+	var helmRepo *helmutils.HelmRepo
+	var chartList []*repo.ChartVersion
 
-	if err != nil {
+	if _, helmRepo, err = r.deployRepo(instance); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	hc, err := helmutils.GetHelmClient(instance)
-
-	if err != nil {
+	if hc, err = helmutils.GetHelmClient(instance); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -94,13 +94,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	//if repoGroupLabelOk {
-	//	helmRepo.Name = repoGroupLabel
-	//}
-
-	chartList, err := helmRepo.GetCharts()
-
-	if err != nil {
+	if chartList, err = helmRepo.GetCharts(); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -160,9 +154,10 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 
 func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *helmutils.HelmRepo, error) {
 
-	hc, err := helmutils.GetHelmClient(instance)
+	var hc *helmutils.HelmClient
+	var err error
 
-	if err != nil {
+	if hc, err = helmutils.GetHelmClient(instance); err != nil {
 		return ctrl.Result{}, &helmutils.HelmRepo{}, err
 	}
 
@@ -170,19 +165,17 @@ func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *
 
 	log.Infof("Get: %v.\n", helmRepo.Settings)
 
+	var entryObj *repo.Entry
+
 	if err = helmRepo.Update(); err != nil {
 		return ctrl.Result{}, &helmutils.HelmRepo{}, err
 	}
 
-	err, entryObj := helmRepo.GetEntryObj()
-
-	if err != nil {
+	if err, entryObj = helmRepo.GetEntryObj(); err != nil {
 		return ctrl.Result{}, &helmutils.HelmRepo{}, err
 	}
 
-	err = hc.Repos.UpdateRepoFile(entryObj)
-
-	if err != nil {
+	if err = hc.Repos.UpdateRepoFile(entryObj); err != nil {
 		return ctrl.Result{}, &helmutils.HelmRepo{}, err
 	}
 

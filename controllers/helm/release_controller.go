@@ -78,6 +78,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	var hc *helmutils.HelmClient
 	var helmRelease *helmutils.HelmRelease
 
 	log.Infof("Trying HelmRelease %v", instance.Spec.Name)
@@ -88,15 +89,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	hc, err := helmutils.GetHelmClient(instance)
-
-	if err != nil {
+	if hc, err = helmutils.GetHelmClient(instance); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	err = r.Update(ctx, instance)
-
-	if err != nil {
+	if err = r.Update(ctx, instance); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -106,15 +103,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	_, err = r.handleFinalizer(hc, instance)
-
-	if err != nil {
+	if _, err = r.handleFinalizer(hc, instance); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	err = r.Update(ctx, instance)
-
-	if err != nil {
+	if err = r.Update(ctx, instance); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -126,8 +119,7 @@ func (r *ReleaseReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.
 	controllerutil.AddFinalizer(m, "finalizer.releases.helm.soer3n.info")
 
 	// Update CR
-	err := r.Update(context.TODO(), m)
-	if err != nil {
+	if err := r.Update(context.TODO(), m); err != nil {
 		reqLogger.Error(err, "Failed to update Release with finalizer")
 		return err
 	}
