@@ -149,6 +149,11 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 	}
 
 	controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
+
+	if err := r.Client.Update(context.TODO(), instance); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
