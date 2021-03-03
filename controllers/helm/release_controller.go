@@ -139,11 +139,17 @@ func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, in
 	return ctrl.Result{}, nil
 }
 
-func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, namespace string) ([]*helmv1alpha1.Values, error) {
+func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, namespace string, count int32) ([]*helmv1alpha1.Values, error) {
 	var list []*helmv1alpha1.Values
+
+	// secure against infinite loop
+	if count > 10 {
+		return list, nil
+	}
 
 	for _, ref := range values.Spec.Refs {
 
+		count++
 		helmRef := &helmv1alpha1.Values{}
 
 		err := r.Client.Get(context.Background(), client.ObjectKey{
@@ -158,7 +164,7 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, namespace
 		list = append(list, helmRef)
 
 		if helmRef.Spec.Refs != nil {
-			nestedRef, err := r.collectValues(helmRef, namespace)
+			nestedRef, err := r.collectValues(helmRef, namespace, count)
 			if err != nil {
 				return list, err
 			}
