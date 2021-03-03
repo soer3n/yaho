@@ -18,7 +18,6 @@ package helm
 
 import (
 	"context"
-	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
@@ -31,6 +30,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	helmutils "github.com/soer3n/apps-operator/pkg/helm"
+	oputils "github.com/soer3n/apps-operator/pkg/utils"
 )
 
 // ReleaseGroupReconciler reconciles a ReleaseGroup object
@@ -87,7 +87,14 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	settings := hc.GetEnvSettings()
 	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
-	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = r.getLabelsByInstance(instance, hc.Env)
+	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(instance, hc.Env)
+
+	if _, ok := instance.Labels["release"]; !ok {
+
+		instance.Labels = map[string]string{
+			"release": instance.ObjectMeta.Name,
+		}
+	}
 
 	spec := instance.Spec.Releases
 
@@ -104,29 +111,6 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	return ctrl.Result{}, nil
-}
-
-func (r *ReleaseGroupReconciler) getLabelsByInstance(instance *helmv1alpha1.ReleaseGroup, env map[string]string) (string, string) {
-
-	var repoPath, repoCache string
-
-	repoPath = filepath.Dir(env["RepositoryConfig"])
-	repoCache = env["RepositoryCache"]
-
-	repoLabel, repoLabelOk := instance.ObjectMeta.Labels["repo"]
-	repoGroupLabel, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
-
-	if repoLabelOk {
-		if repoGroupLabelOk {
-			repoPath = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
-			repoCache = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoGroupLabel
-		} else {
-			repoPath = repoPath + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel + "/repositories.yaml"
-			repoCache = repoCache + "/" + instance.ObjectMeta.Namespace + "/" + repoLabel
-		}
-	}
-
-	return repoPath, repoCache
 }
 
 func (r *ReleaseGroupReconciler) deployRelease(release *helmv1alpha1.ReleaseSpec, instance *helmv1alpha1.ReleaseGroup) (ctrl.Result, error) {
