@@ -4,9 +4,7 @@ metadata:
   name: values-sample
 spec:
   values:
-    foo:
-      ref: values-sample-nested
-    baz:
-      ref: values-sample-nested-2
-    bar:
-      value: boo
+    bar: boo
+  refs:
+    foo: values-sample-nested
+    baz: values-sample-nested-2

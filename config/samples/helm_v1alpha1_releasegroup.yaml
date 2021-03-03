@@ -11,7 +11,7 @@ spec:
     chart: kubed
     version: 0.12.0
     releaseSpec:
-      valuesRefs:
+      valueRefs:
       - values-sample
   - name: step-ca
     repo: smallstep

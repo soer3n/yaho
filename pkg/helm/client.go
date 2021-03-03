@@ -118,7 +118,7 @@ func (hc *HelmClient) setRelease(instance *helmv1alpha1.Release) error {
 		//if instance.Spec.ValuesTemplate.Values != nil {
 		//	helmRelease.ValuesTemplate.Values = instance.Spec.ValuesTemplate.Values
 		//}
-		if instance.Spec.ValuesTemplate.ValuesRefs != nil {
+		if instance.Spec.ValuesTemplate.ValueRefs != nil {
 			helmRelease.ValuesTemplate.ValueFiles = []string{}
 		}
 	}

@@ -28,13 +28,9 @@ type ValuesSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Values   map[string]ValueRef `json:"values,omitempty"`
-	Selector string              `json:"selector,omitempty"`
-}
-
-type ValueRef struct {
-	ValueRef string `json:"ref,omitempty"`
-	Value    string `json:"value,omitempty"`
+	Values   map[string]string `json:"values,omitempty"`
+	Refs     map[string]string `json:"refs,omitempty"`
+	Selector string            `json:"selector,omitempty"`
 }
 
 // ValuesStatus defines the observed state of Values

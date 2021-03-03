@@ -36,7 +36,7 @@ type ReleaseSpec struct {
 }
 
 type ValueTemplate struct {
-	ValuesRefs []string `json:"valuesRefs,omitempty"`
+	ValueRefs []string `json:"valueRefs,omitempty"`
 }
 
 // ReleaseStatus defines the observed state of Release
