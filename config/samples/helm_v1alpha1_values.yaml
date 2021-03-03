@@ -3,5 +3,10 @@ kind: Values
 metadata:
   name: values-sample
 spec:
-  # Add fields here
-  foo: bar
+  values:
+    foo:
+      ref: values-sample-nested
+    baz:
+      ref: values-sample-nested-2
+    bar:
+      value: boo

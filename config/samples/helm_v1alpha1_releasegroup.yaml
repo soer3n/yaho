@@ -10,6 +10,9 @@ spec:
     repo: appscode
     chart: kubed
     version: 0.12.0
+    releaseSpec:
+      valuesRefs:
+      - values-sample
   - name: step-ca
     repo: smallstep
     chart: step-certificates

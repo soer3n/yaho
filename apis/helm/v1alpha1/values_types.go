@@ -28,8 +28,13 @@ type ValuesSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Values. Edit Values_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Values   map[string]ValueRef `json:"values,omitempty"`
+	Selector string              `json:"selector,omitempty"`
+}
+
+type ValueRef struct {
+	ValueRef string `json:"ref,omitempty"`
+	Value    string `json:"value,omitempty"`
 }
 
 // ValuesStatus defines the observed state of Values
