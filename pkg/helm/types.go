@@ -47,10 +47,14 @@ type HelmRepo struct {
 }
 
 type HelmValueTemplate struct {
-	ValuesRef  string
+	valuesRef  []*ValuesRef
 	Values     map[string]interface{}
 	ValueFiles []string
-	refList    []*helmv1alpha1.Values
+}
+
+type ValuesRef struct {
+	Ref    *helmv1alpha1.Values
+	Weight int32
 }
 
 type HelmAuth struct {

@@ -139,8 +139,8 @@ func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, in
 	return ctrl.Result{}, nil
 }
 
-func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, namespace string, count int32) ([]*helmv1alpha1.Values, error) {
-	var list []*helmv1alpha1.Values
+func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, namespace string, count int32) ([]*helmutils.ValuesRef, error) {
+	var list []*helmutils.ValuesRef
 
 	// secure against infinite loop
 	if count > 10 {
@@ -149,7 +149,6 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, namespace
 
 	for _, ref := range values.Spec.Refs {
 
-		count++
 		helmRef := &helmv1alpha1.Values{}
 
 		err := r.Client.Get(context.Background(), client.ObjectKey{
@@ -161,16 +160,22 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, namespace
 			return list, err
 		}
 
-		list = append(list, helmRef)
-
 		if helmRef.Spec.Refs != nil {
-			nestedRef, err := r.collectValues(helmRef, namespace, count)
+			nestedRef, err := r.collectValues(helmRef, namespace, (count + 1))
 			if err != nil {
 				return list, err
 			}
 			for _, nested := range nestedRef {
 				list = append(list, nested)
 			}
+		} else {
+
+			entry := &helmutils.ValuesRef{
+				Ref:    helmRef,
+				Weight: count,
+			}
+
+			list = append(list, entry)
 		}
 	}
 

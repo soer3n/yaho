@@ -1,12 +1,8 @@
 package helm
 
-import (
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-)
-
-func NewValueTemplate(valuesList []*helmv1alpha1.Values) *HelmValueTemplate {
+func NewValueTemplate(valuesList []*ValuesRef) *HelmValueTemplate {
 	return &HelmValueTemplate{
-		refList: valuesList,
+		valuesRef: valuesList,
 	}
 }
 
