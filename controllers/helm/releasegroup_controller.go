@@ -133,6 +133,10 @@ func (r *ReleaseGroupReconciler) deployRelease(release *helmv1alpha1.ReleaseSpec
 		},
 	}
 
+	if release.ValuesTemplate != nil {
+		helmRelease.Spec.ValuesTemplate = release.ValuesTemplate
+	}
+
 	err := controllerutil.SetControllerReference(instance, helmRelease, r.Scheme)
 
 	if err != nil {

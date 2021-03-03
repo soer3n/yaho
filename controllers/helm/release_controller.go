@@ -139,6 +139,38 @@ func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, in
 	return ctrl.Result{}, nil
 }
 
+func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, namespace string) ([]*helmv1alpha1.Values, error) {
+	var list []*helmv1alpha1.Values
+
+	for _, ref := range values.Spec.Refs {
+
+		helmRef := &helmv1alpha1.Values{}
+
+		err := r.Client.Get(context.Background(), client.ObjectKey{
+			Namespace: namespace,
+			Name:      ref,
+		}, helmRef)
+
+		if err != nil {
+			return list, err
+		}
+
+		list = append(list, helmRef)
+
+		if helmRef.Spec.Refs != nil {
+			nestedRef, err := r.collectValues(helmRef, namespace)
+			if err != nil {
+				return list, err
+			}
+			for _, nested := range nestedRef {
+				list = append(list, nested)
+			}
+		}
+	}
+
+	return list, nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *ReleaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
