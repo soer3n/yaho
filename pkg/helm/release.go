@@ -119,7 +119,7 @@ func (hc *HelmReleases) Remove() error {
 
 func (hc HelmRelease) getValues() map[string]interface{} {
 
-	log.Infof("init check (%q)", hc.ValuesTemplate)
+	log.Infof("init check (%q)", hc.ValuesTemplate.Values)
 
 	vals := &values.Options{}
 	initVals, _ := vals.MergeValues(getter.All(hc.Settings))
@@ -133,10 +133,10 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 		log.Infof("first check (%q)", hc.ValuesTemplate.ValueFiles)
 	}
 
-	if hc.ValuesTemplate.Values != nil {
-		vals.Values = hc.getValuesAsList(hc.ValuesTemplate.Values)
-		log.Infof("second check (%q)", hc.ValuesTemplate.Values)
-	}
+	//if hc.ValuesTemplate.Values != nil {
+	//	vals.Values = hc.getValuesAsList(hc.ValuesTemplate.Values)
+	//	log.Infof("second check (%q)", hc.ValuesTemplate.Values)
+	//}
 
 	log.Info("third check")
 
@@ -144,17 +144,35 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 	return mergedVals
 }
 
-func (hc HelmRelease) getValuesAsList(values map[string]string) []string {
+func (hc *HelmRelease) GetValues() (map[string]interface{}, error) {
 
-	var valueList []string
-	var transformedVal string
+	templateObj := hc.ValuesTemplate
 
-	for k, v := range values {
-		transformedVal = k + "=" + v
-		valueList = append(valueList, transformedVal)
+	if err := templateObj.ManageValues(); err != nil {
+		return map[string]interface{}{}, err
 	}
 
-	return valueList
+	return templateObj.Values, nil
+}
+
+func (hc HelmRelease) getValuesAsList(values map[string]interface{}) []string {
+
+	var valueList []string
+	var transformedVal, value string
+	var ok bool
+
+	for k, v := range values {
+		if _, ok = v.(string); !ok {
+			copy, _ := v.(map[string]interface{})
+			_ = hc.getValuesAsList(copy)
+		} else {
+			value, _ = v.(string)
+		}
+
+		transformedVal = k + "=" + value
+	}
+
+	return append(valueList, transformedVal)
 }
 
 func (hc HelmRelease) getInstalledValues() (map[string]interface{}, error) {

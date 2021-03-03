@@ -46,7 +46,8 @@ type HelmRepo struct {
 }
 
 type HelmValueTemplate struct {
-	Values     map[string]string
+	ValuesRef  string
+	Values     map[string]interface{}
 	ValueFiles []string
 }
 

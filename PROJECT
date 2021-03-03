@@ -24,6 +24,10 @@ resources:
   group: helm
   kind: Chart
   version: v1alpha1
+- crdVersion: v1
+  group: helm
+  kind: Values
+  version: v1alpha1
 version: 3-alpha
 plugins:
   manifests.sdk.operatorframework.io/v2: {}

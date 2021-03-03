@@ -115,9 +115,9 @@ func (hc *HelmClient) setRelease(instance *helmv1alpha1.Release) error {
 	log.Infof("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
 
 	if instance.Spec.ValuesTemplate != nil {
-		if instance.Spec.ValuesTemplate.Values != nil {
-			helmRelease.ValuesTemplate.Values = instance.Spec.ValuesTemplate.Values
-		}
+		//if instance.Spec.ValuesTemplate.Values != nil {
+		//	helmRelease.ValuesTemplate.Values = instance.Spec.ValuesTemplate.Values
+		//}
 		if instance.Spec.ValuesTemplate.ValueFiles != nil {
 			helmRelease.ValuesTemplate.ValueFiles = instance.Spec.ValuesTemplate.ValueFiles
 		}

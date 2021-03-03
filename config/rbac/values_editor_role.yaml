@@ -1,0 +1,24 @@
+# permissions for end users to edit values.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: values-editor-role
+rules:
+- apiGroups:
+  - helm.soer3n.info
+  resources:
+  - values
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - helm.soer3n.info
+  resources:
+  - values/status
+  verbs:
+  - get

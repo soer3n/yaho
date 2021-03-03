@@ -5,4 +5,5 @@ resources:
 - helm_v1alpha1_release.yaml
 - helm_v1alpha1_releasegroup.yaml
 - helm_v1alpha1_chart.yaml
+- helm_v1alpha1_values.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples
