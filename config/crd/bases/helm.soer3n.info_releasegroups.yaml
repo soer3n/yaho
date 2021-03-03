@@ -54,17 +54,10 @@ spec:
                       type: string
                     releaseSpec:
                       properties:
-                        valueFiles:
+                        valueRefs:
                           items:
                             type: string
                           type: array
-                        values:
-                          additionalProperties:
-                            type: string
-                          type: object
-                      required:
-                      - valueFiles
-                      - values
                       type: object
                     repo:
                       type: string

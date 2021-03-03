@@ -6,33 +6,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: releases.helm.soer3n.info
+  name: values.helm.soer3n.info
 spec:
   group: helm.soer3n.info
   names:
-    kind: Release
-    listKind: ReleaseList
-    plural: releases
-    singular: release
+    kind: Values
+    listKind: ValuesList
+    plural: values
+    singular: values
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - jsonPath: .metadata.labels['repoGroup']
-      name: Group
-      type: string
-    - jsonPath: .metadata.labels['repo']
-      name: Repo
-      type: string
-    - jsonPath: .metadata.labels['chart']
-      name: Chart
-      type: string
-    - jsonPath: .metadata.creationTimestamp
-      name: Created_at
-      type: string
-    name: v1alpha1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Release is the Schema for the releases API
+        description: Values is the Schema for the values API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -47,30 +34,21 @@ spec:
           metadata:
             type: object
           spec:
-            description: ReleaseSpec defines the desired state of Release
+            description: ValuesSpec defines the desired state of Values
             properties:
-              chart:
-                type: string
-              name:
-                type: string
-              releaseSpec:
-                properties:
-                  valueRefs:
-                    items:
-                      type: string
-                    type: array
+              refs:
+                additionalProperties:
+                  type: string
                 type: object
-              repo:
+              selector:
                 type: string
-              version:
-                type: string
-            required:
-            - chart
-            - name
-            - repo
+              values:
+                additionalProperties:
+                  type: string
+                type: object
             type: object
           status:
-            description: ReleaseStatus defines the observed state of Release
+            description: ValuesStatus defines the observed state of Values
             type: object
         type: object
     served: true
