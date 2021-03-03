@@ -1,6 +1,7 @@
 package helm
 
 import (
+	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
@@ -49,6 +50,7 @@ type HelmValueTemplate struct {
 	ValuesRef  string
 	Values     map[string]interface{}
 	ValueFiles []string
+	refList    []*helmv1alpha1.Values
 }
 
 type HelmAuth struct {
