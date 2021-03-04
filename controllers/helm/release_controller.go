@@ -182,6 +182,26 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, namespace
 	return list, nil
 }
 
+func (r *ReleaseReconciler) getValuesByReference(refs []string, namespace string) ([]*helmv1alpha1.Values, error) {
+	var list []*helmv1alpha1.Values
+
+	for _, ref := range refs {
+
+		helmRef := &helmv1alpha1.Values{}
+
+		err := r.Client.Get(context.Background(), client.ObjectKey{
+			Namespace: namespace,
+			Name:      ref,
+		}, helmRef)
+
+		if err != nil {
+			return list, err
+		}
+	}
+
+	return list, nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *ReleaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
