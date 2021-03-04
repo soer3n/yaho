@@ -46,6 +46,13 @@ func removeFile(path, name string) error {
 	return os.Remove(idx)
 }
 
+func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
+	for k, v := range a {
+		b[k] = v
+	}
+	return b
+}
+
 func (c HelmClient) GetEnvSettings() *cli.EnvSettings {
 	settings := cli.New()
 
