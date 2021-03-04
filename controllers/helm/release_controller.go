@@ -152,7 +152,7 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 		Parent: "base",
 	}
 
-	list = append(list, values)
+	list = append(list, entry)
 
 	for _, ref := range values.Spec.Refs {
 

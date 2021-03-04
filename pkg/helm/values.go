@@ -10,7 +10,8 @@ func NewValueTemplate(valuesList []*ValuesRef) *HelmValueTemplate {
 
 func (hv *HelmValueTemplate) ManageValues() error {
 	var base []*ValuesRef
-	var values, subValues map[string]interface{}
+	var values map[string]interface{}
+	var err error
 
 	base = NewOptions(
 		map[string]string{
@@ -19,12 +20,12 @@ func (hv *HelmValueTemplate) ManageValues() error {
 		Filter(hv.valuesRef)
 
 	for _, ref := range base {
-		if values, err := hv.manageStruct(ref); err != nil {
+		if values, err = hv.manageStruct(ref); err != nil {
 			return err
 
 		}
 
-		if err := hv.mergeMaps(values); err != nil {
+		if err = hv.mergeMaps(values); err != nil {
 			return err
 		}
 	}
