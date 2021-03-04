@@ -147,6 +147,13 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 		return list, nil
 	}
 
+	entry := &helmutils.ValuesRef{
+		Ref:    values,
+		Parent: "base",
+	}
+
+	list = append(list, values)
+
 	for _, ref := range values.Spec.Refs {
 
 		helmRef := &helmv1alpha1.Values{}
@@ -168,15 +175,14 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 			for _, nested := range nestedRef {
 				list = append(list, nested)
 			}
-		} else {
-
-			entry := &helmutils.ValuesRef{
-				Ref:    helmRef,
-				Weight: count,
-			}
-
-			list = append(list, entry)
 		}
+
+		entry := &helmutils.ValuesRef{
+			Ref:    helmRef,
+			Parent: values.ObjectMeta.Name,
+		}
+
+		list = append(list, entry)
 	}
 
 	return list, nil

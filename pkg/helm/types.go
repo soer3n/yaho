@@ -53,8 +53,8 @@ type HelmValueTemplate struct {
 }
 
 type ValuesRef struct {
-	Ref    *helmv1alpha1.Values
-	Weight int32
+	Ref    *helmv1alpha1.Values `json:"Ref" filter:"ref"`
+	Parent string               `json:"Parent" filter:"parent"`
 }
 
 type HelmAuth struct {
@@ -71,4 +71,8 @@ type Namespace struct {
 }
 
 type ResourceConditional struct {
+}
+
+type ListOptions struct {
+	filter map[string]string
 }
