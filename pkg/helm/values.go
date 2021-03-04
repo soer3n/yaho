@@ -10,6 +10,7 @@ func NewValueTemplate(valuesList []*ValuesRef) *HelmValueTemplate {
 
 func (hv *HelmValueTemplate) ManageValues() error {
 	var base []*ValuesRef
+	var values, subValues map[string]interface{}
 
 	base = NewOptions(
 		map[string]string{
@@ -18,7 +19,12 @@ func (hv *HelmValueTemplate) ManageValues() error {
 		Filter(hv.valuesRef)
 
 	for _, ref := range base {
-		if err := hv.manageStruct(ref); err != nil {
+		if values, err := hv.manageStruct(ref); err != nil {
+			return err
+
+		}
+
+		if err := hv.mergeMaps(values); err != nil {
 			return err
 		}
 	}
@@ -26,7 +32,7 @@ func (hv *HelmValueTemplate) ManageValues() error {
 	return nil
 }
 
-func (hv *HelmValueTemplate) manageStruct(valueMap *ValuesRef) error {
+func (hv *HelmValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface{}, error) {
 	var valMap, merged map[string]interface{}
 	if valueMap.Ref.Spec.Refs != nil {
 		temp := NewOptions(
@@ -37,8 +43,8 @@ func (hv *HelmValueTemplate) manageStruct(valueMap *ValuesRef) error {
 
 		for _, v := range temp {
 			if v.Ref.Spec.Refs != nil {
-				if err := hv.manageStruct(v); err != nil {
-					return err
+				if merged, err := hv.manageStruct(v); err != nil {
+					return merged, err
 				}
 			}
 
@@ -49,17 +55,7 @@ func (hv *HelmValueTemplate) manageStruct(valueMap *ValuesRef) error {
 
 	valMap = hv.transformToMap(valueMap.Ref)
 
-	if err := hv.mergeMaps(valMap); err != nil {
-		return err
-	}
-
-	if merged != nil {
-		if err := hv.mergeMaps(merged); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return mergeMaps(valMap, merged), nil
 }
 
 func (hv *HelmValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
