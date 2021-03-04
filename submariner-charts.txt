@@ -1,3 +1,0 @@
-submariner
-submariner-k8s-broker
-submariner-operator
