@@ -139,7 +139,7 @@ func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, in
 	return ctrl.Result{}, nil
 }
 
-func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, namespace string, count int32) ([]*helmutils.ValuesRef, error) {
+func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int32) ([]*helmutils.ValuesRef, error) {
 	var list []*helmutils.ValuesRef
 
 	// secure against infinite loop
@@ -152,7 +152,7 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, namespace
 		helmRef := &helmv1alpha1.Values{}
 
 		err := r.Client.Get(context.Background(), client.ObjectKey{
-			Namespace: namespace,
+			Namespace: values.ObjectMeta.Namespace,
 			Name:      ref,
 		}, helmRef)
 
@@ -161,7 +161,7 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, namespace
 		}
 
 		if helmRef.Spec.Refs != nil {
-			nestedRef, err := r.collectValues(helmRef, namespace, (count + 1))
+			nestedRef, err := r.collectValues(helmRef, (count + 1))
 			if err != nil {
 				return list, err
 			}
