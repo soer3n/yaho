@@ -15,15 +15,9 @@ func Contains(list []string, s string) bool {
 	return false
 }
 
-func GetLabelsByInstance(instance interface{}, env map[string]string) (string, string) {
+func GetLabelsByInstance(metaObj metav1.ObjectMeta, env map[string]string) (string, string) {
 
 	var repoPath, repoCache string
-	var metaObj *metav1.ObjectMeta
-	metaObj, ok := instance.(*metav1.ObjectMeta)
-
-	if !ok {
-		return "", ""
-	}
 
 	repoPath = filepath.Dir(env["RepositoryConfig"])
 	repoCache = env["RepositoryCache"]

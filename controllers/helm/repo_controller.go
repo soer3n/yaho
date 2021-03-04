@@ -82,11 +82,11 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	var helmRepo *helmutils.HelmRepo
 	var chartList []*repo.ChartVersion
 
-	if _, helmRepo, err = r.deployRepo(instance); err != nil {
+	if hc, err = helmutils.GetHelmClient(instance); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if hc, err = helmutils.GetHelmClient(instance); err != nil {
+	if _, helmRepo, err = r.deployRepo(instance, hc); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -144,27 +144,27 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 		}
 	}
 
-	if err := helmutils.HandleFinalizer(hc, instance); err != nil {
+	var del bool
+	var err error
+
+	if del, err = helmutils.HandleFinalizer(hc, instance); err != nil {
 		return ctrl.Result{}, nil
 	}
 
-	controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
+	if del {
+		controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
 
-	if err := r.Client.Update(context.TODO(), instance); err != nil {
-		return ctrl.Result{}, err
+		if err := r.Client.Update(context.TODO(), instance); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo) (ctrl.Result, *helmutils.HelmRepo, error) {
+func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo, hc *helmutils.HelmClient) (ctrl.Result, *helmutils.HelmRepo, error) {
 
-	var hc *helmutils.HelmClient
 	var err error
-
-	if hc, err = helmutils.GetHelmClient(instance); err != nil {
-		return ctrl.Result{}, &helmutils.HelmRepo{}, err
-	}
 
 	helmRepo := hc.Repos.Entries[0]
 
