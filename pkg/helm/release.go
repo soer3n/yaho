@@ -144,15 +144,15 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 	return mergedVals
 }
 
-func (hc *HelmRelease) GetValues() (map[string]interface{}, error) {
+func (hc *HelmRelease) GetValues() error {
 
 	templateObj := hc.ValuesTemplate
 
 	if err := templateObj.ManageValues(); err != nil {
-		return map[string]interface{}{}, err
+		return err
 	}
 
-	return templateObj.Values, nil
+	return nil
 }
 
 func (hc HelmRelease) getValuesAsList(values map[string]interface{}) []string {

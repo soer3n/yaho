@@ -120,13 +120,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	log.Infof("Trying HelmRelease %v", refList)
 
-	valueTemplate := helmutils.NewValueTemplate(refList)
+	helmRelease.ValuesTemplate = helmutils.NewValueTemplate(refList)
 
-	if err = valueTemplate.ManageValues(); err != nil {
+	if err = helmRelease.GetValues(); err != nil {
 		return ctrl.Result{}, err
 	}
-
-	helmRelease.ValuesTemplate = valueTemplate
 
 	if err = helmRelease.Update(); err != nil {
 		return ctrl.Result{}, err
