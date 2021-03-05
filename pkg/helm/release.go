@@ -119,7 +119,7 @@ func (hc *HelmReleases) Remove() error {
 
 func (hc HelmRelease) getValues() map[string]interface{} {
 
-	log.Infof("init check (%q)", hc.ValuesTemplate.Values)
+	log.Infof("init check (%v)", hc.ValuesTemplate)
 
 	vals := &values.Options{}
 	initVals, _ := vals.MergeValues(getter.All(hc.Settings))
