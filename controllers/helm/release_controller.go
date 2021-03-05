@@ -240,6 +240,8 @@ func (r *ReleaseReconciler) getValuesByReference(refs []string, namespace string
 
 			return list, err
 		}
+
+		list = append(list, helmRef)
 	}
 
 	return list, nil

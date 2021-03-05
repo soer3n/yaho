@@ -25,6 +25,10 @@ func (hv *HelmValueTemplate) ManageValues() error {
 
 		}
 
+		if hv.Values == nil {
+			hv.Values = make(map[string]interface{})
+		}
+
 		if err = hv.mergeMaps(values); err != nil {
 			return err
 		}
@@ -34,7 +38,9 @@ func (hv *HelmValueTemplate) ManageValues() error {
 }
 
 func (hv *HelmValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface{}, error) {
-	var valMap, merged map[string]interface{}
+	valMap := make(map[string]interface{})
+	merged := make(map[string]interface{})
+
 	if valueMap.Ref.Spec.Refs != nil {
 		temp := NewOptions(
 			map[string]string{
@@ -68,7 +74,7 @@ func (hv *HelmValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
 }
 
 func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values) map[string]interface{} {
-	var valMap map[string]interface{}
+	valMap := make(map[string]interface{})
 	for k, v := range values.Spec.Values {
 		valMap[k] = v
 	}
