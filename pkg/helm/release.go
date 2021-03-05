@@ -133,10 +133,10 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 		log.Infof("first check (%q)", hc.ValuesTemplate.ValueFiles)
 	}
 
-	//if hc.ValuesTemplate.Values != nil {
-	//	vals.Values = hc.getValuesAsList(hc.ValuesTemplate.Values)
-	//	log.Infof("second check (%q)", hc.ValuesTemplate.Values)
-	//}
+	if hc.ValuesTemplate.Values != nil {
+		vals.Values = hc.getValuesAsList(hc.ValuesTemplate.Values)
+		log.Infof("second check (%q)", hc.ValuesTemplate.Values)
+	}
 
 	log.Info("third check")
 
@@ -151,6 +151,8 @@ func (hc *HelmRelease) GetValues() error {
 	if err := templateObj.ManageValues(); err != nil {
 		return err
 	}
+
+	hc.values = templateObj.Values
 
 	return nil
 }

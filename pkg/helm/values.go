@@ -1,6 +1,8 @@
 package helm
 
-import helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+import (
+	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+)
 
 func NewValueTemplate(valuesList []*ValuesRef) *HelmValueTemplate {
 	return &HelmValueTemplate{
@@ -10,7 +12,7 @@ func NewValueTemplate(valuesList []*ValuesRef) *HelmValueTemplate {
 
 func (hv *HelmValueTemplate) ManageValues() error {
 	var base []*ValuesRef
-	var values map[string]interface{}
+	var values, merged map[string]interface{}
 	var err error
 
 	base = NewOptions(
@@ -29,7 +31,9 @@ func (hv *HelmValueTemplate) ManageValues() error {
 			hv.Values = make(map[string]interface{})
 		}
 
-		if err = hv.mergeMaps(values); err != nil {
+		merged = hv.transformToMap(ref.Ref, values)
+
+		if err = hv.mergeMaps(merged); err != nil {
 			return err
 		}
 	}
@@ -55,28 +59,56 @@ func (hv *HelmValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]inter
 				}
 			}
 
-			merged = mergeMaps(hv.transformToMap(v.Ref), merged)
+			merged = hv.transformToMap(v.Ref, merged, hv.getValuesAsList(valueMap.Ref.Spec.Refs))
 
 		}
+
 	}
 
-	valMap = hv.transformToMap(valueMap.Ref)
+	valMap = hv.transformToMap(valueMap.Ref, merged)
 
 	return mergeMaps(valMap, merged), nil
 }
 
-func (hv *HelmValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
-	for k, v := range valueMap {
-		hv.Values[k] = v
+func (hv HelmValueTemplate) getValuesAsList(values map[string]string) []string {
+
+	valueList := []string{}
+
+	for k, _ := range values {
+		valueList = append(valueList, k)
 	}
+
+	return valueList
+}
+
+func (hv *HelmValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
+	temp := mergeMaps(hv.Values, valueMap)
+	hv.Values = make(map[string]interface{})
+
+	for k, _ := range temp {
+		hv.Values[k] = temp[k].(string)
+	}
+
 	return nil
 
 }
 
-func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values) map[string]interface{} {
+func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, parents ...[]string) map[string]interface{} {
 	valMap := make(map[string]interface{})
+	var parentKey string
+
+	for _, parent := range parents {
+		for _, child := range parent {
+			parentKey = parentKey + child + "."
+		}
+	}
+
 	for k, v := range values.Spec.Values {
-		valMap[k] = v
+		valMap[parentKey+k] = v
+	}
+
+	for ck, cv := range childMap {
+		valMap[parentKey+ck] = cv
 	}
 	return valMap
 }
