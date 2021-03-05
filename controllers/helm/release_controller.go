@@ -99,6 +99,35 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	helmRelease = hc.Releases.Entries[0]
 
+	var refList, subRefList []*helmutils.ValuesRef
+	var valuesList []*helmv1alpha1.Values
+
+	if instance.Spec.ValuesTemplate != nil && instance.Spec.ValuesTemplate.ValueRefs != nil {
+		if valuesList, err = r.getValuesByReference(instance.Spec.ValuesTemplate.ValueRefs, instance.ObjectMeta.Namespace); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	for _, valueObj := range valuesList {
+		if subRefList, err = r.collectValues(valueObj, 0); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		for _, subValueObj := range subRefList {
+			refList = append(refList, subValueObj)
+		}
+	}
+
+	log.Infof("Trying HelmRelease %v", refList)
+
+	valueTemplate := helmutils.NewValueTemplate(refList)
+
+	if err = valueTemplate.ManageValues(); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	helmRelease.ValuesTemplate = valueTemplate
+
 	if err = helmRelease.Update(); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -201,6 +230,16 @@ func (r *ReleaseReconciler) getValuesByReference(refs []string, namespace string
 		}, helmRef)
 
 		if err != nil {
+			if errors.IsNotFound(err) {
+				helmRef.ObjectMeta.Namespace = namespace
+				helmRef.ObjectMeta.Name = ref
+				err = r.Client.Create(context.TODO(), helmRef)
+
+				if err != nil {
+					return list, err
+				}
+			}
+
 			return list, err
 		}
 	}
@@ -212,5 +251,6 @@ func (r *ReleaseReconciler) getValuesByReference(refs []string, namespace string
 func (r *ReleaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&helmv1alpha1.Release{}).
+		Owns(&helmv1alpha1.Values{}).
 		Complete(r)
 }
