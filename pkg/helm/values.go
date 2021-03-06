@@ -10,7 +10,7 @@ func NewValueTemplate(valuesList []*ValuesRef) *HelmValueTemplate {
 	}
 }
 
-func (hv *HelmValueTemplate) ManageValues() error {
+func (hv *HelmValueTemplate) ManageValues() (map[string]interface{}, error) {
 	var base []*ValuesRef
 	var values, merged map[string]interface{}
 	var err error
@@ -21,9 +21,11 @@ func (hv *HelmValueTemplate) ManageValues() error {
 		}).
 		Filter(hv.valuesRef)
 
+	merged = make(map[string]interface{})
+
 	for _, ref := range base {
 		if values, err = hv.manageStruct(ref); err != nil {
-			return err
+			return merged, err
 
 		}
 
@@ -34,16 +36,20 @@ func (hv *HelmValueTemplate) ManageValues() error {
 		merged = hv.transformToMap(ref.Ref, values)
 
 		if err = hv.mergeMaps(merged); err != nil {
-			return err
+			return merged, err
 		}
 	}
 
-	return nil
+	for k, merge := range merged {
+		hv.ValuesMap[k] = merge.(string)
+	}
+
+	return merged, nil
 }
 
 func (hv *HelmValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface{}, error) {
 	valMap := make(map[string]interface{})
-	merged := make(map[string]interface{})
+	var merged map[string]interface{}
 
 	if valueMap.Ref.Spec.Refs != nil {
 		temp := NewOptions(
@@ -52,22 +58,21 @@ func (hv *HelmValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]inter
 			}).
 			Filter(hv.valuesRef)
 
-		for _, v := range temp {
+		for k, v := range temp {
+			merged = make(map[string]interface{})
 			if v.Ref.Spec.Refs != nil {
 				if merged, err := hv.manageStruct(v); err != nil {
 					return merged, err
 				}
 			}
 
-			merged = hv.transformToMap(v.Ref, merged, hv.getValuesAsList(valueMap.Ref.Spec.Refs))
-
+			merged = hv.transformToMap(v.Ref, merged, hv.getValuesAsList(valueMap.Ref.Spec.Refs)[k])
+			valMap = mergeMaps(merged, valMap)
 		}
 
 	}
 
-	valMap = hv.transformToMap(valueMap.Ref, merged)
-
-	return mergeMaps(valMap, merged), nil
+	return valMap, nil
 }
 
 func (hv HelmValueTemplate) getValuesAsList(values map[string]string) []string {
@@ -83,24 +88,22 @@ func (hv HelmValueTemplate) getValuesAsList(values map[string]string) []string {
 
 func (hv *HelmValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
 	temp := mergeMaps(hv.Values, valueMap)
-	hv.Values = make(map[string]interface{})
+	hv.ValuesMap = make(map[string]string)
 
-	for k, _ := range temp {
-		hv.Values[k] = temp[k].(string)
+	for k, v := range temp {
+		hv.ValuesMap[k] = v.(string)
 	}
 
 	return nil
 
 }
 
-func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, parents ...[]string) map[string]interface{} {
+func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, parents ...string) map[string]interface{} {
 	valMap := make(map[string]interface{})
 	var parentKey string
 
 	for _, parent := range parents {
-		for _, child := range parent {
-			parentKey = parentKey + child + "."
-		}
+		parentKey = parentKey + parent + "."
 	}
 
 	for k, v := range values.Spec.Values {

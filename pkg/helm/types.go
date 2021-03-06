@@ -26,7 +26,7 @@ type HelmRelease struct {
 	Chart          string
 	Version        string
 	ValuesTemplate *HelmValueTemplate
-	values         map[string]interface{}
+	Values         map[string]interface{}
 	Namespace      Namespace
 	Conditional    ResourceConditional
 	Config         *action.Configuration
@@ -49,6 +49,7 @@ type HelmRepo struct {
 type HelmValueTemplate struct {
 	valuesRef  []*ValuesRef
 	Values     map[string]interface{}
+	ValuesMap  map[string]string
 	ValueFiles []string
 }
 

@@ -51,8 +51,7 @@ func (hc *HelmRelease) Update() error {
 	//	return err
 	//}
 
-	vals := hc.getValues()
-	hc.values = vals
+	_ = hc.SetValues()
 
 	// Check if something changed regarding the existing release
 	if release != nil {
@@ -76,7 +75,7 @@ func (hc *HelmRelease) Update() error {
 	// }
 
 	client.Namespace = hc.Settings.Namespace()
-	release, err = client.Run(helmChart, vals)
+	release, err = client.Run(helmChart, hc.ValuesTemplate.Values)
 
 	if err != nil {
 		return err
@@ -133,9 +132,9 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 		log.Infof("first check (%q)", hc.ValuesTemplate.ValueFiles)
 	}
 
-	if hc.ValuesTemplate.Values != nil {
-		vals.Values = hc.getValuesAsList(hc.ValuesTemplate.Values)
-		log.Infof("second check (%q)", hc.ValuesTemplate.Values)
+	if hc.ValuesTemplate.ValuesMap != nil {
+		vals.Values = hc.getValuesAsList(hc.ValuesTemplate.ValuesMap)
+		log.Infof("second check (%q)", hc.ValuesTemplate.ValuesMap)
 	}
 
 	log.Info("third check")
@@ -144,37 +143,29 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 	return mergedVals
 }
 
-func (hc *HelmRelease) GetValues() error {
+func (hc *HelmRelease) SetValues() error {
 
 	templateObj := hc.ValuesTemplate
 
-	if err := templateObj.ManageValues(); err != nil {
+	if _, err := templateObj.ManageValues(); err != nil {
 		return err
 	}
-
-	hc.values = templateObj.Values
 
 	return nil
 }
 
-func (hc HelmRelease) getValuesAsList(values map[string]interface{}) []string {
+func (hc HelmRelease) getValuesAsList(values map[string]string) []string {
 
 	var valueList []string
-	var transformedVal, value string
-	var ok bool
+	var transformedVal string
+	valueList = []string{}
 
 	for k, v := range values {
-		if _, ok = v.(string); !ok {
-			copy, _ := v.(map[string]interface{})
-			_ = hc.getValuesAsList(copy)
-		} else {
-			value, _ = v.(string)
-		}
-
-		transformedVal = k + "=" + value
+		transformedVal = k + "=" + v
+		valueList = append(valueList, transformedVal)
 	}
 
-	return append(valueList, transformedVal)
+	return valueList
 }
 
 func (hc HelmRelease) getInstalledValues() (map[string]interface{}, error) {
@@ -193,7 +184,7 @@ func (hc *HelmRelease) valuesChanged() (bool, error) {
 		return false, err
 	}
 
-	requestedValues := hc.values
+	requestedValues := hc.Values
 
 	if err != nil {
 		return false, err
@@ -264,7 +255,7 @@ func (hc *HelmRelease) upgrade(helmChart *chart.Chart) error {
 	client := action.NewUpgrade(hc.Config)
 
 	vals := hc.getValues()
-	hc.values = vals
+	hc.Values = vals
 
 	helmChart.Values = vals
 	client.Namespace = hc.Settings.Namespace()
