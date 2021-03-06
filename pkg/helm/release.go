@@ -75,7 +75,8 @@ func (hc *HelmRelease) Update() error {
 	// }
 
 	client.Namespace = hc.Settings.Namespace()
-	release, err = client.Run(helmChart, hc.ValuesTemplate.Values)
+	vals := hc.getValues()
+	release, err = client.Run(helmChart, vals)
 
 	if err != nil {
 		return err

@@ -48,6 +48,7 @@ require (
 	github.com/prometheus/common v0.10.0
 	github.com/rubenv/sql-migrate v0.0.0-20200616145509-8d140a17f351 // indirect
 	github.com/sirupsen/logrus v1.7.0 // indirect
+	github.com/spf13/cobra v1.1.1
 	github.com/syndtr/gocapability v0.0.0-20170704070218-db04d3cc01c8 // indirect
 	github.com/ugorji/go v1.1.4 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
@@ -83,8 +84,8 @@ replace (
 	github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
 	// github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.3.1
 	k8s.io/api => k8s.io/api v0.19.2
-	k8s.io/apimachinery => k8s.io/apimachinery v0.19.2
-	k8s.io/client-go => k8s.io/client-go v0.19.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.19.2
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.19.2
+	k8s.io/client-go => k8s.io/client-go v0.19.2
 )
