@@ -39,9 +39,12 @@ import (
 )
 
 var (
-	scheme      = runtime.NewScheme()
-	setupLog    = ctrl.Log.WithName("setup")
-	operatorCmd = &cobra.Command{
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
+)
+
+func NewOperatorCmd() *cobra.Command {
+	return &cobra.Command{
 		Use:   "operator",
 		Short: "runs the operator",
 		Long:  `apps operator`,
@@ -49,10 +52,9 @@ var (
 			run()
 		},
 	}
-)
+}
 
 func init() {
-	rootCmd.AddCommand(operatorCmd)
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(helmv1alpha1.AddToScheme(scheme))

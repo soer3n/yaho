@@ -48,7 +48,7 @@ require (
 	github.com/prometheus/common v0.10.0
 	github.com/rubenv/sql-migrate v0.0.0-20200616145509-8d140a17f351 // indirect
 	github.com/sirupsen/logrus v1.7.0 // indirect
-	github.com/spf13/cobra v1.1.1
+	github.com/spf13/cobra v1.1.3
 	github.com/syndtr/gocapability v0.0.0-20170704070218-db04d3cc01c8 // indirect
 	github.com/ugorji/go v1.1.4 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
