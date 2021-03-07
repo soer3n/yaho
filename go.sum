@@ -2308,6 +2308,7 @@ k8s.io/kubectl v0.19.4 h1:XFrHibf5fS4Ot8h3EnzdVsKrYj+pndlzKbwPkfra5hI=
 k8s.io/kubectl v0.19.4/go.mod h1:XPmlu4DJEYgD83pvZFeKF8+MSvGnYGqunbFSrJsqHv0=
 k8s.io/kubectl v0.20.1 h1:7h1vSrL/B3hLrhlCJhbTADElPKDbx+oVUt3+QDSXxBo=
 k8s.io/kubectl v0.20.1/go.mod h1:2bE0JLYTRDVKDiTREFsjLAx4R2GvUtL/mGYFXfFFMzY=
+k8s.io/kubectl v0.20.4 h1:Y1gUiigiZM+ulcrnWeqSHlTd0/7xWcQIXjuMnjtHyoo=
 k8s.io/kubernetes v1.13.0 h1:qTfB+u5M92k2fCCCVP2iuhgwwSOv1EkAkvQY1tQODD8=
 k8s.io/kubernetes v1.13.0/go.mod h1:ocZa8+6APFNC2tX1DZASIbocyYT5jHzqFVsY5aoB7Jk=
 k8s.io/kubernetes v1.13.2 h1:rBz6dubDY4bfv85G6zo04v9G5wniTxvBI9yQ/QxJS3g=
