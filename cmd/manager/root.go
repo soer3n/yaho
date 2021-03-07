@@ -1,4 +1,4 @@
-package cmd
+package manager
 
 import (
 	"github.com/spf13/cobra"
@@ -6,9 +6,9 @@ import (
 
 func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "demo",
-		Short: "demo app to demonstrate cobra",
-		Long:  `demo app to demonstrate cobra by addition`,
+		Use:   "manager",
+		Short: "manager app",
+		Long:  `manager app`,
 	}
 
 	cmd.AddCommand(NewOperatorCmd())

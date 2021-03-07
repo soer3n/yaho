@@ -3,7 +3,7 @@ module github.com/soer3n/apps-operator
 go 1.15
 
 require (
-	github.com/Azure/go-autorest v12.2.0+incompatible
+	github.com/Azure/go-autorest v12.2.0+incompatible // indirect
 	github.com/DATA-DOG/go-sqlmock v1.5.0 // indirect
 	github.com/MakeNowJust/heredoc v0.0.0-20170808103936-bb23615498cd // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
@@ -14,7 +14,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/daviddengcn/go-colortext v0.0.0-20160507010035-511bcaf42ccd // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
-	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
+	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce // indirect
 	github.com/evanphx/json-patch v4.9.0+incompatible // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d // indirect
 	github.com/fatih/camelcase v1.0.0 // indirect
@@ -24,6 +24,7 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e // indirect
 	github.com/gofrs/flock v0.8.0 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golangplus/bytes v0.0.0-20160111154220-45c989fe5450 // indirect
 	github.com/golangplus/fmt v0.0.0-20150411045040-2a5d6d7d2995 // indirect
 	github.com/golangplus/testing v0.0.0-20180327235837-af21d9c3145e // indirect
@@ -65,13 +66,17 @@ require (
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
+	helm.sh/helm v2.17.0+incompatible // indirect
 	helm.sh/helm/v3 v3.5.2
-	k8s.io/api v0.20.4
-	k8s.io/apiextensions-apiserver v0.20.4 // indirect
+	k8s.io/api v0.20.4 // indirect
+	k8s.io/apiextensions-apiserver v0.20.4
 	k8s.io/apimachinery v0.20.4
+	k8s.io/cli-runtime v0.20.4
 	k8s.io/client-go v0.20.4
-	k8s.io/helm v2.17.0+incompatible
-	k8s.io/kubernetes v1.13.0 // indirect
+	k8s.io/helm v2.17.0+incompatible // indirect
+	k8s.io/klog v1.0.0 // indirect
+	k8s.io/kubectl v0.19.2
+	k8s.io/kubernetes v1.13.2 // indirect
 	sigs.k8s.io/controller-runtime v0.8.2
 	sigs.k8s.io/structured-merge-diff v1.0.1-0.20191108220359-b1b620dd3f06 // indirect
 	sigs.k8s.io/testing_frameworks v0.1.2 // indirect
@@ -82,6 +87,7 @@ require (
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v0.0.0-20191216044856-a8371794149d
 	github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
+	helm.sh/helm/v3 => helm.sh/helm/v3 v3.4.0
 	// github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.3.1
 	k8s.io/api => k8s.io/api v0.19.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.2

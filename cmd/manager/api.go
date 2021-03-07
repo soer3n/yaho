@@ -1,9 +1,7 @@
-package cmd
+package manager
 
 import (
-	"fmt"
-	"strconv"
-
+	"github.com/soer3n/apps-operator/pkg/api"
 	"github.com/spf13/cobra"
 )
 
@@ -14,16 +12,7 @@ func NewAPICmd() *cobra.Command {
 		Short: "runs backend for web apps",
 		Long:  `restful application`,
 		Run: func(cmd *cobra.Command, args []string) {
-			sum := 0
-			for _, args := range args {
-				num, err := strconv.Atoi(args)
-
-				if err != nil {
-					fmt.Println(err)
-				}
-				sum = sum + num
-			}
-			fmt.Println("result of addition is", sum)
+			api.New("9090").Run()
 		},
 	}
 }

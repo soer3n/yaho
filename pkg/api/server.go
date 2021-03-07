@@ -2,12 +2,13 @@ package api
 
 import (
 	"crypto/tls"
+	"log"
 	"net/http"
 )
 
-func NewAPI() *Api {
+func New(listen string) *Api {
 	return &Api{
-		ListenAddress: ":9090",
+		ListenAddress: ":" + listen,
 	}
 }
 
@@ -35,11 +36,13 @@ func (api *Api) getRoutes() *http.ServeMux {
 	return mux
 }
 
-func (api *Api) Start() error {
+func (api *Api) Run() error {
 
 	if err := api.setHttpServer(); err != nil {
 		return err
 	}
+
+	log.Println("start server")
 
 	return api.Server.ListenAndServe()
 }
