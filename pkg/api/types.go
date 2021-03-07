@@ -7,3 +7,7 @@ type Api struct {
 	Server        *http.Server
 	Routes        *http.ServeMux
 }
+
+type Handler struct {
+	ApiVersion string
+}
