@@ -4,6 +4,8 @@ import (
 	"crypto/tls"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func New(listen string) *Api {
@@ -23,17 +25,17 @@ func (api *Api) setHttpServer() error {
 	return nil
 }
 
-func (api *Api) getRoutes() *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/paas", func(w http.ResponseWriter, r *http.Request) {
+func (api *Api) getRoutes() *mux.Router {
+	m := mux.NewRouter()
+	m.HandleFunc("/paas", func(w http.ResponseWriter, r *http.Request) {
 
 	})
 
 	// Serve static files from the frontend/dist directory.
 	fs := http.FileServer(http.Dir("./frontend/dist"))
-	mux.Handle("/", fs)
+	m.Handle("/", fs)
 
-	return mux
+	return m
 }
 
 func (api *Api) Run() error {
