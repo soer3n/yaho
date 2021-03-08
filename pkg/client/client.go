@@ -2,12 +2,14 @@ package client
 
 import (
 	// "helm.sh/helm/pkg/kube"
+	"encoding/json"
 	"log"
 	"sync"
 
 	"helm.sh/helm/v3/pkg/cli"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -52,24 +54,33 @@ func (c *Client) Builder(namespace string, validate bool) *resource.Builder {
 	return c.Factory.NewBuilder().Unstructured().Schema(schema).ContinueOnError().NamespaceParam(namespace).DefaultNamespace()
 }
 
-func (c *Client) GetResources(builder *resource.Builder, args []string) []runtime.Object {
+func (c *Client) GetResources(builder *resource.Builder, args []string) []map[string]interface{} {
 	result := builder.
 		ResourceTypeOrNameArgs(true, args...).
 		Do()
 
 	var infos []*resource.Info
+	var payload map[string]interface{}
+	var data []byte
 	var err error
+
+	objs := make([]map[string]interface{}, len(infos))
 
 	if infos, err = result.Infos(); err != nil {
 		log.Println("error on getting infos")
 		log.Printf("%v", err)
-		return []runtime.Object{}
+		return objs
 	}
 
-	objs := make([]runtime.Object, len(infos))
+	for _, ix := range infos {
+		data, err = runtime.Encode(unstructured.UnstructuredJSONScheme, ix.Object)
 
-	for ix := range infos {
-		objs[ix] = infos[ix].Object
+		if err != nil {
+			return objs
+		}
+
+		json.Unmarshal([]byte(data), &payload)
+		objs = append(objs, payload)
 	}
 
 	return objs
@@ -81,10 +92,18 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 	discoveryclient, err := c.Factory.ToDiscoveryClient()
 
 	if err != nil {
+		log.Println("error on getting discovery client")
+		log.Printf("%v", err)
 		return resources, err
 	}
 
 	lists, err := discoveryclient.ServerPreferredResources()
+
+	if err != nil {
+		log.Println("error on getting discovery client")
+		log.Printf("%v", err)
+		return resources, err
+	}
 
 	for _, list := range lists {
 		if len(list.APIResources) == 0 {
