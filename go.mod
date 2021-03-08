@@ -10,6 +10,7 @@ require (
 	github.com/Masterminds/vcs v1.13.1 // indirect
 	github.com/appscode/jsonpatch v1.0.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
+	github.com/bitly/go-simplejson v0.5.0
 	github.com/chai2010/gettext-go v0.0.0-20160711120539-c6fed771bfd5 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/daviddengcn/go-colortext v0.0.0-20160507010035-511bcaf42ccd // indirect

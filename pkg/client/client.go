@@ -3,7 +3,9 @@ package client
 import (
 	// "helm.sh/helm/pkg/kube"
 	"encoding/json"
+	"fmt"
 	"log"
+	"reflect"
 	"sync"
 
 	"helm.sh/helm/v3/pkg/cli"
@@ -54,7 +56,7 @@ func (c *Client) Builder(namespace string, validate bool) *resource.Builder {
 	return c.Factory.NewBuilder().Unstructured().Schema(schema).ContinueOnError().NamespaceParam(namespace).DefaultNamespace()
 }
 
-func (c *Client) GetResources(builder *resource.Builder, args []string) []map[string]interface{} {
+func (c *Client) GetResources(builder *resource.Builder, args []string) *APIResponse {
 	result := builder.
 		ResourceTypeOrNameArgs(true, args...).
 		Do()
@@ -65,36 +67,47 @@ func (c *Client) GetResources(builder *resource.Builder, args []string) []map[st
 	var err error
 
 	objs := make([]map[string]interface{}, len(infos))
+	response := &APIResponse{
+		Message: "",
+	}
 
 	if infos, err = result.Infos(); err != nil {
 		log.Println("error on getting infos")
 		log.Printf("%v", err)
-		return objs
+		response.Message = fmt.Sprintf("%v", err)
+		return response
 	}
 
 	for _, ix := range infos {
 		data, err = runtime.Encode(unstructured.UnstructuredJSONScheme, ix.Object)
 
 		if err != nil {
-			return objs
+			response.Message = fmt.Sprintf("%v", err)
+			return response
 		}
 
-		json.Unmarshal([]byte(data), &payload)
+		_ = json.Unmarshal([]byte(data), &payload)
 		objs = append(objs, payload)
 	}
 
-	return objs
+	response.Data = objs
+	response.Message = "Success"
+	return response
 }
 
-func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...string) ([]Resource, error) {
+func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...string) *APIResponse {
 
 	var resources []Resource
+	response := &APIResponse{
+		Message: "",
+	}
 	discoveryclient, err := c.Factory.ToDiscoveryClient()
 
 	if err != nil {
 		log.Println("error on getting discovery client")
 		log.Printf("%v", err)
-		return resources, err
+		response.Message = fmt.Sprintf("%v", err)
+		return response
 	}
 
 	lists, err := discoveryclient.ServerPreferredResources()
@@ -102,7 +115,8 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 	if err != nil {
 		log.Println("error on getting discovery client")
 		log.Printf("%v", err)
-		return resources, err
+		response.Message = fmt.Sprintf("%v", err)
+		return response
 	}
 
 	for _, list := range lists {
@@ -137,5 +151,7 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 		}
 	}
 
-	return resources, nil
+	response.Data = reflect.ValueOf(resources).Interface().([]map[string]interface{})
+	response.Message = "Success"
+	return response
 }

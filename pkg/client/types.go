@@ -2,7 +2,6 @@ package client
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
@@ -17,10 +16,7 @@ type Resource struct {
 	APIResource     metav1.APIResource
 }
 
-type APIResources struct {
-	List []Resource
-}
-
-type Resources struct {
-	List []runtime.Object
+type APIResponse struct {
+	Message string
+	Data    []map[string]interface{}
 }
