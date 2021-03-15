@@ -24,13 +24,15 @@ func (h *Handler) K8sApiGroup(w http.ResponseWriter, r *http.Request) {
 	rc := client.New()
 	objs := rc.GetAPIResources(vars["group"], true)
 
+	log.Printf("%v", string(payload))
+	w.Header().Set("Content-Type", "application/json")
+
 	if payload, err = json.Marshal(objs); err != nil {
 		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("%v", string(payload))
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(payload)
 }
@@ -43,13 +45,15 @@ func (h *Handler) K8sApiGroupResources(w http.ResponseWriter, r *http.Request) {
 	apiGroup := vars["resource"] + "." + vars["group"]
 	objs := rc.GetResources(rc.Builder("", true), []string{apiGroup})
 
+	log.Printf("%v", string(payload))
+	w.Header().Set("Content-Type", "application/json")
+
 	if payload, err = json.Marshal(objs); err != nil {
 		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("%v", string(payload))
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(payload)
 }

@@ -43,6 +43,7 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
+//NewOperatorCmd represents the operator subcommand
 func NewOperatorCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "operator",

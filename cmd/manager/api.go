@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// addCmd represents the add command
+// NewAPICmd represents the api subcommand
 func NewAPICmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "api",

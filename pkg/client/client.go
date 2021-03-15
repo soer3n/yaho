@@ -66,7 +66,6 @@ func (c *Client) GetResources(builder *resource.Builder, args []string) *APIResp
 	var data []byte
 	var err error
 
-	objs := make([]map[string]interface{}, len(infos))
 	response := &APIResponse{
 		Message: "",
 	}
@@ -77,6 +76,8 @@ func (c *Client) GetResources(builder *resource.Builder, args []string) *APIResp
 		response.Message = fmt.Sprintf("%v", err)
 		return response
 	}
+
+	objs := make([]map[string]interface{}, len(infos))
 
 	for _, ix := range infos {
 		data, err = runtime.Encode(unstructured.UnstructuredJSONScheme, ix.Object)
@@ -113,7 +114,7 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 	lists, err := discoveryclient.ServerPreferredResources()
 
 	if err != nil {
-		log.Println("error on getting discovery client")
+		log.Println("error on getting api resources")
 		log.Printf("%v", err)
 		response.Message = fmt.Sprintf("%v", err)
 		return response
