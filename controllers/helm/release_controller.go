@@ -157,7 +157,7 @@ func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, in
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
-		if _, err := helmutils.HandleFinalizer(helmClient, instance); err != nil {
+		if _, err := helmutils.HandleFinalizer(helmClient, instance.ObjectMeta); err != nil {
 			return ctrl.Result{}, nil
 		}
 

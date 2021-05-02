@@ -147,16 +147,19 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 	var del bool
 	var err error
 
-	if del, err = helmutils.HandleFinalizer(hc, instance); err != nil {
-		return ctrl.Result{}, nil
+	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
+	if isRepoMarkedToBeDeleted {
+		if del, err = helmutils.HandleFinalizer(hc, instance.ObjectMeta); err != nil {
+			return ctrl.Result{}, nil
+		}
+
+		if del {
+			controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
+		}
 	}
 
-	if del {
-		controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
-
-		if err := r.Client.Update(context.TODO(), instance); err != nil {
-			return ctrl.Result{}, err
-		}
+	if err := r.Client.Update(context.TODO(), instance); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil

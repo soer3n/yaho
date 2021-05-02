@@ -1,32 +1,17 @@
 package helm
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
 func HandleFinalizer(hc *HelmClient, instance interface{}) (bool, error) {
 
-	var metaObj *metav1.ObjectMeta
-	metaObj, ok := instance.(*metav1.ObjectMeta)
-
-	if !ok {
-		return false, nil
+	if len(hc.Repos.Entries) > 0 {
+		if err := removeRepo(hc); err != nil {
+			return true, err
+		}
 	}
 
-	isInstanceMarkedToBeDeleted := metaObj.GetDeletionTimestamp() != nil
-	if isInstanceMarkedToBeDeleted {
-		if len(hc.Repos.Entries) > 0 {
-			if err := removeRepo(hc); err != nil {
-				return true, err
-			}
+	if len(hc.Releases.Entries) > 0 {
+		if err := removeRelease(hc.Releases.Entries[0]); err != nil {
+			return true, err
 		}
-
-		if len(hc.Releases.Entries) > 0 {
-			if err := removeRelease(hc.Releases.Entries[0]); err != nil {
-				return true, err
-			}
-		}
-
 	}
 	return false, nil
 }

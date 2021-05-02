@@ -100,6 +100,7 @@ func (hv *HelmValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
 
 func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, parents ...string) map[string]interface{} {
 	valMap := make(map[string]interface{})
+	// subMap := make(map[string]interface{})
 	var parentKey string
 
 	for _, parent := range parents {
@@ -111,6 +112,9 @@ func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMa
 	}
 
 	for ck, cv := range childMap {
+		//if err := yaml.Unmarshal([]byte(cv), &subMap); err != nil {
+		//	log.Fatal(err)
+		//}
 		valMap[parentKey+ck] = cv
 	}
 	return valMap
