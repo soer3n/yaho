@@ -2,6 +2,7 @@ package helm
 
 import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	"sigs.k8s.io/yaml"
 )
 
 func NewValueTemplate(valuesList []*ValuesRef) *HelmValueTemplate {
@@ -100,7 +101,6 @@ func (hv *HelmValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
 
 func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, parents ...string) map[string]interface{} {
 	valMap := make(map[string]interface{})
-	// subMap := make(map[string]interface{})
 	var parentKey string
 
 	for _, parent := range parents {
@@ -112,10 +112,25 @@ func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMa
 	}
 
 	for ck, cv := range childMap {
-		//if err := yaml.Unmarshal([]byte(cv), &subMap); err != nil {
-		//	log.Fatal(err)
-		//}
-		valMap[parentKey+ck] = cv
+		bytes := []byte(cv.(string))
+		key, value := hv.parseMap(parentKey+ck, bytes)
+		valMap[key] = value
 	}
+
 	return valMap
+}
+
+func (hv *HelmValueTemplate) parseMap(key string, payload []byte) (string, string) {
+
+	valMap := make(map[string]interface{})
+	subMap := make(map[string]interface{})
+
+	if err := yaml.Unmarshal([]byte(payload), &subMap); err != nil {
+		return key, string(payload[:])
+	} else {
+		for ix, entry := range subMap {
+			subKey, value := hv.parseMap(ix, []byte(entry.(string)))
+			valMap[key+subKey] = value
+		}
+	}
 }
