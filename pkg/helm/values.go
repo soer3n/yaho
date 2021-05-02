@@ -101,6 +101,7 @@ func (hv *HelmValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
 
 func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, parents ...string) map[string]interface{} {
 	valMap := make(map[string]interface{})
+	subMap := make(map[string]string)
 	var parentKey string
 
 	for _, parent := range parents {
@@ -113,24 +114,33 @@ func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMa
 
 	for ck, cv := range childMap {
 		bytes := []byte(cv.(string))
-		key, value := hv.parseMap(parentKey+ck, bytes)
-		valMap[key] = value
+		subMap = hv.parseMap(parentKey+ck, bytes)
+		for key, value := range subMap {
+			valMap[key] = value
+		}
 	}
 
 	return valMap
 }
 
-func (hv *HelmValueTemplate) parseMap(key string, payload []byte) (string, string) {
+func (hv *HelmValueTemplate) parseMap(key string, payload []byte) map[string]string {
 
-	valMap := make(map[string]interface{})
-	subMap := make(map[string]interface{})
+	valMap := make(map[string]string)
+	subMap := make(map[string]string)
+	returnKey := key
 
 	if err := yaml.Unmarshal([]byte(payload), &subMap); err != nil {
-		return key, string(payload[:])
+		valMap[key] = string(payload[:])
+		return valMap
 	} else {
 		for ix, entry := range subMap {
-			subKey, value := hv.parseMap(ix, []byte(entry.(string)))
-			valMap[key+subKey] = value
+			returnKey = returnKey + ix
+			if err := yaml.Unmarshal([]byte(entry), &subMap); err != nil {
+				valMap[returnKey] = entry
+			} else {
+				return hv.parseMap(ix, []byte(entry))
+			}
 		}
+		return valMap
 	}
 }
