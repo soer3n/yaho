@@ -75,7 +75,7 @@ func (hc *HelmRelease) Update() error {
 	// }
 
 	client.Namespace = hc.Settings.Namespace()
-	vals := hc.getValues()
+	vals := hc.mergeMaps(helmChart.Values)
 	release, err = client.Run(helmChart, vals)
 
 	if err != nil {
@@ -142,6 +142,17 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 
 	mergedVals, _ := vals.MergeValues(getter.All(hc.Settings))
 	return mergedVals
+}
+
+func (hc *HelmRelease) mergeMaps(maps ...map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	result = hc.getValues()
+    for _, m := range maps {
+        for k, v := range m {
+            result[k] = v
+        }
+    }
+    return result
 }
 
 func (hc *HelmRelease) SetValues() error {
@@ -255,7 +266,8 @@ func (hc HelmRelease) validate() error {
 func (hc *HelmRelease) upgrade(helmChart *chart.Chart) error {
 	client := action.NewUpgrade(hc.Config)
 
-	vals := hc.getValues()
+	// vals := hc.getValues()
+	vals := hc.mergeMaps(helmChart.Values)
 	hc.Values = vals
 
 	helmChart.Values = vals
