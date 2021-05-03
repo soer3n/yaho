@@ -134,7 +134,7 @@ func (hv *HelmValueTemplate) parseMap(key string, payload []byte) map[string]str
 		return valMap
 	} else {
 		for ix, entry := range subMap {
-			returnKey = returnKey + ix
+			returnKey = returnKey + "." + ix
 			if err := yaml.Unmarshal([]byte(entry), &subMap); err != nil {
 				valMap[returnKey] = entry
 			} else {
