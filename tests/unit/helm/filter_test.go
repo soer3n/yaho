@@ -18,5 +18,5 @@ func TestGetFilterSpec(t *testing.T) {
 	returnStruct := fitlerOptions.Filter(valuesObj)
 
 	assert := assert.New(t)
-	assert.Equal(expectedReturnStruct, returnStruct, "Structs shoudl be equal.")
+	assert.Equal(expectedReturnStruct, returnStruct, "Structs should be equal.")
 }
