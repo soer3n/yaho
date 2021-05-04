@@ -130,6 +130,7 @@ func SetupTest(ctx context.Context) *core.Namespace {
 			Client:   mgr.GetClient(),
 			Log:      logf.Log,
 			Recorder: mgr.GetEventRecorderFor("repo-controller"),
+			Scheme:   mgr.GetScheme(),
 		}
 		err = controller.SetupWithManager(mgr)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")

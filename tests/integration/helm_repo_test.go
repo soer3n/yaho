@@ -34,12 +34,12 @@ var _ = Context("Inside of a new namespace", func() {
 			err := k8sClient.Create(ctx, myKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			deployment := &apps.Deployment{}
+			deployment := &helmv1alpha1.Repo{}
 			Eventually(
-				getResourceFunc(ctx, client.ObjectKey{Name: "deployment-name", Namespace: myKind.Namespace}, deployment),
+				getResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: myKind.Namespace}, deployment),
 				time.Second*5, time.Millisecond*500).Should(BeNil())
 
-			Expect(*deployment.Spec.Replicas).To(Equal(int32(1)))
+			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource"))
 		})
 
 		It("should create a new Deployment resource with the specified name and two replicas if two is specified", func() {
@@ -57,12 +57,12 @@ var _ = Context("Inside of a new namespace", func() {
 			err := k8sClient.Create(ctx, myKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			deployment := &apps.Deployment{}
+			deployment := &helmv1alpha1.Repo{}
 			Eventually(
-				getResourceFunc(ctx, client.ObjectKey{Name: "deployment-name", Namespace: myKind.Namespace}, deployment),
+				getResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: myKind.Namespace}, deployment),
 				time.Second*5, time.Millisecond*500).Should(BeNil())
 
-			Expect(*deployment.Spec.Replicas).To(Equal(int32(2)))
+			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource"))
 		})
 
 		It("should allow updating the replicas count after creating a MyKind resource", func() {
@@ -88,12 +88,12 @@ var _ = Context("Inside of a new namespace", func() {
 			err := k8sClient.Create(ctx, myKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			deployment := &apps.Deployment{}
+			deployment := &helmv1alpha1.Repo{}
 			Eventually(
 				getResourceFunc(ctx, deploymentObjectKey, deployment),
 				time.Second*5, time.Millisecond*500).Should(BeNil(), "deployment resource should exist")
 
-			Expect(*deployment.Spec.Replicas).To(Equal(int32(1)), "replica count should be equal to 1")
+			Expect(*&deployment.ObjectMeta.Name).To(Equal("deployment-name"))
 
 			err = k8sClient.Get(ctx, myKindObjectKey, myKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to retrieve MyKind resource")
@@ -133,7 +133,7 @@ var _ = Context("Inside of a new namespace", func() {
 			err := k8sClient.Create(ctx, myKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			deployment := &apps.Deployment{}
+			deployment := &helmv1alpha1.Repo{}
 			Eventually(
 				getResourceFunc(ctx, deploymentObjectKey, deployment),
 				time.Second*5, time.Millisecond*500).Should(BeNil(), "deployment resource should exist")
@@ -156,7 +156,7 @@ var _ = Context("Inside of a new namespace", func() {
 	})
 })
 
-func getResourceFunc(ctx context.Context, key client.ObjectKey, obj *apps.Deployment) func() error {
+func getResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repo) func() error {
 	return func() error {
 		return k8sClient.Get(ctx, key, obj)
 	}

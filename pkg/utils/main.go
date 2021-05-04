@@ -27,13 +27,13 @@ func GetLabelsByInstance(metaObj metav1.ObjectMeta, env map[string]string) (stri
 
 	if repoLabelOk {
 		if repoGroupLabelOk {
-			repoPath = repoPath + "/" + metaObj.Namespace + "/" + repoGroupLabel + "/repositories.yaml"
+			repoPath = repoPath + "/" + metaObj.Namespace + "/" + repoGroupLabel
 			repoCache = repoCache + "/" + metaObj.Namespace + "/" + repoGroupLabel
 		} else {
-			repoPath = repoPath + "/" + metaObj.Namespace + "/" + repoLabel + "/repositories.yaml"
+			repoPath = repoPath + "/" + metaObj.Namespace + "/" + repoLabel
 			repoCache = repoCache + "/" + metaObj.Namespace + "/" + repoLabel
 		}
 	}
 
-	return repoPath, repoCache
+	return repoPath + "/repositories.yaml", repoCache
 }
