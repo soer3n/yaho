@@ -62,11 +62,12 @@ func TestAPIs(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	logf.Log.Info("namespace: %s", "foo", namespace)
-	// Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
+	Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
 	Expect(os.Setenv("WATCH_NAMESPACE", namespace)).To(Succeed())
-	Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
-	Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
-	Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
+	// Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
+	// Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
+	// Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
+	// Expect(os.Setenv("CGO_ENABLED", "0")).To(Succeed())
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{

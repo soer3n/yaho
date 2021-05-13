@@ -96,7 +96,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	if chartList, err = helmRepo.GetCharts(); err != nil {
+	if chartList, err = helmRepo.GetCharts(hc.Repos.Settings); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -160,9 +160,9 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 		}
 	}
 
-	if err := r.Client.Update(context.TODO(), instance); err != nil {
-		return ctrl.Result{}, err
-	}
+	// if err := r.Client.Update(context.TODO(), instance); err != nil {
+	//	return ctrl.Result{}, err
+	//}
 
 	return ctrl.Result{}, nil
 }
@@ -177,15 +177,15 @@ func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo, hc *helmutils.H
 
 	var entryObj *repo.Entry
 
-	if err = helmRepo.Update(); err != nil {
-		return ctrl.Result{}, &helmutils.HelmRepo{}, err
-	}
-
 	if err, entryObj = helmRepo.GetEntryObj(); err != nil {
 		return ctrl.Result{}, &helmutils.HelmRepo{}, err
 	}
 
 	if err = hc.Repos.UpdateRepoFile(entryObj); err != nil {
+		return ctrl.Result{}, &helmutils.HelmRepo{}, err
+	}
+
+	if err = helmRepo.Update(); err != nil {
 		return ctrl.Result{}, &helmutils.HelmRepo{}, err
 	}
 

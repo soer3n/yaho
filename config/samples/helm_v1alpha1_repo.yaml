@@ -1,7 +1,7 @@
 apiVersion: helm.soer3n.info/v1alpha1
 kind: Repo
 metadata:
-  name: appscode
+  name: submariner
 spec:
-  name: appscode
-  url: https://charts.appscode.com/stable/
+  name: submariner
+  url: https://submariner-io.github.io/submariner-charts/charts

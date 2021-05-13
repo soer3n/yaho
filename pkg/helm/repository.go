@@ -6,6 +6,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/helmpath"
 	"helm.sh/helm/v3/pkg/repo"
@@ -123,9 +126,10 @@ func (hr HelmRepos) Get(name string) (error, *repo.Entry) {
 	return nil, hr.installed.Get(name)
 }
 
-func (hr *HelmRepo) GetCharts() ([]*repo.ChartVersion, error) {
+func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings) ([]*repo.ChartVersion, error) {
 
 	var chartList []*repo.ChartVersion
+	var argsList []string
 	err, entry := hr.GetEntryObj()
 
 	if err != nil {
@@ -147,10 +151,38 @@ func (hr *HelmRepo) GetCharts() ([]*repo.ChartVersion, error) {
 	for _, chartMetadata := range indexFile.Entries {
 		// var chartObj *repo.ChartVersion
 		log.Infof("ChartMetadata: %v", chartMetadata)
+
+		config, _ := initActionConfig(settings)
+		client := action.NewInstall(config)
+
 		for _, chartVersion := range chartMetadata {
 			//if chartObj == nil {
 			//	chartObj = chartVersion
 			//}
+			argsList = make([]string, 0)
+			argsList = append(argsList, chartVersion.Metadata.Name)
+			argsList = append(argsList, hr.Name+"/"+chartVersion.Metadata.Name)
+			name, chart, err := client.NameAndChart(argsList)
+
+			if err != nil {
+				return nil, err
+			}
+
+			client.ReleaseName = name
+			cp, err := client.ChartPathOptions.LocateChart(chart, settings)
+
+			if err != nil {
+				return nil, err
+			}
+
+			chartRequested, err := loader.Load(cp)
+
+			if err != nil {
+				return nil, err
+			}
+
+			log.Infof("Templates: %v", chartRequested.Templates)
+			log.Infof("CRDs: %v", chartRequested.CRDs())
 
 			//chartObj.Version = chartVersion.Version
 			chartList = append(chartList, chartVersion)
