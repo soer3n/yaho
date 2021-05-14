@@ -3,6 +3,7 @@ package helm
 import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
 )
@@ -44,6 +45,16 @@ type HelmRepo struct {
 	Url      string
 	Auth     HelmAuth
 	Settings *cli.EnvSettings
+}
+
+type HelmCharts struct {
+	Versions []HelmChart
+}
+
+type HelmChart struct {
+	Version   *repo.ChartVersion
+	Templates []*chart.File
+	CRDs      []*chart.File
 }
 
 type HelmValueTemplate struct {

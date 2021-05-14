@@ -183,6 +183,7 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings) ([]*repo.ChartVersion, 
 
 			log.Infof("Templates: %v", chartRequested.Templates)
 			log.Infof("CRDs: %v", chartRequested.CRDs())
+			log.Infof("Raw: %v", chartRequested.Raw)
 
 			//chartObj.Version = chartVersion.Version
 			chartList = append(chartList, chartVersion)
