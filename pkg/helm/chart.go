@@ -3,6 +3,7 @@ package helm
 import (
 	"github.com/prometheus/common/log"
 	"helm.sh/helm/v3/pkg/action"
+	helmchart "helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
@@ -32,6 +33,10 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 
 func (chart *HelmChart) CreateTemplates() error {
 	var argsList []string
+	var name, chartname, cp string
+	var chartRequested *helmchart.Chart
+	var err error
+
 	repo := chart.Repo
 	client := chart.Client
 	settings := chart.Settings
@@ -40,22 +45,17 @@ func (chart *HelmChart) CreateTemplates() error {
 		argsList = make([]string, 0)
 		argsList = append(argsList, chart.Version.Metadata.Name)
 		argsList = append(argsList, repo+"/"+chart.Version.Metadata.Name)
-		name, chart, err := client.NameAndChart(argsList)
 
-		if err != nil {
+		if name, chartname, err = client.NameAndChart(argsList); err != nil {
 			return err
 		}
 
 		client.ReleaseName = name
-		cp, err := client.ChartPathOptions.LocateChart(chart, settings)
-
-		if err != nil {
+		if cp, err = client.ChartPathOptions.LocateChart(chartname, settings); err != nil {
 			return err
 		}
 
-		chartRequested, err := loader.Load(cp)
-
-		if err != nil {
+		if chartRequested, err = loader.Load(cp); err != nil {
 			return err
 		}
 
