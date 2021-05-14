@@ -6,8 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/helmpath"
@@ -126,20 +124,19 @@ func (hr HelmRepos) Get(name string) (error, *repo.Entry) {
 	return nil, hr.installed.Get(name)
 }
 
-func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings) ([]*repo.ChartVersion, error) {
+func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings) ([]*HelmChart, error) {
 
-	var chartList []*repo.ChartVersion
-	var argsList []string
+	var chartList []*HelmChart
 	err, entry := hr.GetEntryObj()
 
 	if err != nil {
-		return []*repo.ChartVersion{}, errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
+		return []*HelmChart{}, errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
 	}
 
 	cr, err := repo.NewChartRepository(entry, getter.All(hr.Settings))
 
 	if err != nil {
-		return []*repo.ChartVersion{}, errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
+		return []*HelmChart{}, errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
 	}
 
 	log.Infof("CR: %v", cr)
@@ -151,44 +148,7 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings) ([]*repo.ChartVersion, 
 	for _, chartMetadata := range indexFile.Entries {
 		// var chartObj *repo.ChartVersion
 		log.Infof("ChartMetadata: %v", chartMetadata)
-
-		config, _ := initActionConfig(settings)
-		client := action.NewInstall(config)
-
-		for _, chartVersion := range chartMetadata {
-			//if chartObj == nil {
-			//	chartObj = chartVersion
-			//}
-			argsList = make([]string, 0)
-			argsList = append(argsList, chartVersion.Metadata.Name)
-			argsList = append(argsList, hr.Name+"/"+chartVersion.Metadata.Name)
-			name, chart, err := client.NameAndChart(argsList)
-
-			if err != nil {
-				return nil, err
-			}
-
-			client.ReleaseName = name
-			cp, err := client.ChartPathOptions.LocateChart(chart, settings)
-
-			if err != nil {
-				return nil, err
-			}
-
-			chartRequested, err := loader.Load(cp)
-
-			if err != nil {
-				return nil, err
-			}
-
-			log.Infof("Templates: %v", chartRequested.Templates)
-			log.Infof("CRDs: %v", chartRequested.CRDs())
-			log.Infof("Raw: %v", chartRequested.Raw)
-
-			//chartObj.Version = chartVersion.Version
-			chartList = append(chartList, chartVersion)
-		}
-		//chartList = append(chartList, chartObj)
+		chartList = append(chartList, NewChart(chartMetadata, settings, hr.Name))
 	}
 
 	return chartList, nil

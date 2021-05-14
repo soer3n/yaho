@@ -82,7 +82,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	var hc *helmutils.HelmClient
 	var helmRepo *helmutils.HelmRepo
-	var chartList []*repo.ChartVersion
+	var chartList []*helmutils.HelmChart
 
 	if hc, err = helmutils.GetHelmClient(instance); err != nil {
 		return ctrl.Result{}, err
@@ -104,8 +104,9 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	chartObjMap := make(map[string]*helmv1alpha1.Chart)
 
-	for _, chartMeta := range chartList {
-		chartObjMap, err = helmutils.AddOrUpdateChartMap(chartObjMap, chartMeta, instance)
+	for _, chart := range chartList {
+		// chartObjMap, err = helmutils.AddOrUpdateChartMap(chartObjMap, chartMeta, instance)
+		chartObjMap, err = chart.AddOrUpdateChartMap(chartObjMap, instance)
 
 		if err != nil {
 			return ctrl.Result{}, err
