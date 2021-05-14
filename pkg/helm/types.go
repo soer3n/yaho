@@ -47,11 +47,11 @@ type HelmRepo struct {
 	Settings *cli.EnvSettings
 }
 
-type HelmCharts struct {
-	Versions []HelmChart
+type HelmChart struct {
+	Versions []*HelmChartVersion
 }
 
-type HelmChart struct {
+type HelmChartVersion struct {
 	Version   *repo.ChartVersion
 	Templates []*chart.File
 	CRDs      []*chart.File
