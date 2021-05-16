@@ -81,7 +81,3 @@ func (chart *HelmChart) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1
 }
 
 func (chart *HelmChart) createConfigMaps() {}
-
-func (chart *HelmChart) createTemplateConfigMap() {}
-
-func (chart *HelmChart) createCRDConfigMap() {}

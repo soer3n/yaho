@@ -105,10 +105,11 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	chartObjMap := make(map[string]*helmv1alpha1.Chart)
 
 	for _, chart := range chartList {
-		// chartObjMap, err = helmutils.AddOrUpdateChartMap(chartObjMap, chartMeta, instance)
-		chartObjMap, err = chart.AddOrUpdateChartMap(chartObjMap, instance)
+		if chartObjMap, err = chart.AddOrUpdateChartMap(chartObjMap, instance); err != nil {
+			return ctrl.Result{}, err
+		}
 
-		if err != nil {
+		if err = chart.CreateTemplates(); err != nil {
 			return ctrl.Result{}, err
 		}
 	}

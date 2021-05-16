@@ -2,6 +2,7 @@ package helm
 
 import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -47,4 +48,12 @@ func (chartVersion *HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string
 
 	chartObjMap[chartMeta.Name] = helmChart
 	return chartObjMap, nil
+}
+
+func (chartVersion *HelmChartVersion) createTemplateConfigMap() v1.ConfigMap {
+	return v1.ConfigMap{}
+}
+
+func (chartVersion *HelmChartVersion) createCRDConfigMap() v1.ConfigMap {
+	return v1.ConfigMap{}
 }
