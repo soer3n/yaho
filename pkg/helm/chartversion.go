@@ -51,11 +51,11 @@ func (chartVersion *HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string
 	return chartObjMap, nil
 }
 
-func (chartVersion *HelmChartVersion) createConfigMaps(templates []*chart.File, crds []*chart.File) []v1.ConfigMap {
+func (chartVersion *HelmChartVersion) createConfigMaps() []v1.ConfigMap {
 	returnList := []v1.ConfigMap{}
 
-	returnList = append(returnList, chartVersion.createConfigMap("tmpl", templates))
-	returnList = append(returnList, chartVersion.createConfigMap("crds", crds))
+	returnList = append(returnList, chartVersion.createConfigMap("tmpl", chartVersion.Templates))
+	returnList = append(returnList, chartVersion.createConfigMap("crds", chartVersion.CRDs))
 
 	return returnList
 }

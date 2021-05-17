@@ -25,6 +25,7 @@ import (
 	helmutils "github.com/soer3n/apps-operator/pkg/helm"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
 	"helm.sh/helm/v3/pkg/repo"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -111,6 +112,12 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 		if err = chart.CreateTemplates(); err != nil {
 			return ctrl.Result{}, err
+		}
+
+		for _, configmap := range chart.CreateConfigMaps() {
+			if err := r.deployConfigMap(configmap); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
@@ -227,6 +234,10 @@ func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *he
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *RepoReconciler) deployConfigMap(v1.ConfigMap) error {
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

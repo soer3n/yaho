@@ -8,6 +8,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
+	v1 "k8s.io/api/core/v1"
 )
 
 func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string) *HelmChart {
@@ -52,6 +53,7 @@ func (chart *HelmChart) CreateTemplates() error {
 		}
 
 		client.ReleaseName = name
+		client.Version = chart.Version.Version
 		if cp, err = client.ChartPathOptions.LocateChart(chartname, settings); err != nil {
 			return err
 		}
@@ -82,4 +84,17 @@ func (chart *HelmChart) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1
 	return chartObjMap, nil
 }
 
-func (chart *HelmChart) createConfigMaps() {}
+func (chart *HelmChart) CreateConfigMaps() []v1.ConfigMap {
+
+	returnList := []v1.ConfigMap{}
+
+	for _, version := range chart.Versions {
+		versionConfigMaps := version.createConfigMaps()
+
+		for _, configmap := range versionConfigMaps {
+			returnList = append(returnList, configmap)
+		}
+	}
+
+	return returnList
+}
