@@ -61,8 +61,10 @@ func (chart *HelmChart) CreateTemplates() error {
 		}
 
 		log.Infof("Templates: %v", chartRequested.Templates)
+		chart.Templates = chartRequested.Templates
+
 		log.Infof("CRDs: %v", chartRequested.CRDs())
-		log.Infof("Raw: %v", chartRequested.Raw)
+		chart.CRDs = chartRequested.CRDs()
 
 	}
 
