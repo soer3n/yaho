@@ -203,14 +203,12 @@ func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo, hc *helmutils.H
 
 func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo) (ctrl.Result, error) {
 
-	err := controllerutil.SetControllerReference(instance, helmChart, r.Scheme)
-
-	if err != nil {
+	if err := controllerutil.SetControllerReference(instance, helmChart, r.Scheme); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	installedChart := &helmv1alpha1.Chart{}
-	err = r.Client.Get(context.Background(), client.ObjectKey{
+	err := r.Client.Get(context.Background(), client.ObjectKey{
 		Namespace: helmChart.ObjectMeta.Namespace,
 		Name:      helmChart.Spec.Name,
 	}, installedChart)
