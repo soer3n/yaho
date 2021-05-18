@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"encoding/json"
 	actionlog "log"
 	"os"
 	"reflect"
@@ -23,19 +24,25 @@ import (
 
 func (hc *HelmRelease) Update() error {
 
-	repoChart := hc.Repo + "/" + hc.Chart
-	args := []string{hc.Name, repoChart}
+	// repoChart := hc.Repo + "/" + hc.Chart
+	// args := []string{hc.Name, repoChart}
 	installConfig := hc.Config
 	log.Infof("configinstall: %v", hc.Config)
 	client := action.NewInstall(installConfig)
-	name, chart, err := client.NameAndChart(args)
-	client.ReleaseName = name
+	// name, _, err := client.NameAndChart(args)
+	//client.ReleaseName = name
+	client.ReleaseName = hc.Name
 
-	if err != nil {
-		return err
+	//if err != nil {
+	//	return err
+	//}
+
+	options := &action.ChartPathOptions{
+		Version:               hc.Version,
+		InsecureSkipTLSverify: false,
+		Verify:                false,
 	}
-
-	err, helmChart, chartPath := hc.GetChart(chart, &client.ChartPathOptions)
+	err, helmChart, chartPath := hc.GetChart(hc.Chart, options)
 
 	if err != nil {
 		return err
@@ -217,7 +224,10 @@ func (hc *HelmRelease) getRelease() (*release.Release, error) {
 
 func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.ChartPathOptions) (error, *chart.Chart, string) {
 
+	var jsonbody []byte
+	var err error
 	helmChart := &chart.Chart{}
+	chartObj := &helmv1alpha1.Chart{}
 	files := []*chart.File{}
 	args := make([]string, 0)
 	namespace := "default"
@@ -227,11 +237,16 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 		chartName,
 	}
 
-	obj := rc.GetResources(rc.Builder(namespace, true).LabelSelector("repo="+hc.Repo), args)
-
-	if chartObj, ok := obj.Data[0][chartName].(*helmv1alpha1.Chart); ok {
-		files = hc.getFiles(rc, chartObj)
+	obj := rc.GetResources(rc.Builder(namespace, true), args)
+	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
+		return err, helmChart, "foo"
 	}
+
+	if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
+		return err, helmChart, "foo"
+	}
+
+	files = hc.getFiles(rc, chartObj)
 
 	helmChart.Metadata.Name = chartName
 	helmChart.Metadata.Version = hc.Version
