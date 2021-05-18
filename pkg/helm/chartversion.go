@@ -1,6 +1,8 @@
 package helm
 
 import (
+	"strings"
+
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"helm.sh/helm/v3/pkg/chart"
 	v1 "k8s.io/api/core/v1"
@@ -76,7 +78,8 @@ func (chartVersion *HelmChartVersion) createConfigMap(name string, namespace str
 	binaryData := make(map[string][]byte)
 
 	for _, entry := range list {
-		binaryData[entry.Name] = entry.Data
+		path := strings.SplitAfter(entry.Name, "/")
+		binaryData[path[1]] = entry.Data
 	}
 
 	configmap.BinaryData = binaryData
