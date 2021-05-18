@@ -3,5 +3,10 @@ kind: Release
 metadata:
   name: release-sample
 spec:
-  # Add fields here
-  foo: bar
+  name: submariner-test
+  repo: submariner
+  chart: submariner
+  version: 0.7.0
+  releaseSpec:
+    valueRefs:
+    - values-sample

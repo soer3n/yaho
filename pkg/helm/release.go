@@ -17,6 +17,7 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
 
+	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	client "github.com/soer3n/apps-operator/pkg/client"
 )
 
@@ -218,13 +219,51 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 
 	helmChart := &chart.Chart{}
 	files := []*chart.File{}
+	args := make([]string, 0)
 	namespace := "default"
 	rc := client.New()
-	args := []string{
+	args = []string{
 		"charts.helm.soer3n.info",
 		chartName,
 	}
-	obj := rc.GetResources(rc.Builder(namespace, true), args)
+
+	obj := rc.GetResources(rc.Builder(namespace, true).LabelSelector("repo="+hc.Repo), args)
+
+	if chartObj, ok := obj.Data[0][chartName].(*helmv1alpha1.Chart); ok {
+		files = hc.getFiles(rc, chartObj)
+	}
+
+	helmChart.Metadata.Name = chartName
+	helmChart.Metadata.Version = hc.Version
+	helmChart.Files = files
+
+	if err := helmChart.Validate(); err != nil {
+		return err, helmChart, "foo"
+	}
+
+	return nil, helmChart, "foo"
+}
+
+func (hc *HelmRelease) getFiles(rc *client.Client, helmChart *helmv1alpha1.Chart) []*chart.File {
+
+	files := []*chart.File{}
+
+	files = hc.appendFilesFromConfigMap(rc, "helm-tmpl-"+hc.Chart+"-"+hc.Version, files)
+	files = hc.appendFilesFromConfigMap(rc, "helm-crds-"+hc.Chart+"-"+hc.Version, files)
+
+	return files
+}
+
+func (hc *HelmRelease) appendFilesFromConfigMap(rc *client.Client, name string, list []*chart.File) []*chart.File {
+
+	args := []string{
+		"configmaps",
+		name,
+	}
+
+	files := []*chart.File{}
+
+	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true), args)
 
 	for _, item := range obj.Data[0] {
 		if templates, ok := item.(*v1.ConfigMap); ok {
@@ -238,15 +277,7 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 		}
 	}
 
-	helmChart.Metadata.Name = chartName
-	helmChart.Metadata.Version = hc.Version
-	helmChart.Files = files
-
-	if err := helmChart.Validate(); err != nil {
-		return err, helmChart, "foo"
-	}
-
-	return nil, helmChart, "foo"
+	return files
 }
 
 func (hc HelmRelease) configure() {
