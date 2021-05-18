@@ -17,6 +17,7 @@ limitations under the License.
 package helm
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/go-logr/logr"
@@ -257,9 +258,19 @@ func (r *RepoReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv
 		return err
 	}
 
-	current.BinaryData = configmap.BinaryData
+	for key, data := range current.BinaryData {
+		if val, ok := configmap.BinaryData[key]; ok {
+			if compare := bytes.Compare(val, data); compare == 0 {
+				return nil
+			}
+		}
+	}
 
-	if err = r.Client.Update(context.TODO(), current); err != nil {
+	if err = r.Client.Delete(context.TODO(), current); err != nil {
+		return err
+	}
+
+	if err = r.Client.Create(context.TODO(), &configmap); err != nil {
 		return err
 	}
 
