@@ -115,7 +115,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 
 		for _, configmap := range chart.CreateConfigMaps() {
-			if err := r.deployConfigMap(configmap); err != nil {
+			if err := r.deployConfigMap(configmap, instance); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -234,7 +234,35 @@ func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *he
 	return ctrl.Result{}, nil
 }
 
-func (r *RepoReconciler) deployConfigMap(v1.ConfigMap) error {
+func (r *RepoReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Repo) error {
+
+	if err := controllerutil.SetControllerReference(instance, &configmap, r.Scheme); err != nil {
+		return err
+	}
+
+	current := &v1.ConfigMap{}
+	err := r.Client.Get(context.Background(), client.ObjectKey{
+		Namespace: configmap.ObjectMeta.Namespace,
+		Name:      configmap.ObjectMeta.Name,
+	}, current)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			err = r.Client.Create(context.TODO(), &configmap)
+
+			if err != nil {
+				return err
+			}
+		}
+		return err
+	}
+
+	current.BinaryData = configmap.BinaryData
+
+	if err = r.Client.Update(context.TODO(), current); err != nil {
+		return err
+	}
+
 	return nil
 }
 
