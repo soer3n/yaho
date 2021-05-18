@@ -51,21 +51,22 @@ func (chartVersion *HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string
 	return chartObjMap, nil
 }
 
-func (chartVersion *HelmChartVersion) createConfigMaps() []v1.ConfigMap {
+func (chartVersion *HelmChartVersion) createConfigMaps(namespace string) []v1.ConfigMap {
 	returnList := []v1.ConfigMap{}
 
-	returnList = append(returnList, chartVersion.createConfigMap("tmpl", chartVersion.Templates))
-	returnList = append(returnList, chartVersion.createConfigMap("crds", chartVersion.CRDs))
+	returnList = append(returnList, chartVersion.createConfigMap("tmpl", namespace, chartVersion.Templates))
+	returnList = append(returnList, chartVersion.createConfigMap("crds", namespace, chartVersion.CRDs))
 
 	return returnList
 }
 
-func (chartVersion *HelmChartVersion) createConfigMap(name string, list []*chart.File) v1.ConfigMap {
+func (chartVersion *HelmChartVersion) createConfigMap(name string, namespace string, list []*chart.File) v1.ConfigMap {
 
 	immutable := new(bool)
 	*immutable = false
 	objectMeta := metav1.ObjectMeta{
-		Name: "helm-" + name + "-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
+		Name:      "helm-" + name + "-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
+		Namespace: namespace,
 	}
 	configmap := v1.ConfigMap{
 		Immutable:  immutable,

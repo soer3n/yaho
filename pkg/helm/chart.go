@@ -89,7 +89,7 @@ func (chart *HelmChart) CreateConfigMaps() []v1.ConfigMap {
 	returnList := []v1.ConfigMap{}
 
 	for _, version := range chart.Versions {
-		versionConfigMaps := version.createConfigMaps()
+		versionConfigMaps := version.createConfigMaps(chart.Settings.Namespace())
 
 		for _, configmap := range versionConfigMaps {
 			returnList = append(returnList, configmap)
