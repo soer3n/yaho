@@ -119,7 +119,17 @@ spec:
               versions:
                 description: A SemVer 2 conformant version string of the chart
                 items:
-                  type: string
+                  properties:
+                    crdRef:
+                      type: string
+                    name:
+                      type: string
+                    templateRef:
+                      type: string
+                  required:
+                  - name
+                  - templateRef
+                  type: object
                 type: array
             type: object
           status:

@@ -35,7 +35,7 @@ type ChartSpec struct {
 	// Source is the URL to the source code of this chart
 	Sources []string `json:"sources,omitempty"`
 	// A SemVer 2 conformant version string of the chart
-	Versions []string `json:"versions,omitempty"`
+	Versions []ChartVersion `json:"versions,omitempty"`
 	// A one-sentence description of the chart
 	Description string `json:"description,omitempty"`
 	// A list of string keywords
@@ -61,6 +61,12 @@ type ChartSpec struct {
 	KubeVersion string `json:"kubeVersion,omitempty"`
 	// Specifies the chart type: application or library
 	Type string `json:"type,omitempty"`
+}
+
+type ChartVersion struct {
+	Name      string `json:"name"`
+	Templates string `json:"templateRef"`
+	CRDs      string `json:"crdRef,omitempty"`
 }
 
 // ChartStatus defines the observed state of Chart

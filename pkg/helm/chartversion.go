@@ -13,9 +13,14 @@ func (chartVersion *HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string
 
 	chartMeta := chartVersion.Version.Metadata
 	_, ok := chartObjMap[chartMeta.Name]
+	version := helmv1alpha1.ChartVersion{
+		Name:      chartMeta.Version,
+		Templates: "helm-tmpl-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
+		CRDs:      "helm-crds-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
+	}
 
 	if ok {
-		chartObjMap[chartMeta.Name].Spec.Versions = append(chartObjMap[chartMeta.Name].Spec.Versions, chartMeta.Version)
+		chartObjMap[chartMeta.Name].Spec.Versions = append(chartObjMap[chartMeta.Name].Spec.Versions, version)
 		return chartObjMap, nil
 	}
 
@@ -30,10 +35,12 @@ func (chartVersion *HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string
 			},
 		},
 		Spec: helmv1alpha1.ChartSpec{
-			Name:        chartMeta.Name,
-			Home:        chartMeta.Home,
-			Sources:     chartMeta.Sources,
-			Versions:    []string{chartMeta.Version},
+			Name:    chartMeta.Name,
+			Home:    chartMeta.Home,
+			Sources: chartMeta.Sources,
+			Versions: []helmv1alpha1.ChartVersion{
+				version,
+			},
 			Description: chartMeta.Description,
 			Keywords:    chartMeta.Keywords,
 			Maintainers: chartMeta.Maintainers,
