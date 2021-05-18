@@ -259,19 +259,19 @@ func (r *RepoReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv
 	}
 
 	for key, data := range current.BinaryData {
-		if val, ok := configmap.BinaryData[key]; ok {
-			if compare := bytes.Compare(val, data); compare == 0 {
-				return nil
+
+		val, ok := configmap.BinaryData[key]
+		compare := bytes.Compare(val, data)
+
+		if !ok || compare != 0 {
+			if err = r.Client.Delete(context.TODO(), current); err != nil {
+				return err
+			}
+
+			if err = r.Client.Create(context.TODO(), &configmap); err != nil {
+				return err
 			}
 		}
-	}
-
-	if err = r.Client.Delete(context.TODO(), current); err != nil {
-		return err
-	}
-
-	if err = r.Client.Create(context.TODO(), &configmap); err != nil {
-		return err
 	}
 
 	return nil
