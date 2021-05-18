@@ -1,7 +1,6 @@
 package helm
 
 import (
-	"io/ioutil"
 	actionlog "log"
 	"os"
 	"reflect"
@@ -16,6 +15,9 @@ import (
 	"helm.sh/helm/v3/pkg/downloader"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
+	v1 "k8s.io/api/core/v1"
+
+	client "github.com/soer3n/apps-operator/pkg/client"
 )
 
 func (hc *HelmRelease) Update() error {
@@ -161,7 +163,6 @@ func (hc HelmRelease) getValuesAsList(values map[string]string) []string {
 	var valueList []string
 	var transformedVal string
 	valueList = []string{}
-
 	for k, v := range values {
 		transformedVal = k + "=" + v
 		valueList = append(valueList, transformedVal)
@@ -215,34 +216,37 @@ func (hc *HelmRelease) getRelease() (*release.Release, error) {
 
 func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.ChartPathOptions) (error, *chart.Chart, string) {
 
-	files, err := ioutil.ReadDir(hc.Settings.RepositoryCache)
-	if err != nil {
-		log.Fatal(err)
+	helmChart := &chart.Chart{}
+	files := []*chart.File{}
+	namespace := "default"
+	rc := client.New()
+	args := []string{
+		"charts.helm.soer3n.info",
+		chartName,
+	}
+	obj := rc.GetResources(rc.Builder(namespace, true), args)
+
+	for _, item := range obj.Data[0] {
+		if templates, ok := item.(*v1.ConfigMap); ok {
+			for key, data := range templates.BinaryData {
+				file := &chart.File{
+					Name: key,
+					Data: data,
+				}
+				files = append(files, file)
+			}
+		}
 	}
 
-	for _, f := range files {
-		log.Infof("file: (%q)", f.Name())
+	helmChart.Metadata.Name = chartName
+	helmChart.Metadata.Version = hc.Version
+	helmChart.Files = files
+
+	if err := helmChart.Validate(); err != nil {
+		return err, helmChart, "foo"
 	}
 
-	log.Infof("filename: (%q)", chartName)
-
-	chartPath, err := chartPathOptions.LocateChart(chartName, hc.Settings)
-
-	if err != nil {
-		return err, nil, ""
-	}
-
-	helmChart, err := loader.Load(chartPath)
-
-	if err != nil {
-		return err, nil, ""
-	}
-
-	if helmChart.Metadata.Deprecated {
-		log.Debugf("Chart (%q) is marked as DEPRECATED", helmChart.Metadata.Name)
-	}
-
-	return err, helmChart, chartPath
+	return nil, helmChart, "foo"
 }
 
 func (hc HelmRelease) configure() {

@@ -156,3 +156,12 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 	response.Message = "Success"
 	return response
 }
+
+func (c *Client) GetResourceObject(name string, apiGroup string, namespaced bool, verbs ...string) *APIResponse {
+
+	response := &APIResponse{
+		Message: "",
+	}
+
+	return response
+}

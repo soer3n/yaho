@@ -249,9 +249,7 @@ func (r *RepoReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			err = r.Client.Create(context.TODO(), &configmap)
-
-			if err != nil {
+			if err = r.Client.Create(context.TODO(), &configmap); err != nil {
 				return err
 			}
 		}
