@@ -55,9 +55,10 @@ type HelmChart struct {
 }
 
 type HelmChartVersion struct {
-	Version   *repo.ChartVersion
-	Templates []*chart.File
-	CRDs      []*chart.File
+	Version       *repo.ChartVersion
+	Templates     []*chart.File
+	CRDs          []*chart.File
+	DefaultValues map[string]interface{}
 }
 
 type HelmValueTemplate struct {

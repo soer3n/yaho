@@ -63,13 +63,14 @@ func (chartVersion *HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string
 func (chartVersion *HelmChartVersion) createConfigMaps(namespace string) []v1.ConfigMap {
 	returnList := []v1.ConfigMap{}
 
-	returnList = append(returnList, chartVersion.createConfigMap("tmpl", namespace, chartVersion.Templates))
-	returnList = append(returnList, chartVersion.createConfigMap("crds", namespace, chartVersion.CRDs))
+	returnList = append(returnList, chartVersion.createTemplateConfigMap("tmpl", namespace, chartVersion.Templates))
+	returnList = append(returnList, chartVersion.createTemplateConfigMap("crds", namespace, chartVersion.CRDs))
+	returnList = append(returnList, chartVersion.createDefaultValueConfigMap(namespace, chartVersion.DefaultValues))
 
 	return returnList
 }
 
-func (chartVersion *HelmChartVersion) createConfigMap(name string, namespace string, list []*chart.File) v1.ConfigMap {
+func (chartVersion *HelmChartVersion) createTemplateConfigMap(name string, namespace string, list []*chart.File) v1.ConfigMap {
 
 	immutable := new(bool)
 	*immutable = false
@@ -90,6 +91,30 @@ func (chartVersion *HelmChartVersion) createConfigMap(name string, namespace str
 	}
 
 	configmap.BinaryData = binaryData
+
+	return configmap
+}
+
+func (chartVersion *HelmChartVersion) createDefaultValueConfigMap(namespace string, values map[string]interface{}) v1.ConfigMap {
+
+	immutable := new(bool)
+	*immutable = false
+	objectMeta := metav1.ObjectMeta{
+		Name:      "helm-default-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
+		Namespace: namespace,
+	}
+	configmap := v1.ConfigMap{
+		Immutable:  immutable,
+		ObjectMeta: objectMeta,
+	}
+
+	data := make(map[string]string)
+
+	for key, entry := range values {
+		data[key] = entry.(string)
+	}
+
+	configmap.Data = data
 
 	return configmap
 }
