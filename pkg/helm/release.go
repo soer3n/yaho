@@ -226,7 +226,10 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 
 	var jsonbody []byte
 	var err error
-	helmChart := &chart.Chart{}
+	helmChart := &chart.Chart{
+		Metadata: &chart.Metadata{},
+		Files:    []*chart.File{},
+	}
 	chartObj := &helmv1alpha1.Chart{}
 	files := []*chart.File{}
 	args := make([]string, 0)
@@ -250,6 +253,7 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 
 	helmChart.Metadata.Name = chartName
 	helmChart.Metadata.Version = hc.Version
+	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
 	helmChart.Files = files
 
 	if err := helmChart.Validate(); err != nil {
