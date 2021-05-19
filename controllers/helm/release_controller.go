@@ -121,6 +121,8 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	log.Infof("Trying HelmRelease %v", refList)
 
 	helmRelease.ValuesTemplate = helmutils.NewValueTemplate(refList)
+	helmRelease.Namespace.Name = instance.ObjectMeta.Namespace
+	helmRelease.Version = instance.Spec.Version
 
 	//if helmRelease.Values, err = helmRelease.GetValues(); err != nil {
 	//	return ctrl.Result{}, err

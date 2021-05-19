@@ -276,20 +276,28 @@ func (hc *HelmRelease) appendFilesFromConfigMap(rc *client.Client, name string, 
 		name,
 	}
 
+	var jsonbody []byte
+	var err error
+
+	configmap := &v1.ConfigMap{}
 	files := []*chart.File{}
 
 	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true), args)
 
-	for _, item := range obj.Data[0] {
-		if templates, ok := item.(*v1.ConfigMap); ok {
-			for key, data := range templates.BinaryData {
-				file := &chart.File{
-					Name: key,
-					Data: data,
-				}
-				files = append(files, file)
-			}
+	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
+		return files
+	}
+
+	if err = json.Unmarshal(jsonbody, &configmap); err != nil {
+		return files
+	}
+
+	for key, data := range configmap.BinaryData {
+		file := &chart.File{
+			Name: key,
+			Data: data,
 		}
+		files = append(files, file)
 	}
 
 	return files
