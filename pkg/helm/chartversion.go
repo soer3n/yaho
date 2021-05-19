@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"encoding/json"
 	"strings"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -106,15 +107,11 @@ func (chartVersion *HelmChartVersion) createDefaultValueConfigMap(namespace stri
 	configmap := v1.ConfigMap{
 		Immutable:  immutable,
 		ObjectMeta: objectMeta,
+		Data:       make(map[string]string),
 	}
 
-	data := make(map[string]string)
-
-	for key, entry := range values {
-		data[key] = entry.(string)
-	}
-
-	configmap.Data = data
+	castedValues, _ := json.Marshal(values)
+	configmap.Data["values"] = string(castedValues)
 
 	return configmap
 }

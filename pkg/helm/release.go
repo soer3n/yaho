@@ -263,6 +263,7 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
 	helmChart.Files = files
 	helmChart.Templates = hc.appendFilesFromConfigMap(rc, "helm-tmpl-"+hc.Chart+"-"+hc.Version, helmChart.Templates)
+	helmChart.Values = hc.getDefaultValuesFromConfigMap(rc, "helm-default-"+hc.Chart+"-"+hc.Version)
 
 	if err := helmChart.Validate(); err != nil {
 		return err, helmChart, "foo"
@@ -313,6 +314,37 @@ func (hc *HelmRelease) appendFilesFromConfigMap(rc *client.Client, name string, 
 	}
 
 	return files
+}
+
+func (hc *HelmRelease) getDefaultValuesFromConfigMap(rc *client.Client, name string) map[string]interface{} {
+
+	values := make(map[string]interface{})
+	args := []string{
+		"configmaps",
+		name,
+	}
+
+	var jsonbody []byte
+	var err error
+
+	configmap := &v1.ConfigMap{}
+
+	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true), args)
+
+	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
+		return values
+	}
+
+	if err = json.Unmarshal(jsonbody, &configmap); err != nil {
+		return values
+	}
+
+	jsonMap := make(map[string]interface{})
+	if err = json.Unmarshal([]byte(configmap.Data["values"]), &jsonMap); err != nil {
+		panic(err)
+	}
+
+	return values
 }
 
 func (hc HelmRelease) configure() {
