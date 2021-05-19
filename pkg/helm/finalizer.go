@@ -3,9 +3,10 @@ package helm
 func HandleFinalizer(hc *HelmClient, instance interface{}) (bool, error) {
 
 	if len(hc.Repos.Entries) > 0 {
-		if err := removeRepo(hc); err != nil {
-			return true, err
-		}
+		//	if err := removeRepo(hc); err != nil {
+		//		return true, err
+		//	}
+		return true, nil
 	}
 
 	if len(hc.Releases.Entries) > 0 {

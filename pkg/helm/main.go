@@ -44,6 +44,11 @@ func removeFile(path, name string) error {
 }
 
 func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
+
+	if a == nil || b == nil {
+		return b
+	}
+
 	for k, v := range a {
 		b[k] = v
 	}

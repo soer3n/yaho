@@ -170,9 +170,9 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 		}
 	}
 
-	// if err := r.Client.Update(context.TODO(), instance); err != nil {
-	//	return ctrl.Result{}, err
-	//}
+	if err := r.Client.Update(context.TODO(), instance); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }

@@ -158,10 +158,15 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 func (hc *HelmRelease) SetValues() error {
 
 	templateObj := hc.ValuesTemplate
+	values := make(map[string]interface{})
+	var err error
 
-	if _, err := templateObj.ManageValues(); err != nil {
+	if values, err = templateObj.ManageValues(); err != nil {
 		return err
 	}
+
+	hc.Values = values
+	hc.ValuesTemplate.ValuesMap = templateObj.ValuesMap
 
 	return nil
 }
@@ -227,8 +232,10 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 	var jsonbody []byte
 	var err error
 	helmChart := &chart.Chart{
-		Metadata: &chart.Metadata{},
-		Files:    []*chart.File{},
+		Metadata:  &chart.Metadata{},
+		Files:     []*chart.File{},
+		Templates: []*chart.File{},
+		Values:    make(map[string]interface{}),
 	}
 	chartObj := &helmv1alpha1.Chart{}
 	files := []*chart.File{}
@@ -255,6 +262,7 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 	helmChart.Metadata.Version = hc.Version
 	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
 	helmChart.Files = files
+	helmChart.Templates = hc.appendFilesFromConfigMap(rc, "helm-tmpl-"+hc.Chart+"-"+hc.Version, helmChart.Templates)
 
 	if err := helmChart.Validate(); err != nil {
 		return err, helmChart, "foo"
