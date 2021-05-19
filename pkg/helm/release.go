@@ -306,6 +306,10 @@ func (hc *HelmRelease) appendFilesFromConfigMap(rc *client.Client, name string, 
 	}
 
 	for key, data := range configmap.BinaryData {
+		if name == "helm-crds-"+hc.Chart+"-"+hc.Version {
+			key = "crds/" + key
+		}
+
 		file := &chart.File{
 			Name: key,
 			Data: data,
@@ -344,7 +348,7 @@ func (hc *HelmRelease) getDefaultValuesFromConfigMap(rc *client.Client, name str
 		panic(err)
 	}
 
-	return values
+	return jsonMap
 }
 
 func (hc HelmRelease) configure() {

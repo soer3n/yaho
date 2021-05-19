@@ -5,7 +5,7 @@ metadata:
 spec:
   name: submariner-test
   repo: submariner
-  chart: submariner
+  chart: submariner-operator
   version: 0.7.0
   releaseSpec:
     valueRefs:
