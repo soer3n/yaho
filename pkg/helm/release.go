@@ -433,6 +433,10 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	chartVersion.CRDs = chartRequested.CRDs()
 	chartVersion.DefaultValues = chartRequested.Values
 
+	if err := removeFileByFulPath(cp); err != nil {
+		return configmapList
+	}
+
 	return chartVersion.createConfigMaps(hc.Namespace.Name)
 }
 

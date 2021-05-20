@@ -1,7 +1,6 @@
 package helm
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 
@@ -12,9 +11,6 @@ import (
 	"helm.sh/helm/v3/pkg/helmpath"
 	"helm.sh/helm/v3/pkg/repo"
 	"sigs.k8s.io/yaml"
-
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	client "github.com/soer3n/apps-operator/pkg/client"
 )
 
 func (hr *HelmRepo) Update() error {
@@ -145,7 +141,7 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings) ([]*HelmChart, error) {
 
 	log.Infof("CR: %v", cr)
 
-	rc := client.New()
+	/*rc := client.New()
 
 	args := []string{
 		"charts.helm.soer3n.info",
@@ -170,7 +166,8 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings) ([]*HelmChart, error) {
 				log.Infof("Key: %v ... Value: %v", key, chartObj)
 			}
 		}
-	}
+	}*/
+
 	indexFile, err := repo.LoadIndexFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml")
 
 	log.Infof("IndexFileErr: %v", err)

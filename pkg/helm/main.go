@@ -27,12 +27,17 @@ func initActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) 
 
 func removeFile(path, name string) error {
 	idx := filepath.Join(path, name)
+	return removeFileByPath(idx)
+}
 
+func removeFileByFulPath(fullpath string) error {
+	return removeFileByPath(fullpath)
+}
+
+func removeFileByPath(idx string) error {
 	if _, err := os.Stat(idx); err == nil {
 		os.Remove(idx)
 	}
-
-	idx = filepath.Join(path, name)
 
 	if _, err := os.Stat(idx); os.IsNotExist(err) {
 		return nil
