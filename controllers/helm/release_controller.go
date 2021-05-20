@@ -17,10 +17,12 @@ limitations under the License.
 package helm
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -128,6 +130,12 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	//	return ctrl.Result{}, err
 	//}
 
+	for _, configmap := range helmRelease.GetParsedConfigMaps() {
+		if err := r.deployConfigMap(configmap, instance); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	if err = helmRelease.Update(); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -166,6 +174,46 @@ func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, in
 		controllerutil.RemoveFinalizer(instance, "finalizer.releases.helm.soer3n.info")
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Release) error {
+
+	if err := controllerutil.SetControllerReference(instance, &configmap, r.Scheme); err != nil {
+		return err
+	}
+
+	current := &v1.ConfigMap{}
+	err := r.Client.Get(context.Background(), client.ObjectKey{
+		Namespace: configmap.ObjectMeta.Namespace,
+		Name:      configmap.ObjectMeta.Name,
+	}, current)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			if err = r.Client.Create(context.TODO(), &configmap); err != nil {
+				return err
+			}
+		}
+		return err
+	}
+
+	for key, data := range current.BinaryData {
+
+		val, ok := configmap.BinaryData[key]
+		compare := bytes.Compare(val, data)
+
+		if !ok || compare != 0 {
+			if err = r.Client.Delete(context.TODO(), current); err != nil {
+				return err
+			}
+
+			if err = r.Client.Create(context.TODO(), &configmap); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int32) ([]*helmutils.ValuesRef, error) {

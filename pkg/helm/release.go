@@ -278,9 +278,7 @@ func (hc *HelmRelease) getFiles(rc *client.Client, helmChart *helmv1alpha1.Chart
 
 	files := []*chart.File{}
 
-	if files = hc.appendFilesFromConfigMap(rc, "helm-tmpl-"+hc.Chart+"-"+hc.Version, files); len(files) == 0 {
-		_, maps := hc.GetParsedConfigMaps(rc, helmChart)
-	}
+	files = hc.appendFilesFromConfigMap(rc, "helm-tmpl-"+hc.Chart+"-"+hc.Version, files)
 	files = hc.appendFilesFromConfigMap(rc, "helm-crds-"+hc.Chart+"-"+hc.Version, files)
 
 	return files
@@ -380,55 +378,49 @@ func (hc *HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alp
 	return nil, *repoObj
 }
 
-func (hc HelmRelease) GetParsedConfigMaps(rc *client.Client, helmChart *helmv1alpha1.Chart) (error, []v1.ConfigMap) {
+func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 
-	// var err error
 	configmapList := []v1.ConfigMap{}
 
 	//if err = chart.CreateTemplates(); err != nil {
 	//	return err, configmapList
 	//}
 
-	//for _, configmap := range chart.CreateConfigMaps() {
-	//	if err := r.deployConfigMap(configmap, instance); err != nil {
-	//		return ctrl.Result{}, err
-	//	}
-	//}
-
 	//return nil, chart.CreateConfigMaps()
 
+	installConfig := hc.Config
+	log.Infof("configinstall: %v", hc.Config)
+	releaseClient := action.NewInstall(installConfig)
+	releaseClient.ReleaseName = hc.Name
+	hc.Client = releaseClient
+
 	var argsList []string
-	var name, chartname, cp string
+	var cp string
 	var chartRequested *chart.Chart
 	chartVersion := &HelmChartVersion{}
 	var err error
 
-	client := hc.Client
 	settings := hc.Settings
+
+	rc := client.New()
 
 	argsList = make([]string, 0)
 	argsList = append(argsList, hc.Chart)
 	argsList = append(argsList, hc.Repo+"/"+hc.Chart)
 
-	if name, chartname, err = client.NameAndChart(argsList); err != nil {
-		return err, configmapList
-	}
+	_, repoObj := hc.getRepo(rc, hc.Repo)
 
-	_, repoObj := hc.getRepo(rc, helmChart.ObjectMeta.Labels["repo"])
+	releaseClient.ReleaseName = hc.Name
+	releaseClient.Version = hc.Version
+	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.Url
 
-	client.ReleaseName = name
-	client.Version = hc.Version
-	client.ChartPathOptions.RepoURL = repoObj.Spec.Url
-	if cp, err = client.ChartPathOptions.LocateChart(chartname, settings); err != nil {
-		return err, configmapList
+	if cp, err = releaseClient.ChartPathOptions.LocateChart(hc.Chart, settings); err != nil {
+		return configmapList
 	}
 
 	if chartRequested, err = loader.Load(cp); err != nil {
-		return err, configmapList
+		return configmapList
 	}
-
-	chartList := make(map[string]*helmv1alpha1.Chart)
-	chartList[name] = helmChart
 
 	chartVersion.Version = &repo.ChartVersion{
 		Metadata: &chart.Metadata{
@@ -441,6 +433,7 @@ func (hc HelmRelease) GetParsedConfigMaps(rc *client.Client, helmChart *helmv1al
 	chartVersion.CRDs = chartRequested.CRDs()
 	chartVersion.DefaultValues = chartRequested.Values
 
+	return chartVersion.createConfigMaps(hc.Namespace.Name)
 }
 
 func (hc HelmRelease) configure() {
