@@ -25,6 +25,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -130,8 +131,10 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	//	return ctrl.Result{}, err
 	//}
 
+	_, controller := r.getControllerRepo(instance.Spec.Repo, instance.ObjectMeta.Namespace)
+
 	for _, configmap := range helmRelease.GetParsedConfigMaps() {
-		if err := r.deployConfigMap(configmap, instance); err != nil {
+		if err := r.deployConfigMap(configmap, controller); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -163,6 +166,33 @@ func (r *ReleaseReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.
 	return nil
 }
 
+func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (error, *helmv1alpha1.Repo) {
+	instance := &helmv1alpha1.Repo{}
+
+	err := r.Get(context.Background(), types.NamespacedName{
+		Name:      namespace,
+		Namespace: namespace,
+	}, instance)
+
+	log.Infof("Get: %v.\n", err)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
+			return err, instance
+		}
+		// Error reading the object - requeue the request.
+		log.Error(err, "Failed to get ControllerRepo")
+		return err, instance
+	}
+
+	return nil, instance
+
+}
+
 func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, instance *helmv1alpha1.Release) (ctrl.Result, error) {
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
@@ -176,7 +206,7 @@ func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, in
 	return ctrl.Result{}, nil
 }
 
-func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Release) error {
+func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Repo) error {
 
 	if err := controllerutil.SetControllerReference(instance, &configmap, r.Scheme); err != nil {
 		return err
