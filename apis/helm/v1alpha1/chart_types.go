@@ -63,10 +63,17 @@ type ChartSpec struct {
 	Type string `json:"type,omitempty"`
 }
 
+type ChartDep struct {
+	Name    string `json:"name,omitempty"`
+	Version string `json:"version,omitempty"`
+	Repo    string `json:"repo,omitempty"`
+}
+
 type ChartVersion struct {
-	Name      string `json:"name"`
-	Templates string `json:"templateRef"`
-	CRDs      string `json:"crdRef,omitempty"`
+	Name         string     `json:"name"`
+	Templates    string     `json:"templateRef"`
+	CRDs         string     `json:"crdRef,omitempty"`
+	Dependencies []ChartDep `json:"deps,omitempty"`
 }
 
 // ChartStatus defines the observed state of Chart

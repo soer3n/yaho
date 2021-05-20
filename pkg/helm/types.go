@@ -32,6 +32,7 @@ type HelmRelease struct {
 	Conditional    ResourceConditional
 	Config         *action.Configuration
 	Settings       *cli.EnvSettings
+	Client         *action.Install
 }
 
 type HelmRepos struct {

@@ -110,16 +110,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		if chartObjMap, err = chart.AddOrUpdateChartMap(chartObjMap, instance); err != nil {
 			return ctrl.Result{}, err
 		}
-
-		if err = chart.CreateTemplates(); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		for _, configmap := range chart.CreateConfigMaps() {
-			if err := r.deployConfigMap(configmap, instance); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
 	}
 
 	for key, chartObj := range chartObjMap {

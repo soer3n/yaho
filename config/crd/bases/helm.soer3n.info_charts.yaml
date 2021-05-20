@@ -122,6 +122,17 @@ spec:
                   properties:
                     crdRef:
                       type: string
+                    deps:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          repo:
+                            type: string
+                          version:
+                            type: string
+                        type: object
+                      type: array
                     name:
                       type: string
                     templateRef:

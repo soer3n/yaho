@@ -15,9 +15,10 @@ func (chartVersion *HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string
 	chartMeta := chartVersion.Version.Metadata
 	_, ok := chartObjMap[chartMeta.Name]
 	version := helmv1alpha1.ChartVersion{
-		Name:      chartMeta.Version,
-		Templates: "helm-tmpl-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
-		CRDs:      "helm-crds-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
+		Name:         chartMeta.Version,
+		Templates:    "helm-tmpl-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
+		CRDs:         "helm-crds-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
+		Dependencies: chartVersion.createDependenciesList(chartMeta),
 	}
 
 	if ok {
@@ -59,6 +60,21 @@ func (chartVersion *HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string
 
 	chartObjMap[chartMeta.Name] = helmChart
 	return chartObjMap, nil
+}
+
+func (chartVersion *HelmChartVersion) createDependenciesList(chartMeta *chart.Metadata) []helmv1alpha1.ChartDep {
+
+	deps := make([]helmv1alpha1.ChartDep, 0)
+
+	for _, dep := range chartMeta.Dependencies {
+		deps = append(deps, helmv1alpha1.ChartDep{
+			Name:    dep.Name,
+			Version: dep.Version,
+			Repo:    dep.Repository,
+		})
+	}
+
+	return deps
 }
 
 func (chartVersion *HelmChartVersion) createConfigMaps(namespace string) []v1.ConfigMap {
