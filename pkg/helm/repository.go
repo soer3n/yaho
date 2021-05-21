@@ -66,7 +66,7 @@ func (hr *HelmRepos) Remove() error {
 				return errors.Errorf("Error removing repository %q.", repository.Name)
 			}
 
-			err := hr.removeRepoCache(repository.Name)
+			err := hr.RemoveRepoCache(repository.Name)
 
 			if err != nil {
 				return errors.Errorf("Error removing repository cache for %q.", repository.Name)
@@ -85,7 +85,7 @@ func (hr *HelmRepos) RemoveByName(name string) error {
 		return errors.Errorf("Error removing repository %q.", name)
 	}
 
-	err := hr.removeRepoCache(name)
+	err := hr.RemoveRepoCache(name)
 
 	if err != nil {
 		return errors.Errorf("Error removing repository cache for %q.", name)
@@ -94,7 +94,7 @@ func (hr *HelmRepos) RemoveByName(name string) error {
 	return hr.installed.WriteFile(hr.Settings.RepositoryConfig, 0644)
 }
 
-func (hr *HelmRepos) removeRepoCache(name string) error {
+func (hr *HelmRepos) RemoveRepoCache(name string) error {
 
 	if err := removeFile(hr.Settings.RepositoryCache, helmpath.CacheIndexFile(name)); err != nil {
 		return err

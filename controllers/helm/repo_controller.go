@@ -121,7 +121,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	}
 
-	if err := hc.Repos.RemoveByName(instance.Spec.Name); err != nil {
+	if err := hc.Repos.RemoveRepoCache(instance.Spec.Name); err != nil {
 		return ctrl.Result{}, err
 	}
 

@@ -82,11 +82,12 @@ func (c *Client) GetResources(builder *resource.Builder, args []string) *APIResp
 	for _, ix := range infos {
 		data, err = runtime.Encode(unstructured.UnstructuredJSONScheme, ix.Object)
 
-		//req, _ := labels.ParseToRequirements("repo=submariner")
-		//filterFunc := resource.FilterByLabelSelector(labels.NewSelector().Add(req[0]))
+		/*req, _ := labels.ParseToRequirements("repo=submariner")
+		filterFunc := resource.FilterByLabelSelector(labels.NewSelector().Add(req[0]))
+		_, err := filterFunc(ix, err)
 
-		//log.Printf("selector: %v", filterFunc)
-
+		log.Printf("selector: %v", filterFunc)
+		*/
 		if err != nil {
 			response.Message = fmt.Sprintf("%v", err)
 			return response

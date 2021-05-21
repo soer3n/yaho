@@ -267,6 +267,12 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 	helmChart.Templates = hc.appendFilesFromConfigMap(rc, "helm-tmpl-"+hc.Chart+"-"+hc.Version, helmChart.Templates)
 	helmChart.Values = hc.getDefaultValuesFromConfigMap(rc, "helm-default-"+hc.Chart+"-"+hc.Version)
 
+	versionObj := chartObj.GetChartVersion(hc.Version)
+
+	if err := hc.addDependencies(rc, helmChart, versionObj.Dependencies); err != nil {
+		return err, helmChart, "foo"
+	}
+
 	if err := helmChart.Validate(); err != nil {
 		return err, helmChart, "foo"
 	}
@@ -282,6 +288,37 @@ func (hc *HelmRelease) getFiles(rc *client.Client, helmChart *helmv1alpha1.Chart
 	files = hc.appendFilesFromConfigMap(rc, "helm-crds-"+hc.Chart+"-"+hc.Version, files)
 
 	return files
+}
+
+func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, deps []helmv1alpha1.ChartDep) error {
+	args := []string{
+		"chartss",
+	}
+
+	var jsonbody []byte
+	var err error
+
+	charts := []helmv1alpha1.Chart{}
+	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true).LabelSelector("repo="+hc.Repo), args)
+
+	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
+		return err
+	}
+
+	if err = json.Unmarshal(jsonbody, &charts); err != nil {
+		return err
+	}
+
+	for _, item := range charts {
+		options := &action.ChartPathOptions{
+			RepoURL: item.Spec.Sources[0],
+			Version: item.Spec.APIVersion,
+		}
+		_, foo, _ := hc.GetChart(item.Spec.Name, options)
+		chart.AddDependency(foo)
+	}
+
+	return nil
 }
 
 func (hc *HelmRelease) appendFilesFromConfigMap(rc *client.Client, name string, list []*chart.File) []*chart.File {
