@@ -260,10 +260,10 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 		return err, helmChart, "foo"
 	}
 
-	repoSelector := hc.Repo
+	repoSelector := "repo=" + hc.Repo
 
 	if _, ok := chartObj.ObjectMeta.Labels["repoGroup"]; ok {
-		repoSelector = chartObj.ObjectMeta.Labels["repoGroup"]
+		repoSelector = "repoGroup=" + chartObj.ObjectMeta.Labels["repoGroup"]
 	}
 
 	files = hc.getFiles(rc, chartObj)
@@ -307,7 +307,7 @@ func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, de
 	var err error
 
 	charts := []helmv1alpha1.Chart{}
-	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true).LabelSelector("repo="+selector), args)
+	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true).LabelSelector(selector), args)
 
 	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
 		return err
