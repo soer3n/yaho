@@ -2,7 +2,9 @@ package helm
 
 import (
 	"encoding/json"
+	"io"
 	actionlog "log"
+	"net/http"
 	"os"
 	"reflect"
 
@@ -258,6 +260,12 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 		return err, helmChart, "foo"
 	}
 
+	repoSelector := hc.Repo
+
+	if _, ok := chartObj.ObjectMeta.Labels["repoGroup"]; ok {
+		repoSelector = chartObj.ObjectMeta.Labels["repoGroup"]
+	}
+
 	files = hc.getFiles(rc, chartObj)
 
 	helmChart.Metadata.Name = chartName
@@ -269,7 +277,7 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 
 	versionObj := chartObj.GetChartVersion(hc.Version)
 
-	if err := hc.addDependencies(rc, helmChart, versionObj.Dependencies); err != nil {
+	if err := hc.addDependencies(rc, helmChart, versionObj.Dependencies, repoSelector); err != nil {
 		return err, helmChart, "foo"
 	}
 
@@ -290,16 +298,16 @@ func (hc *HelmRelease) getFiles(rc *client.Client, helmChart *helmv1alpha1.Chart
 	return files
 }
 
-func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, deps []helmv1alpha1.ChartDep) error {
+func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, deps []helmv1alpha1.ChartDep, selector string) error {
 	args := []string{
-		"chartss",
+		"charts.helm.soer3n.info",
 	}
 
 	var jsonbody []byte
 	var err error
 
 	charts := []helmv1alpha1.Chart{}
-	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true).LabelSelector("repo="+hc.Repo), args)
+	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true).LabelSelector("repo="+selector), args)
 
 	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
 		return err
@@ -437,7 +445,7 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	chartVersion := &HelmChartVersion{}
 	var err error
 
-	settings := hc.Settings
+	//settings := hc.Settings
 
 	rc := client.New()
 
@@ -451,7 +459,9 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	releaseClient.Version = hc.Version
 	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.Url
 
-	if cp, err = releaseClient.ChartPathOptions.LocateChart(hc.Chart, settings); err != nil {
+	//if cp, err = releaseClient.ChartPathOptions.LocateChart(hc.Chart, settings); err != nil {
+	if cp, err = hc.DownloadTo(repoObj.Spec.Url, hc.Version, &releaseClient.ChartPathOptions); err != nil {
+		actionlog.Printf("err: %v", err)
 		return configmapList
 	}
 
@@ -475,6 +485,42 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	}
 
 	return chartVersion.createConfigMaps(hc.Namespace.Name)
+}
+
+func (hc HelmRelease) DownloadTo(url, version string, options *action.ChartPathOptions) (string, error) {
+	fullUrl := url + "/" + hc.Name + "-" + version + ".tgz"
+	fileName := hc.Settings.RepositoryCache + "/" + hc.Name + "-" + version + ".tgz"
+	var file *os.File
+	var resp *http.Response
+	var err error
+	var size int64
+
+	if file, err = os.Create(fileName); err != nil {
+		log.Fatal(err)
+	}
+
+	client := http.Client{
+		CheckRedirect: func(r *http.Request, via []*http.Request) error {
+			r.URL.Opaque = r.URL.Path
+			return nil
+		},
+	}
+
+	// Put content on file
+	if resp, err = client.Get(fullUrl); err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if size, err = io.Copy(file, resp.Body); err != nil {
+		return fileName, err
+	}
+
+	defer file.Close()
+
+	actionlog.Printf("Downloaded a file %s with size %d", fileName, size)
+
+	return fileName, nil
 }
 
 func (hc HelmRelease) configure() {
