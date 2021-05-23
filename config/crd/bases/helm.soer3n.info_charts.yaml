@@ -137,6 +137,8 @@ spec:
                       type: string
                     templateRef:
                       type: string
+                    url:
+                      type: string
                   required:
                   - name
                   - templateRef

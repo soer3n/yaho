@@ -170,7 +170,7 @@ func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (error, *h
 	instance := &helmv1alpha1.Repo{}
 
 	err := r.Get(context.Background(), types.NamespacedName{
-		Name:      namespace,
+		Name:      name,
 		Namespace: namespace,
 	}, instance)
 

@@ -13,6 +13,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/downloader"
@@ -46,17 +47,17 @@ func (hc *HelmRelease) Update() error {
 		InsecureSkipTLSverify: false,
 		Verify:                false,
 	}
-	err, helmChart, chartPath := hc.GetChart(hc.Chart, options)
+	err, helmChart, _ := hc.GetChart(hc.Chart, options)
 
 	if err != nil {
 		return err
 	}
 
-	err = hc.checkDependencies(helmChart, chartPath, client)
+	/*err = hc.checkDependencies(helmChart, chartPath, client)
 
 	if err != nil {
 		return err
-	}
+	}*/
 
 	log.Infof("configupdate: %v", hc.Config)
 	release, err := hc.getRelease()
@@ -91,6 +92,11 @@ func (hc *HelmRelease) Update() error {
 	client.Namespace = hc.Settings.Namespace()
 	// vals := hc.mergeMaps(helmChart.Values)
 	vals := mergeMaps(hc.getValues(), helmChart.Values)
+
+	if err := chartutil.ProcessDependencies(helmChart, vals); err != nil {
+		return err
+	}
+
 	release, err = client.Run(helmChart, vals)
 
 	if err != nil {
@@ -260,10 +266,14 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 		return err, helmChart, "foo"
 	}
 
+	cv := chartObj.GetChartVersion(hc.Version)
+
 	repoSelector := "repo=" + hc.Repo
 
 	if _, ok := chartObj.ObjectMeta.Labels["repoGroup"]; ok {
-		repoSelector = "repoGroup=" + chartObj.ObjectMeta.Labels["repoGroup"]
+		if len(chartObj.ObjectMeta.Labels["repoGroup"]) > 1 {
+			repoSelector = "repoGroup=" + chartObj.ObjectMeta.Labels["repoGroup"]
+		}
 	}
 
 	files = hc.getFiles(rc, chartObj)
@@ -275,7 +285,7 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 	helmChart.Templates = hc.appendFilesFromConfigMap(rc, "helm-tmpl-"+hc.Chart+"-"+hc.Version, helmChart.Templates)
 	helmChart.Values = hc.getDefaultValuesFromConfigMap(rc, "helm-default-"+hc.Chart+"-"+hc.Version)
 
-	versionObj := chartObj.GetChartVersion(hc.Version)
+	versionObj := chartObj.GetChartVersion(chartPathOptions.Version)
 
 	if err := hc.addDependencies(rc, helmChart, versionObj.Dependencies, repoSelector); err != nil {
 		return err, helmChart, "foo"
@@ -285,7 +295,7 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 		return err, helmChart, "foo"
 	}
 
-	return nil, helmChart, "foo"
+	return nil, helmChart, cv.URL
 }
 
 func (hc *HelmRelease) getFiles(rc *client.Client, helmChart *helmv1alpha1.Chart) []*chart.File {
@@ -304,26 +314,31 @@ func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, de
 	}
 
 	var jsonbody []byte
+	var chartList []helmv1alpha1.Chart
 	var err error
 
-	charts := []helmv1alpha1.Chart{}
 	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true).LabelSelector(selector), args)
 
-	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
+	if jsonbody, err = json.Marshal(obj.Data[1]["items"]); err != nil {
 		return err
 	}
 
-	if err = json.Unmarshal(jsonbody, &charts); err != nil {
+	if err = json.Unmarshal(jsonbody, &chartList); err != nil {
 		return err
 	}
 
-	for _, item := range charts {
-		options := &action.ChartPathOptions{
-			RepoURL: item.Spec.Sources[0],
-			Version: item.Spec.APIVersion,
+	options := &action.ChartPathOptions{}
+
+	for _, item := range chartList {
+		for _, dep := range deps {
+			if item.Spec.Name == dep.Name {
+				options.RepoURL = dep.Repo
+				options.Version = dep.Version
+
+				_, foo, _ := hc.GetChart(item.Spec.Name, options)
+				chart.AddDependency(foo)
+			}
 		}
-		_, foo, _ := hc.GetChart(item.Spec.Name, options)
-		chart.AddDependency(foo)
 	}
 
 	return nil
@@ -401,7 +416,7 @@ func (hc *HelmRelease) getDefaultValuesFromConfigMap(rc *client.Client, name str
 func (hc *HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alpha1.Repo) {
 
 	args := []string{
-		"repos",
+		"repos.helm.soer3n.info",
 		repo,
 	}
 
@@ -421,6 +436,31 @@ func (hc *HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alp
 	}
 
 	return nil, *repoObj
+}
+
+func (hc *HelmRelease) getChartURL(rc *client.Client, chart, version string) (error, string) {
+
+	args := []string{
+		"charts.helm.soer3n.info",
+		chart,
+	}
+
+	var jsonbody []byte
+	var err error
+
+	chartObj := &helmv1alpha1.Chart{}
+
+	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true), args)
+
+	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
+		return err, ""
+	}
+
+	if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
+		return err, ""
+	}
+
+	return nil, chartObj.GetChartVersion(version).URL
 }
 
 func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
@@ -454,13 +494,14 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	argsList = append(argsList, hc.Repo+"/"+hc.Chart)
 
 	_, repoObj := hc.getRepo(rc, hc.Repo)
+	_, chartURL := hc.getChartURL(rc, hc.Chart, hc.Version)
 
 	releaseClient.ReleaseName = hc.Name
 	releaseClient.Version = hc.Version
 	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.Url
 
 	//if cp, err = releaseClient.ChartPathOptions.LocateChart(hc.Chart, settings); err != nil {
-	if cp, err = hc.DownloadTo(repoObj.Spec.Url, hc.Version, &releaseClient.ChartPathOptions); err != nil {
+	if cp, err = hc.DownloadTo(chartURL, hc.Version, &releaseClient.ChartPathOptions); err != nil {
 		actionlog.Printf("err: %v", err)
 		return configmapList
 	}
@@ -474,6 +515,7 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 			Name:    hc.Chart,
 			Version: hc.Version,
 		},
+		URLs: chartRequested.Metadata.Sources,
 	}
 
 	chartVersion.Templates = chartRequested.Templates
@@ -488,7 +530,7 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 }
 
 func (hc HelmRelease) DownloadTo(url, version string, options *action.ChartPathOptions) (string, error) {
-	fullUrl := url + "/" + hc.Name + "-" + version + ".tgz"
+	fullUrl := url + "/" + hc.Name + "/" + hc.Name + "-" + version + ".tgz"
 	fileName := hc.Settings.RepositoryCache + "/" + hc.Name + "-" + version + ".tgz"
 	var file *os.File
 	var resp *http.Response
@@ -540,6 +582,9 @@ func (hc *HelmRelease) upgrade(helmChart *chart.Chart) error {
 
 	helmChart.Values = vals
 	client.Namespace = hc.Settings.Namespace()
+	if err := chartutil.ProcessDependencies(helmChart, vals); err != nil {
+		return err
+	}
 	rel, err := client.Run(hc.Name, helmChart, vals)
 
 	if err != nil {

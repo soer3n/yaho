@@ -74,6 +74,7 @@ type ChartVersion struct {
 	Templates    string     `json:"templateRef"`
 	CRDs         string     `json:"crdRef,omitempty"`
 	Dependencies []ChartDep `json:"deps,omitempty"`
+	URL          string     `json:"url,omitempty"`
 }
 
 // ChartStatus defines the observed state of Chart

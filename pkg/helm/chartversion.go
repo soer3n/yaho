@@ -19,6 +19,7 @@ func (chartVersion *HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string
 		Templates:    "helm-tmpl-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 		CRDs:         "helm-crds-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 		Dependencies: chartVersion.createDependenciesList(chartMeta),
+		URL:          chartVersion.Version.URLs[0],
 	}
 
 	if ok {
@@ -39,7 +40,7 @@ func (chartVersion *HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string
 		Spec: helmv1alpha1.ChartSpec{
 			Name:    chartMeta.Name,
 			Home:    chartMeta.Home,
-			Sources: chartMeta.Sources,
+			Sources: chartVersion.Version.Sources,
 			Versions: []helmv1alpha1.ChartVersion{
 				version,
 			},
