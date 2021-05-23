@@ -8,7 +8,6 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -16,7 +15,6 @@ import (
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/cli/values"
-	"helm.sh/helm/v3/pkg/downloader"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
@@ -53,18 +51,8 @@ func (hc *HelmRelease) Update() error {
 		return err
 	}
 
-	/*err = hc.checkDependencies(helmChart, chartPath, client)
-
-	if err != nil {
-		return err
-	}*/
-
 	log.Infof("configupdate: %v", hc.Config)
 	release, err := hc.getRelease()
-
-	//if err != nil {
-	//	return err
-	//}
 
 	_ = hc.SetValues()
 
@@ -83,14 +71,7 @@ func (hc *HelmRelease) Update() error {
 		return nil
 	}
 
-	// helmChart.Values = vals
-
-	// if err != nil {
-	//	return err
-	// }
-
 	client.Namespace = hc.Settings.Namespace()
-	// vals := hc.mergeMaps(helmChart.Values)
 	vals := mergeMaps(hc.getValues(), helmChart.Values)
 
 	if err := chartutil.ProcessDependencies(helmChart, vals); err != nil {
@@ -335,8 +316,8 @@ func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, de
 				options.RepoURL = dep.Repo
 				options.Version = dep.Version
 
-				_, foo, _ := hc.GetChart(item.Spec.Name, options)
-				chart.AddDependency(foo)
+				_, subChart, _ := hc.GetChart(item.Spec.Name, options)
+				chart.AddDependency(subChart)
 			}
 		}
 	}
@@ -406,6 +387,7 @@ func (hc *HelmRelease) getDefaultValuesFromConfigMap(rc *client.Client, name str
 	}
 
 	jsonMap := make(map[string]interface{})
+
 	if err = json.Unmarshal([]byte(configmap.Data["values"]), &jsonMap); err != nil {
 		panic(err)
 	}
@@ -466,32 +448,19 @@ func (hc *HelmRelease) getChartURL(rc *client.Client, chart, version string) (er
 func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 
 	configmapList := []v1.ConfigMap{}
-
-	//if err = chart.CreateTemplates(); err != nil {
-	//	return err, configmapList
-	//}
-
-	//return nil, chart.CreateConfigMaps()
-
 	installConfig := hc.Config
-	log.Infof("configinstall: %v", hc.Config)
 	releaseClient := action.NewInstall(installConfig)
 	releaseClient.ReleaseName = hc.Name
 	hc.Client = releaseClient
 
-	var argsList []string
 	var cp string
 	var chartRequested *chart.Chart
 	chartVersion := &HelmChartVersion{}
 	var err error
 
-	//settings := hc.Settings
+	log.Infof("configinstall: %v", hc.Config)
 
 	rc := client.New()
-
-	argsList = make([]string, 0)
-	argsList = append(argsList, hc.Chart)
-	argsList = append(argsList, hc.Repo+"/"+hc.Chart)
 
 	_, repoObj := hc.getRepo(rc, hc.Repo)
 	_, chartURL := hc.getChartURL(rc, hc.Chart, hc.Version)
@@ -530,7 +499,6 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 }
 
 func (hc HelmRelease) DownloadTo(url, version string, options *action.ChartPathOptions) (string, error) {
-	fullUrl := url + "/" + hc.Name + "/" + hc.Name + "-" + version + ".tgz"
 	fileName := hc.Settings.RepositoryCache + "/" + hc.Name + "-" + version + ".tgz"
 	var file *os.File
 	var resp *http.Response
@@ -549,7 +517,7 @@ func (hc HelmRelease) DownloadTo(url, version string, options *action.ChartPathO
 	}
 
 	// Put content on file
-	if resp, err = client.Get(fullUrl); err != nil {
+	if resp, err = client.Get(url); err != nil {
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
@@ -592,40 +560,6 @@ func (hc *HelmRelease) upgrade(helmChart *chart.Chart) error {
 	}
 
 	log.Infof("(%q) has been upgraded.", rel.Name)
-	return nil
-}
-
-func (hc *HelmRelease) checkDependencies(ch *chart.Chart, cp string, client *action.Install) error {
-
-	if req := ch.Metadata.Dependencies; req != nil {
-		if err := action.CheckDependencies(ch, req); err != nil {
-			if client.DependencyUpdate {
-				man := &downloader.Manager{
-					Out:              os.Stdout,
-					ChartPath:        cp,
-					Keyring:          client.ChartPathOptions.Keyring,
-					SkipUpdate:       false,
-					Getters:          getter.All(hc.Settings),
-					RepositoryConfig: hc.Settings.RepositoryConfig,
-					RepositoryCache:  hc.Settings.RepositoryCache,
-					Debug:            hc.Settings.Debug,
-				}
-
-				if err := man.Update(); err != nil {
-					return err
-				}
-
-				// Reload the chart with the updated Chart.lock file.
-				if _, err = loader.Load(cp); err != nil {
-					return errors.Wrap(err, "failed reloading chart after repo update")
-				}
-			} else {
-
-				return err
-			}
-		}
-	}
-
 	return nil
 }
 
