@@ -129,32 +129,20 @@ func (hr HelmRepos) Get(name string) (error, *repo.Entry) {
 
 func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*HelmChart, error) {
 
-	var chartList, test []*HelmChart
-	err, entry := hr.GetEntryObj()
-
-	if err != nil {
-		return []*HelmChart{}, errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
-	}
-
-	cr, err := repo.NewChartRepository(entry, getter.All(hr.Settings))
-
-	if err != nil {
-		return []*HelmChart{}, errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
-	}
-
-	log.Infof("CR: %v", cr)
+	var chartList []*HelmChart
 
 	rc := client.New()
 
 	args := []string{
-		"repos.helm.soer3n.info",
+		"charts.helm.soer3n.info",
 	}
 
 	obj := rc.GetResources(rc.Builder(hr.Settings.Namespace(), true).LabelSelector(selector), args)
 
 	for key, item := range obj.Data[1] {
 		if key == "items" {
-			for _, foo := range item.([]interface{}) {
+			transformed := item.([]interface{})
+			for _, foo := range transformed {
 				var jsonbody []byte
 				var err error
 				chartObj := &helmv1alpha1.Chart{}
@@ -166,21 +154,12 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 					return chartList, err
 				}
 
-				log.Infof("Key: %v ... Value: %v", key, chartObj)
-				test = append(chartList, NewChart(chartObj.ConvertChartVersions(), settings, hr.Name))
+				chartList = append(chartList, NewChart(chartObj.ConvertChartVersions(), settings, hr.Name))
 			}
 		}
 	}
 
-	indexFile, err := repo.LoadIndexFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml")
-
-	log.Infof("IndexFileErr: %v", err)
-
-	for _, chartMetadata := range indexFile.Entries {
-		// var chartObj *repo.ChartVersion
-		log.Infof("ChartMetadata: %v", chartMetadata)
-		chartList = append(chartList, NewChart(chartMetadata, settings, hr.Name))
-	}
+	log.Infof("Parsed Charts: %v", chartList)
 
 	return chartList, nil
 }

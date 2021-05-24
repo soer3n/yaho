@@ -34,7 +34,7 @@ func (chart *Chart) ConvertChartVersions() []*repo.ChartVersion {
 
 	for _, item := range chart.Spec.Versions {
 		value := &repo.ChartVersion{
-			&helmchart.Metadata{
+			Metadata: &helmchart.Metadata{
 				Name:        chart.Name,
 				Home:        chart.Spec.Home,
 				Sources:     chart.Spec.Sources,
@@ -52,6 +52,7 @@ func (chart *Chart) ConvertChartVersions() []*repo.ChartVersion {
 				KubeVersion: chart.Spec.KubeVersion,
 				Type:        chart.Spec.Type,
 			},
+			URLs: []string{item.URL},
 		}
 
 		convertedVersions = append(convertedVersions, value)

@@ -99,9 +99,10 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	selector, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
+	selector = "repoGroup=" + selector
 
 	if !repoGroupLabelOk {
-		selector = helmRepo.Name
+		selector = "repo=" + helmRepo.Name
 	}
 
 	if chartList, err = helmRepo.GetCharts(hc.Repos.Settings, selector); err != nil {

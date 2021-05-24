@@ -3,6 +3,7 @@ package helm
 import (
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	helmclient "github.com/soer3n/apps-operator/pkg/client"
 	"helm.sh/helm/v3/pkg/action"
 	helmchart "helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -54,7 +55,15 @@ func (chart *HelmChart) CreateTemplates() error {
 
 		client.ReleaseName = name
 		client.Version = chart.Version.Version
-		if cp, err = client.ChartPathOptions.LocateChart(chartname, settings); err != nil {
+		rc := helmclient.New()
+		options := &action.ChartPathOptions{
+			Version:               chart.Version.APIVersion,
+			InsecureSkipTLSverify: false,
+			Verify:                false,
+		}
+		_, chartURL := GetChartURL(rc, chartname, chart.Version.Name, client.Namespace)
+		//if cp, err = client.ChartPathOptions.LocateChart(chartname, settings); err != nil {
+		if cp, err = DownloadTo(chartURL, chart.Version.APIVersion, repo, settings, options); err != nil {
 			return err
 		}
 

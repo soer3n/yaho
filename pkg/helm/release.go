@@ -2,9 +2,7 @@ package helm
 
 import (
 	"encoding/json"
-	"io"
 	actionlog "log"
-	"net/http"
 	"os"
 
 	"github.com/google/go-cmp/cmp"
@@ -421,31 +419,6 @@ func (hc *HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alp
 	return nil, *repoObj
 }
 
-func (hc *HelmRelease) getChartURL(rc *client.Client, chart, version string) (error, string) {
-
-	args := []string{
-		"charts.helm.soer3n.info",
-		chart,
-	}
-
-	var jsonbody []byte
-	var err error
-
-	chartObj := &helmv1alpha1.Chart{}
-
-	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true), args)
-
-	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
-		return err, ""
-	}
-
-	if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
-		return err, ""
-	}
-
-	return nil, chartObj.GetChartVersion(version).URL
-}
-
 func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 
 	configmapList := []v1.ConfigMap{}
@@ -464,14 +437,14 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	rc := client.New()
 
 	_, repoObj := hc.getRepo(rc, hc.Repo)
-	_, chartURL := hc.getChartURL(rc, hc.Chart, hc.Version)
+	_, chartURL := GetChartURL(rc, hc.Chart, hc.Version, hc.Namespace.Name)
 
 	releaseClient.ReleaseName = hc.Name
 	releaseClient.Version = hc.Version
 	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.Url
 
 	//if cp, err = releaseClient.ChartPathOptions.LocateChart(hc.Chart, settings); err != nil {
-	if cp, err = hc.DownloadTo(chartURL, hc.Version, &releaseClient.ChartPathOptions); err != nil {
+	if cp, err = DownloadTo(chartURL, hc.Version, hc.Repo, hc.Settings, &releaseClient.ChartPathOptions); err != nil {
 		actionlog.Printf("err: %v", err)
 		return configmapList
 	}
@@ -496,41 +469,6 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	}
 
 	return chartVersion.createConfigMaps(hc.Namespace.Name)
-}
-
-func (hc HelmRelease) DownloadTo(url, version string, options *action.ChartPathOptions) (string, error) {
-	fileName := hc.Settings.RepositoryCache + "/" + hc.Name + "-" + version + ".tgz"
-	var file *os.File
-	var resp *http.Response
-	var err error
-	var size int64
-
-	if file, err = os.Create(fileName); err != nil {
-		log.Fatal(err)
-	}
-
-	client := http.Client{
-		CheckRedirect: func(r *http.Request, via []*http.Request) error {
-			r.URL.Opaque = r.URL.Path
-			return nil
-		},
-	}
-
-	// Put content on file
-	if resp, err = client.Get(url); err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	if size, err = io.Copy(file, resp.Body); err != nil {
-		return fileName, err
-	}
-
-	defer file.Close()
-
-	actionlog.Printf("Downloaded a file %s with size %d", fileName, size)
-
-	return fileName, nil
 }
 
 func (hc HelmRelease) configure() {

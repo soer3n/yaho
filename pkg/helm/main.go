@@ -1,11 +1,16 @@
 package helm
 
 import (
+	"encoding/json"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	client "github.com/soer3n/apps-operator/pkg/client"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 )
@@ -23,6 +28,66 @@ func initActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) 
 	}
 
 	return actionConfig, nil
+}
+
+func DownloadTo(url, version, repo string, settings *cli.EnvSettings, options *action.ChartPathOptions) (string, error) {
+	fileName := settings.RepositoryCache + "/" + repo + "-" + version + ".tgz"
+	var file *os.File
+	var resp *http.Response
+	var err error
+	var size int64
+
+	if file, err = os.Create(fileName); err != nil {
+		log.Fatal(err)
+	}
+
+	client := http.Client{
+		CheckRedirect: func(r *http.Request, via []*http.Request) error {
+			r.URL.Opaque = r.URL.Path
+			return nil
+		},
+	}
+
+	// Put content on file
+	if resp, err = client.Get(url); err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if size, err = io.Copy(file, resp.Body); err != nil {
+		return fileName, err
+	}
+
+	defer file.Close()
+
+	log.Printf("Downloaded a file %s with size %d", fileName, size)
+
+	return fileName, nil
+}
+
+func GetChartURL(rc *client.Client, chart, version, namespace string) (error, string) {
+
+	args := []string{
+		"charts.helm.soer3n.info",
+		chart,
+	}
+
+	var jsonbody []byte
+	var err error
+
+	chartObj := &helmv1alpha1.Chart{}
+
+	obj := rc.GetResources(rc.Builder(namespace, true), args)
+
+	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
+		return err, ""
+	}
+
+	if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
+		return err, ""
+	}
+
+	return nil, chartObj.GetChartVersion(version).URL
 }
 
 func removeFile(path, name string) error {
