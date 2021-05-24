@@ -13,10 +13,10 @@ import (
 
 func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string) *HelmChart {
 
-	var chartVersions []*HelmChartVersion
+	var chartVersions []HelmChartVersion
 
 	for _, version := range versions {
-		item := &HelmChartVersion{
+		item := HelmChartVersion{
 			Version: version,
 		}
 

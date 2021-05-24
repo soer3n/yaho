@@ -49,11 +49,13 @@ type HelmRepo struct {
 }
 
 type HelmChart struct {
-	Versions []*HelmChartVersion
+	Versions HelmChartVersions
 	Client   *action.Install
 	Settings *cli.EnvSettings
 	Repo     string
 }
+
+type HelmChartVersions []HelmChartVersion
 
 type HelmChartVersion struct {
 	Version       *repo.ChartVersion

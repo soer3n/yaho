@@ -1,11 +1,14 @@
 package helm
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
+	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	client "github.com/soer3n/apps-operator/pkg/client"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/helmpath"
@@ -124,9 +127,9 @@ func (hr HelmRepos) Get(name string) (error, *repo.Entry) {
 	return nil, hr.installed.Get(name)
 }
 
-func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings) ([]*HelmChart, error) {
+func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*HelmChart, error) {
 
-	var chartList []*HelmChart
+	var chartList, test []*HelmChart
 	err, entry := hr.GetEntryObj()
 
 	if err != nil {
@@ -141,13 +144,13 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings) ([]*HelmChart, error) {
 
 	log.Infof("CR: %v", cr)
 
-	/*rc := client.New()
+	rc := client.New()
 
 	args := []string{
-		"charts.helm.soer3n.info",
+		"repos.helm.soer3n.info",
 	}
 
-	obj := rc.GetResources(rc.Builder(hr.Settings.Namespace(), true).LabelSelector("repo="+hr.Name), args)
+	obj := rc.GetResources(rc.Builder(hr.Settings.Namespace(), true).LabelSelector(selector), args)
 
 	for key, item := range obj.Data[1] {
 		if key == "items" {
@@ -164,9 +167,10 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings) ([]*HelmChart, error) {
 				}
 
 				log.Infof("Key: %v ... Value: %v", key, chartObj)
+				test = append(chartList, NewChart(chartObj.ConvertChartVersions(), settings, hr.Name))
 			}
 		}
-	}*/
+	}
 
 	indexFile, err := repo.LoadIndexFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml")
 
