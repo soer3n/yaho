@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	core "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -48,6 +49,7 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var namespace string
+var ns *v1.Namespace
 var err error
 var testEnv *envtest.Environment
 
@@ -106,23 +108,22 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
+	err = k8sClient.Delete(context.TODO(), ns)
+	Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
 
 func SetupTest(ctx context.Context) *core.Namespace {
 	var stopCh chan struct{}
-	ns := &core.Namespace{}
-	namespace = ns.Name
-
+	ns = &core.Namespace{}
 	repo := &helmv1alpha1.Repo{}
-	repo.Name = "testresource"
-	repo.Spec.Name = "deployment-name"
+	repo.ObjectMeta.Name = "testresource"
 
 	BeforeEach(func() {
 		stopCh = make(chan struct{})
 		*ns = core.Namespace{
-			ObjectMeta: metav1.ObjectMeta{Name: "testns-" + randStringRunes(5)},
+			ObjectMeta: metav1.ObjectMeta{Name: "test-" + randStringRunes(5)},
 		}
 
 		err := k8sClient.Create(ctx, ns)
@@ -148,16 +149,31 @@ func SetupTest(ctx context.Context) *core.Namespace {
 
 	AfterEach(func() {
 		close(stopCh)
-
-		repo.ObjectMeta.Namespace = ns.ObjectMeta.Name
-		err := k8sClient.Delete(ctx, repo)
-		Expect(err).NotTo(HaveOccurred(), "failed to delete test repository")
-
-		err = k8sClient.Delete(ctx, ns)
-		Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 	})
 
 	return ns
+}
+
+func SetupRepoTest(ctx context.Context) *helmv1alpha1.Repo {
+	var stopCh chan struct{}
+	repo := &helmv1alpha1.Repo{}
+	repo.Name = "testresource"
+	repo.Spec.Name = "deployment-name"
+	repo.ObjectMeta.Namespace = namespace
+
+	BeforeEach(func() {
+		stopCh = make(chan struct{})
+	})
+
+	AfterEach(func() {
+		close(stopCh)
+		namespace = ns.ObjectMeta.Name
+		repo.ObjectMeta.Namespace = ns.ObjectMeta.Name
+		err = k8sClient.Delete(ctx, repo)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete test repository")
+	})
+
+	return repo
 }
 
 func init() {

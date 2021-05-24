@@ -14,10 +14,10 @@ import (
 
 var _ = Context("Install a repository", func() {
 	ctx := context.TODO()
-	ns := SetupTest(ctx)
+	ns = SetupTest(ctx)
+	_ = SetupRepoTest(ctx)
 
 	Describe("when no existing resources exist", func() {
-
 		It("should create a new Repository resource with the specified name and specified url", func() {
 			myKind := &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
@@ -34,17 +34,32 @@ var _ = Context("Install a repository", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			deployment := &helmv1alpha1.Repo{}
+			chart := &helmv1alpha1.Chart{}
+			//configmap := &v1.ConfigMap{}
+
 			Eventually(
-				getResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: myKind.Namespace}, deployment),
+				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: myKind.Namespace}, deployment),
 				time.Second*5, time.Millisecond*1500).Should(BeNil())
 
 			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource"))
+
+			Eventually(
+				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: myKind.Namespace}, chart),
+				time.Second*5, time.Millisecond*1500).Should(BeNil())
+
+			Expect(*&chart.ObjectMeta.Name).To(Equal("submariner"))
 		})
 
 	})
 })
 
-func getResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repo) func() error {
+func GetResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repo) func() error {
+	return func() error {
+		return k8sClient.Get(ctx, key, obj)
+	}
+}
+
+func GetChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() error {
 	return func() error {
 		return k8sClient.Get(ctx, key, obj)
 	}
