@@ -26,7 +26,7 @@ var _ = Context("Install a repository group", func() {
 					LabelSelector: "",
 					Repos: []helmv1alpha1.RepoSpec{
 						{
-							Name: "deployment-name",
+							Name: "deployment-name-2",
 							Url:  "https://submariner-io.github.io/submariner-charts/charts",
 							Auth: &helmv1alpha1.Auth{},
 						},
@@ -38,7 +38,7 @@ var _ = Context("Install a repository group", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			repoGroup := &helmv1alpha1.RepoGroup{}
-			//chart := &helmv1alpha1.Chart{}
+			chart := &helmv1alpha1.Chart{}
 			//configmap := &v1.ConfigMap{}
 
 			Eventually(
@@ -47,11 +47,11 @@ var _ = Context("Install a repository group", func() {
 
 			Expect(*&repoGroup.ObjectMeta.Name).To(Equal("testresource"))
 
-			/*Eventually(
+			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: myKind.Namespace}, chart),
 				time.Second*5, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&chart.ObjectMeta.Name).To(Equal("submariner"))*/
+			Expect(*&chart.ObjectMeta.Name).To(Equal("submariner"))
 		})
 
 	})

@@ -64,11 +64,11 @@ func TestAPIs(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	logf.Log.Info("namespace:", "namespace", namespace)
-	Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
-	Expect(os.Setenv("WATCH_NAMESPACE", namespace)).To(Succeed())
-	// Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
-	// Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
-	// Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
+	//Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
+	//Expect(os.Setenv("WATCH_NAMESPACE", namespace)).To(Succeed())
+	Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
+	Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
+	Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
 	// Expect(os.Setenv("CGO_ENABLED", "0")).To(Succeed())
 
 	By("bootstrapping test environment")
@@ -104,6 +104,35 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Namespace: ns.Name, MetricsBindAddress: "0"})
+	Expect(err).NotTo(HaveOccurred(), "failed to create manager")
+
+	controller := &helmrepo.RepoReconciler{
+		Client:   mgr.GetClient(),
+		Log:      logf.Log,
+		Recorder: mgr.GetEventRecorderFor("repo-controller"),
+		Scheme:   mgr.GetScheme(),
+	}
+	err = controller.SetupWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
+
+	//repoGroupMgr, err := ctrl.NewManager(cfg, ctrl.Options{Namespace: ns.Name, MetricsBindAddress: "0"})
+	//Expect(err).NotTo(HaveOccurred(), "failed to create manager")
+
+	repoGroupController := &helmrepo.RepoGroupReconciler{
+		Client: mgr.GetClient(),
+		Log:    logf.Log,
+		// Recorder: mgr.GetEventRecorderFor("repo-controller"),
+		Scheme: mgr.GetScheme(),
+	}
+	err = repoGroupController.SetupWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
+
+	go func() {
+		err := mgr.Start(context.TODO())
+		Expect(err).NotTo(HaveOccurred(), "failed to start repogroup manager")
+	}()
+
 }, 60)
 
 var _ = AfterSuite(func() {
@@ -113,52 +142,35 @@ var _ = AfterSuite(func() {
 })
 
 func SetupTest(ctx context.Context) *core.Namespace {
+	var stopCh chan struct{}
 	ns = &core.Namespace{}
 	repo := &helmv1alpha1.Repo{}
 	repo.ObjectMeta.Name = "testresource"
 
 	BeforeEach(func() {
+		stopCh = make(chan struct{})
 		*ns = core.Namespace{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-" + randStringRunes(5)},
 		}
 
 		err := k8sClient.Create(ctx, ns)
 		Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
+	})
 
-		mgr, err := ctrl.NewManager(cfg, ctrl.Options{Namespace: ns.Name, MetricsBindAddress: "0"})
-		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
-
-		controller := &helmrepo.RepoReconciler{
-			Client:   mgr.GetClient(),
-			Log:      logf.Log,
-			Recorder: mgr.GetEventRecorderFor("repo-controller"),
-			Scheme:   mgr.GetScheme(),
-		}
-		err = controller.SetupWithManager(mgr)
-		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
-
-		go func() {
-			err := mgr.Start(ctx)
-			Expect(err).NotTo(HaveOccurred(), "failed to start manager")
-		}()
+	AfterEach(func() {
+		close(stopCh)
 	})
 
 	return ns
 }
 
 func SetupRepoTest(ctx context.Context) *helmv1alpha1.Repo {
-	var stopCh chan struct{}
 	repo := &helmv1alpha1.Repo{}
 	repo.Name = "testresource"
-	repo.Spec.Name = "deployment-name"
+	//repo.Spec.Name = "deployment-name"
 	repo.ObjectMeta.Namespace = namespace
 
-	BeforeEach(func() {
-		stopCh = make(chan struct{})
-	})
-
 	AfterEach(func() {
-		close(stopCh)
 		namespace = ns.ObjectMeta.Name
 		repo.ObjectMeta.Namespace = ns.ObjectMeta.Name
 		err = k8sClient.Delete(ctx, repo)
@@ -171,17 +183,11 @@ func SetupRepoTest(ctx context.Context) *helmv1alpha1.Repo {
 }
 
 func SetupRepoGroupTest(ctx context.Context) *helmv1alpha1.RepoGroup {
-	var stopCh chan struct{}
 	repo := &helmv1alpha1.RepoGroup{}
 	repo.Name = "testresource"
 	repo.ObjectMeta.Namespace = namespace
 
-	BeforeEach(func() {
-		stopCh = make(chan struct{})
-	})
-
 	AfterEach(func() {
-		close(stopCh)
 		namespace = ns.ObjectMeta.Name
 		repo.ObjectMeta.Namespace = ns.ObjectMeta.Name
 		err = k8sClient.Delete(ctx, repo)
