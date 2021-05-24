@@ -61,7 +61,7 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-	logf.Log.Info("namespace: %s", "foo", namespace)
+	logf.Log.Info("namespace:", "namespace", namespace)
 	Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
 	Expect(os.Setenv("WATCH_NAMESPACE", namespace)).To(Succeed())
 	// Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
@@ -115,6 +115,10 @@ func SetupTest(ctx context.Context) *core.Namespace {
 	ns := &core.Namespace{}
 	namespace = ns.Name
 
+	repo := &helmv1alpha1.Repo{}
+	repo.Name = "testresource"
+	repo.Spec.Name = "deployment-name"
+
 	BeforeEach(func() {
 		stopCh = make(chan struct{})
 		*ns = core.Namespace{
@@ -145,7 +149,11 @@ func SetupTest(ctx context.Context) *core.Namespace {
 	AfterEach(func() {
 		close(stopCh)
 
-		err := k8sClient.Delete(ctx, ns)
+		repo.ObjectMeta.Namespace = ns.ObjectMeta.Name
+		err := k8sClient.Delete(ctx, repo)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete test repository")
+
+		err = k8sClient.Delete(ctx, ns)
 		Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 	})
 
