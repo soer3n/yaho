@@ -108,20 +108,16 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
-	err = k8sClient.Delete(context.TODO(), ns)
-	Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
 
 func SetupTest(ctx context.Context) *core.Namespace {
-	var stopCh chan struct{}
 	ns = &core.Namespace{}
 	repo := &helmv1alpha1.Repo{}
 	repo.ObjectMeta.Name = "testresource"
 
 	BeforeEach(func() {
-		stopCh = make(chan struct{})
 		*ns = core.Namespace{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-" + randStringRunes(5)},
 		}
@@ -147,10 +143,6 @@ func SetupTest(ctx context.Context) *core.Namespace {
 		}()
 	})
 
-	AfterEach(func() {
-		close(stopCh)
-	})
-
 	return ns
 }
 
@@ -171,6 +163,31 @@ func SetupRepoTest(ctx context.Context) *helmv1alpha1.Repo {
 		repo.ObjectMeta.Namespace = ns.ObjectMeta.Name
 		err = k8sClient.Delete(ctx, repo)
 		Expect(err).NotTo(HaveOccurred(), "failed to delete test repository")
+		err = k8sClient.Delete(context.TODO(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
+	})
+
+	return repo
+}
+
+func SetupRepoGroupTest(ctx context.Context) *helmv1alpha1.RepoGroup {
+	var stopCh chan struct{}
+	repo := &helmv1alpha1.RepoGroup{}
+	repo.Name = "testresource"
+	repo.ObjectMeta.Namespace = namespace
+
+	BeforeEach(func() {
+		stopCh = make(chan struct{})
+	})
+
+	AfterEach(func() {
+		close(stopCh)
+		namespace = ns.ObjectMeta.Name
+		repo.ObjectMeta.Namespace = ns.ObjectMeta.Name
+		err = k8sClient.Delete(ctx, repo)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete test repository")
+		err = k8sClient.Delete(context.TODO(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 	})
 
 	return repo
