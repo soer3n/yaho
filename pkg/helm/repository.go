@@ -159,6 +159,19 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 		}
 	}
 
+	if chartList == nil {
+
+		indexFile, err := repo.LoadIndexFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml")
+
+		log.Infof("IndexFileErr: %v", err)
+
+		for _, chartMetadata := range indexFile.Entries {
+			// var chartObj *repo.ChartVersion
+			log.Infof("ChartMetadata: %v", chartMetadata)
+			chartList = append(chartList, NewChart(chartMetadata, settings, hr.Name))
+		}
+	}
+
 	log.Infof("Parsed Charts: %v", chartList)
 
 	return chartList, nil
