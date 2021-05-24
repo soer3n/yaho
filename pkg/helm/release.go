@@ -6,7 +6,8 @@ import (
 	actionlog "log"
 	"net/http"
 	"os"
-	"reflect"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/prometheus/common/log"
 	"helm.sh/helm/v3/pkg/action"
@@ -26,19 +27,12 @@ import (
 
 func (hc *HelmRelease) Update() error {
 
-	// repoChart := hc.Repo + "/" + hc.Chart
-	// args := []string{hc.Name, repoChart}
-	installConfig := hc.Config
 	log.Infof("configinstall: %v", hc.Config)
+
+	installConfig := hc.Config
 	client := action.NewInstall(installConfig)
-	// name, _, err := client.NameAndChart(args)
-	//client.ReleaseName = name
 	client.ReleaseName = hc.Name
 	hc.Client = client
-
-	//if err != nil {
-	//	return err
-	//}
 
 	options := &action.ChartPathOptions{
 		Version:               hc.Version,
@@ -56,6 +50,9 @@ func (hc *HelmRelease) Update() error {
 
 	_ = hc.SetValues()
 
+	client.Namespace = hc.Settings.Namespace()
+	vals := mergeMaps(hc.getValues(), helmChart.Values)
+
 	// Check if something changed regarding the existing release
 	if release != nil {
 		ok, err := hc.valuesChanged()
@@ -65,14 +62,11 @@ func (hc *HelmRelease) Update() error {
 		}
 
 		if ok {
-			return hc.upgrade(helmChart)
+			return hc.upgrade(helmChart, vals)
 		}
 
 		return nil
 	}
-
-	client.Namespace = hc.Settings.Namespace()
-	vals := mergeMaps(hc.getValues(), helmChart.Values)
 
 	if err := chartutil.ProcessDependencies(helmChart, vals); err != nil {
 		return err
@@ -191,7 +185,14 @@ func (hc *HelmRelease) valuesChanged() (bool, error) {
 		return false, err
 	}
 
-	requestedValues := hc.Values
+	defaultVals := hc.getDefaultValuesFromConfigMap(client.New(), "helm-default-"+hc.Chart+"-"+hc.Version)
+	requestedValues := mergeMaps(hc.getValues(), defaultVals)
+
+	for key, _ := range requestedValues {
+		if _, ok := installedValues[key]; !ok {
+			log.Errorf("missing key %v", key)
+		}
+	}
 
 	if err != nil {
 		return false, err
@@ -204,7 +205,7 @@ func (hc *HelmRelease) valuesChanged() (bool, error) {
 		return false, nil
 	}
 
-	if reflect.DeepEqual(installedValues, requestedValues) {
+	if cmp.Equal(installedValues, requestedValues) {
 		return false, nil
 	}
 
@@ -484,7 +485,6 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 			Name:    hc.Chart,
 			Version: hc.Version,
 		},
-		URLs: chartRequested.Metadata.Sources,
 	}
 
 	chartVersion.Templates = chartRequested.Templates
@@ -541,15 +541,9 @@ func (hc HelmRelease) validate() error {
 	return nil
 }
 
-func (hc *HelmRelease) upgrade(helmChart *chart.Chart) error {
+func (hc *HelmRelease) upgrade(helmChart *chart.Chart, vals chartutil.Values) error {
 	client := action.NewUpgrade(hc.Config)
 
-	// vals := hc.getValues()
-	vals := mergeMaps(hc.getValues(), helmChart.Values)
-	hc.Values = vals
-
-	helmChart.Values = vals
-	client.Namespace = hc.Settings.Namespace()
 	if err := chartutil.ProcessDependencies(helmChart, vals); err != nil {
 		return err
 	}
