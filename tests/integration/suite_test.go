@@ -64,11 +64,11 @@ func TestAPIs(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	logf.Log.Info("namespace:", "namespace", namespace)
-	//Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
-	//Expect(os.Setenv("WATCH_NAMESPACE", namespace)).To(Succeed())
-	Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
-	Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
-	Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
+	Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
+	Expect(os.Setenv("WATCH_NAMESPACE", namespace)).To(Succeed())
+	//Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
+	//Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
+	//Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
 	// Expect(os.Setenv("CGO_ENABLED", "0")).To(Succeed())
 
 	By("bootstrapping test environment")
@@ -159,6 +159,8 @@ func SetupTest(ctx context.Context) *core.Namespace {
 
 	AfterEach(func() {
 		close(stopCh)
+		err = k8sClient.Delete(context.TODO(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 	})
 
 	return ns
@@ -173,8 +175,6 @@ func SetupRepoTest(ctx context.Context) *helmv1alpha1.Repo {
 	AfterEach(func() {
 		namespace = ns.ObjectMeta.Name
 		repo.ObjectMeta.Namespace = ns.ObjectMeta.Name
-		err = k8sClient.Delete(ctx, repo)
-		Expect(err).NotTo(HaveOccurred(), "failed to delete test repository")
 		err = k8sClient.Delete(context.TODO(), ns)
 		Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 	})
@@ -190,8 +190,6 @@ func SetupRepoGroupTest(ctx context.Context) *helmv1alpha1.RepoGroup {
 	AfterEach(func() {
 		namespace = ns.ObjectMeta.Name
 		repo.ObjectMeta.Namespace = ns.ObjectMeta.Name
-		err = k8sClient.Delete(ctx, repo)
-		Expect(err).NotTo(HaveOccurred(), "failed to delete test repository")
 		err = k8sClient.Delete(context.TODO(), ns)
 		Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 	})
