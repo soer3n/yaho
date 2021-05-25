@@ -18,6 +18,7 @@ package helm
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
@@ -29,6 +30,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // RepoGroupReconciler reconciles a RepoGroup object
@@ -79,7 +81,7 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	spec := instance.Spec.Repos
 
-	log.Infof("Trying to install HelmRepoSpec: %v", spec)
+	log.Infof("Trying to install HelmRepoSpecs: %v", spec)
 
 	for _, repository := range spec {
 
@@ -87,6 +89,33 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		if err != nil {
 			return ctrl.Result{}, err
+		}
+	}
+
+	// fetch charts
+	repos := &helmv1alpha1.RepoList{}
+	requirement, _ := labels.ParseToRequirements("repoGroup=" + instance.Spec.LabelSelector)
+	opts := &client.ListOptions{
+		LabelSelector: labels.NewSelector().Add(requirement[0]),
+	}
+
+	err = r.List(ctx, repos, opts)
+
+	log.Infof("Delete unwanted repos: %v.\n", repos.Items)
+
+	for _, repo := range repos.Items {
+		exists := false
+		for _, repository := range spec {
+			if reflect.DeepEqual(repo.Spec, repository) {
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			if err = r.Delete(ctx, &repo); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
