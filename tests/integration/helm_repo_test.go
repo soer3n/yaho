@@ -12,6 +12,10 @@ import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 )
 
+var repoKind *helmv1alpha1.Repo
+var deployment *helmv1alpha1.Repo
+var repoChart *helmv1alpha1.Chart
+
 var _ = Context("Install a repository", func() {
 	ctx := context.TODO()
 	ns = SetupTest(ctx)
@@ -19,7 +23,7 @@ var _ = Context("Install a repository", func() {
 
 	Describe("when no existing resources exist", func() {
 		It("should create a new Repository resource with the specified name and specified url", func() {
-			myKind := &helmv1alpha1.Repo{
+			repoKind = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource",
 					Namespace: ns.Name,
@@ -30,38 +34,42 @@ var _ = Context("Install a repository", func() {
 				},
 			}
 
-			err := k8sClient.Create(ctx, myKind)
+			err := k8sClient.Create(ctx, repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(5 * time.Second)
 
-			deployment := &helmv1alpha1.Repo{}
-			chart := &helmv1alpha1.Chart{}
+			deployment = &helmv1alpha1.Repo{}
+			repoChart = &helmv1alpha1.Chart{}
 			//configmap := &v1.ConfigMap{}
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: myKind.Namespace}, deployment),
+				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: myKind.Namespace}, chart),
+				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&chart.ObjectMeta.Name).To(Equal("submariner"))
+			Expect(*&repoChart.ObjectMeta.Name).To(Equal("submariner"))
 
-			err = k8sClient.Delete(ctx, myKind)
+		})
+
+		It("should remove this Repository resource with the specified name and specified url", func() {
+
+			err = k8sClient.Delete(ctx, repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(5 * time.Second)
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: myKind.Namespace}, deployment),
+				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: myKind.Namespace}, chart),
+				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 		})
 

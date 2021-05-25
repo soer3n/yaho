@@ -133,9 +133,18 @@ var _ = BeforeSuite(func() {
 		Expect(err).NotTo(HaveOccurred(), "failed to start repogroup manager")
 	}()
 
+	*ns = core.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-" + randStringRunes(5)},
+	}
+
+	err = k8sClient.Create(context.TODO(), ns)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
+
 }, 60)
 
 var _ = AfterSuite(func() {
+	err = k8sClient.Delete(context.TODO(), ns)
+	Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
@@ -149,18 +158,10 @@ func SetupTest(ctx context.Context) *core.Namespace {
 
 	BeforeEach(func() {
 		stopCh = make(chan struct{})
-		*ns = core.Namespace{
-			ObjectMeta: metav1.ObjectMeta{Name: "test-" + randStringRunes(5)},
-		}
-
-		err := k8sClient.Create(ctx, ns)
-		Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
 	})
 
 	AfterEach(func() {
 		close(stopCh)
-		err = k8sClient.Delete(context.TODO(), ns)
-		Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 	})
 
 	return ns
