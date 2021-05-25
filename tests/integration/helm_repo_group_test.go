@@ -92,6 +92,9 @@ var _ = Context("Install a repository group", func() {
 				},
 			}
 
+			err = k8sClient.Update(ctx, myKind)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: myKind.Namespace}, chart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
