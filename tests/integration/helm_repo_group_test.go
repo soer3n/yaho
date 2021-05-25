@@ -84,15 +84,29 @@ var _ = Context("Install a repository group", func() {
 
 			Expect(*&chart.ObjectMeta.Name).To(Equal("rocketchat"))
 
+			myKind.Spec.Repos = []helmv1alpha1.RepoSpec{
+				{
+					Name: "deployment-name-3",
+					Url:  "https://rocketchat.github.io/helm-charts",
+					Auth: &helmv1alpha1.Auth{},
+				},
+			}
+
+			Eventually(
+				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: myKind.Namespace}, chart),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			Eventually(
+				getChartFunc(ctx, client.ObjectKey{Name: "rocketchat", Namespace: myKind.Namespace}, chart),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Expect(*&chart.ObjectMeta.Name).To(Equal("rocketchat"))
+
 			err = k8sClient.Delete(ctx, myKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			Eventually(
 				getRepoGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: myKind.Namespace}, repoGroup),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
-
-			Eventually(
-				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: myKind.Namespace}, chart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
