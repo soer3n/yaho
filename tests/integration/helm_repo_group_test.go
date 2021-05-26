@@ -41,7 +41,7 @@ var _ = Context("Install a repository group", func() {
 			err := k8sClient.Create(ctx, repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 
 			repoGroup = &helmv1alpha1.RepoGroup{}
 			chart = &helmv1alpha1.Chart{}
@@ -61,6 +61,10 @@ var _ = Context("Install a repository group", func() {
 
 		})
 
+	})
+
+	Describe("when a repository is added to group resource", func() {
+
 		It("should add a new Repository resource with the specified name and specified url to the group", func() {
 
 			repoGroupKind.Spec.Repos = append(repoGroupKind.Spec.Repos, helmv1alpha1.RepoSpec{
@@ -72,7 +76,7 @@ var _ = Context("Install a repository group", func() {
 			err = k8sClient.Update(ctx, repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 
 			Eventually(
 				getRepoGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoGroupKind.Namespace}, repoGroup),
@@ -93,6 +97,10 @@ var _ = Context("Install a repository group", func() {
 			Expect(*&chart.ObjectMeta.Name).To(Equal("rocketchat"))
 
 		})
+
+	})
+
+	Describe("when first group entry is removed from resource", func() {
 
 		It("should remove the first Repository resource from the group", func() {
 
@@ -118,6 +126,10 @@ var _ = Context("Install a repository group", func() {
 			Expect(*&chart.ObjectMeta.Name).To(Equal("rocketchat"))
 
 		})
+
+	})
+
+	Describe("when the group resource is deleted", func() {
 
 		It("should  remove every repository left when group is deleted", func() {
 

@@ -37,7 +37,7 @@ var _ = Context("Install a repository", func() {
 			err := k8sClient.Create(ctx, repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 
 			deployment = &helmv1alpha1.Repo{}
 			repoChart = &helmv1alpha1.Chart{}
@@ -57,12 +57,16 @@ var _ = Context("Install a repository", func() {
 
 		})
 
+	})
+
+	Describe("when the created resource is deleted", func() {
+
 		It("should remove this Repository resource with the specified name and specified url", func() {
 
 			err = k8sClient.Delete(ctx, repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 
 			Eventually(
 				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
