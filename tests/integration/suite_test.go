@@ -159,11 +159,9 @@ func SetupTest(ctx context.Context) *core.Namespace {
 
 	BeforeEach(func() {
 		stopCh = make(chan struct{})
-		PrepareReleaseTest(ctx)
 	})
 
 	AfterEach(func() {
-		CleanUpReleaseTest(ctx)
 		close(stopCh)
 	})
 

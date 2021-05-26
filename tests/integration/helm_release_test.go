@@ -18,10 +18,12 @@ var releaseChart *helmv1alpha1.Chart
 
 var _ = Context("Install a release", func() {
 	ctx := context.TODO()
-	ns = SetupTest(ctx)
+	// ns = SetupTest(ctx)
 
 	Describe("when no existing resources exist", func() {
 		It("should create a new Release resource with specified", func() {
+			PrepareReleaseTest(ctx)
+
 			releaseKind = &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource",
@@ -64,6 +66,8 @@ var _ = Context("Install a release", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(5 * time.Second)
+
+			CleanUpReleaseTest(ctx)
 
 			Eventually(
 				GetReleaseFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: releaseKind.Namespace}, release),
