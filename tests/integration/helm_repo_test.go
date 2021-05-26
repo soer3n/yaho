@@ -18,8 +18,6 @@ var repoChart *helmv1alpha1.Chart
 
 var _ = Context("Install a repository", func() {
 	ctx := context.TODO()
-	ns = SetupTest(ctx)
-	// _ = SetupRepoTest(ctx)
 
 	Describe("when no existing resources exist", func() {
 		It("should create a new Repository resource with the specified name and specified url", func() {

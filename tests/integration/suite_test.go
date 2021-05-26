@@ -133,6 +133,7 @@ var _ = BeforeSuite(func() {
 		Expect(err).NotTo(HaveOccurred(), "failed to start repogroup manager")
 	}()
 
+	ns = &core.Namespace{}
 	*ns = core.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-" + randStringRunes(5)},
 	}
@@ -158,44 +159,51 @@ func SetupTest(ctx context.Context) *core.Namespace {
 
 	BeforeEach(func() {
 		stopCh = make(chan struct{})
+		PrepareReleaseTest(ctx)
 	})
 
 	AfterEach(func() {
+		CleanUpReleaseTest(ctx)
 		close(stopCh)
 	})
 
 	return ns
 }
 
-func SetupRepoTest(ctx context.Context) *helmv1alpha1.Repo {
-	repo := &helmv1alpha1.Repo{}
-	repo.Name = "testresource"
-	//repo.Spec.Name = "deployment-name"
-	repo.ObjectMeta.Namespace = namespace
+func PrepareReleaseTest(ctx context.Context) {
+	testRepo := &helmv1alpha1.Repo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testresource",
+			Namespace: ns.Name,
+		},
+		Spec: helmv1alpha1.RepoSpec{
+			Name: "deployment-name",
+			Url:  "https://submariner-io.github.io/submariner-charts/charts",
+		},
+	}
 
-	AfterEach(func() {
-		namespace = ns.ObjectMeta.Name
-		repo.ObjectMeta.Namespace = ns.ObjectMeta.Name
-		err = k8sClient.Delete(context.TODO(), ns)
-		Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
-	})
-
-	return repo
+	namespace = ns.ObjectMeta.Name
+	err = k8sClient.Create(context.TODO(), testRepo)
+	Expect(err).NotTo(HaveOccurred(), "failed to delete test repo")
+	namespace = ns.ObjectMeta.Name
 }
 
-func SetupRepoGroupTest(ctx context.Context) *helmv1alpha1.RepoGroup {
-	repo := &helmv1alpha1.RepoGroup{}
-	repo.Name = "testresource"
-	repo.ObjectMeta.Namespace = namespace
+func CleanUpReleaseTest(ctx context.Context) {
+	testRepo := &helmv1alpha1.Repo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testresource",
+			Namespace: ns.Name,
+		},
+		Spec: helmv1alpha1.RepoSpec{
+			Name: "deployment-name",
+			Url:  "https://submariner-io.github.io/submariner-charts/charts",
+		},
+	}
 
-	AfterEach(func() {
-		namespace = ns.ObjectMeta.Name
-		repo.ObjectMeta.Namespace = ns.ObjectMeta.Name
-		err = k8sClient.Delete(context.TODO(), ns)
-		Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
-	})
-
-	return repo
+	namespace = ns.ObjectMeta.Name
+	testRepo.ObjectMeta.Namespace = ns.ObjectMeta.Name
+	err = k8sClient.Delete(context.TODO(), testRepo)
+	Expect(err).NotTo(HaveOccurred(), "failed to delete test repo")
 }
 
 func init() {

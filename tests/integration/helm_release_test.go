@@ -19,7 +19,6 @@ var releaseChart *helmv1alpha1.Chart
 var _ = Context("Install a release", func() {
 	ctx := context.TODO()
 	ns = SetupTest(ctx)
-	// _ = SetupRepoTest(ctx)
 
 	Describe("when no existing resources exist", func() {
 		It("should create a new Release resource with specified", func() {
