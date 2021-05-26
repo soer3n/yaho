@@ -128,6 +128,22 @@ var _ = BeforeSuite(func() {
 	err = repoGroupController.SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
 
+	releaseGroupController := &helmrepo.ReleaseGroupReconciler{
+		Client: mgr.GetClient(),
+		Log:    logf.Log,
+		Scheme: mgr.GetScheme(),
+	}
+	err = releaseGroupController.SetupWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred(), "failed to setup release group controller")
+
+	releaseController := &helmrepo.ReleaseReconciler{
+		Client: mgr.GetClient(),
+		Log:    logf.Log,
+		Scheme: mgr.GetScheme(),
+	}
+	err = releaseController.SetupWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred(), "failed to setup release controller")
+
 	go func() {
 		err := mgr.Start(context.TODO())
 		Expect(err).NotTo(HaveOccurred(), "failed to start repogroup manager")
