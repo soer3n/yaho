@@ -230,14 +230,16 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 	chartObj := &helmv1alpha1.Chart{}
 	files := []*chart.File{}
 	args := make([]string, 0)
-	namespace := "default"
+	// namespace := "default"
 	rc := client.New()
 	args = []string{
 		"charts.helm.soer3n.info",
 		chartName,
 	}
 
-	obj := rc.GetResources(rc.Builder(namespace, true), args)
+	log.Infof("namespace: %v", hc.Namespace.Name)
+
+	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true), args)
 	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
 		return err, helmChart, "foo"
 	}

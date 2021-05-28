@@ -175,6 +175,7 @@ func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (error, *h
 	}, instance)
 
 	log.Infof("Get: %v.\n", err)
+	log.Infof("Namespace: %v", namespace)
 
 	if err != nil {
 		if errors.IsNotFound(err) {

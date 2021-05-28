@@ -130,6 +130,8 @@ func (hr HelmRepos) Get(name string) (error, *repo.Entry) {
 func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*HelmChart, error) {
 
 	var chartList []*HelmChart
+	var indexFile *repo.IndexFile
+	var err error
 
 	rc := client.New()
 
@@ -144,7 +146,6 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 			transformed := item.([]interface{})
 			for _, foo := range transformed {
 				var jsonbody []byte
-				var err error
 				chartObj := &helmv1alpha1.Chart{}
 				if jsonbody, err = json.Marshal(foo); err != nil {
 					return chartList, err
@@ -161,7 +162,10 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 
 	if chartList == nil {
 
-		indexFile, err := repo.LoadIndexFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml")
+		if indexFile, err = repo.LoadIndexFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml"); err != nil {
+			_ = hr.Update()
+			indexFile, err = repo.LoadIndexFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml")
+		}
 
 		log.Infof("IndexFileErr: %v", err)
 

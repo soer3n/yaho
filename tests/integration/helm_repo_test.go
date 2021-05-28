@@ -18,10 +18,15 @@ var repoChart *helmv1alpha1.Chart
 
 var _ = Context("Install a repository", func() {
 	ctx := context.TODO()
-	ns = SetupTest(ctx)
+	//repoNeeded = false
+	ns := SetupTest(ctx)
+	namespace = ns.ObjectMeta.Name
 
 	Describe("when no existing resources exist", func() {
-		It("should create a new Repository resource with the specified name and specified url", func() {
+
+		It("should create a new namespace", func() {
+
+			By("should create a new Repository resource with the specified name and specified url")
 			repoKind = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource",
@@ -54,13 +59,7 @@ var _ = Context("Install a repository", func() {
 
 			Expect(*&repoChart.ObjectMeta.Name).To(Equal("submariner"))
 
-		})
-
-	})
-
-	Describe("when the created resource is deleted", func() {
-
-		It("should remove this Repository resource with the specified name and specified url", func() {
+			By("should remove this Repository resource with the specified name and specified url")
 
 			err = k8sClient.Delete(ctx, repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
@@ -75,7 +74,6 @@ var _ = Context("Install a repository", func() {
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 		})
-
 	})
 })
 

@@ -49,9 +49,12 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var namespace string
-var ns *v1.Namespace
+
+// var ns *v1.Namespace
 var err error
 var testEnv *envtest.Environment
+
+//var repoNeeded bool
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -63,9 +66,8 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-	logf.Log.Info("namespace:", "namespace", namespace)
 	Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
-	Expect(os.Setenv("WATCH_NAMESPACE", namespace)).To(Succeed())
+
 	//Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
 	//Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
 	//Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
@@ -104,7 +106,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Namespace: ns.Name, MetricsBindAddress: "0"})
+	Expect(os.Setenv("WATCH_NAMESPACE", namespace)).To(Succeed())
+	logf.Log.Info("namespace:", "namespace", namespace)
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Namespace: namespace, MetricsBindAddress: "0"})
 	Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 	controller := &helmrepo.RepoReconciler{
@@ -149,19 +154,9 @@ var _ = BeforeSuite(func() {
 		Expect(err).NotTo(HaveOccurred(), "failed to start repogroup manager")
 	}()
 
-	ns = &core.Namespace{}
-	*ns = core.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-" + randStringRunes(5)},
-	}
-
-	err = k8sClient.Create(context.TODO(), ns)
-	Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
-
 }, 60)
 
 var _ = AfterSuite(func() {
-	err = k8sClient.Delete(context.TODO(), ns)
-	Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
@@ -169,55 +164,27 @@ var _ = AfterSuite(func() {
 
 func SetupTest(ctx context.Context) *core.Namespace {
 	var stopCh chan struct{}
-	ns = &core.Namespace{}
 	repo := &helmv1alpha1.Repo{}
+	ns := &v1.Namespace{}
 	repo.ObjectMeta.Name = "testresource"
 
 	BeforeEach(func() {
 		stopCh = make(chan struct{})
+		*ns = v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{Name: "helm-test-" + randStringRunes(5)},
+		}
+
+		err = k8sClient.Create(context.TODO(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
 	})
 
 	AfterEach(func() {
+		err = k8sClient.Delete(context.TODO(), ns)
+		Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
 		close(stopCh)
 	})
 
 	return ns
-}
-
-func PrepareReleaseTest(ctx context.Context) {
-	testRepo := &helmv1alpha1.Repo{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testresource",
-			Namespace: ns.Name,
-		},
-		Spec: helmv1alpha1.RepoSpec{
-			Name: "deployment-name",
-			Url:  "https://submariner-io.github.io/submariner-charts/charts",
-		},
-	}
-
-	namespace = ns.ObjectMeta.Name
-	err = k8sClient.Create(context.TODO(), testRepo)
-	Expect(err).NotTo(HaveOccurred(), "failed to delete test repo")
-	namespace = ns.ObjectMeta.Name
-}
-
-func CleanUpReleaseTest(ctx context.Context) {
-	testRepo := &helmv1alpha1.Repo{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testresource",
-			Namespace: ns.Name,
-		},
-		Spec: helmv1alpha1.RepoSpec{
-			Name: "deployment-name",
-			Url:  "https://submariner-io.github.io/submariner-charts/charts",
-		},
-	}
-
-	namespace = ns.ObjectMeta.Name
-	testRepo.ObjectMeta.Namespace = ns.ObjectMeta.Name
-	err = k8sClient.Delete(context.TODO(), testRepo)
-	Expect(err).NotTo(HaveOccurred(), "failed to delete test repo")
 }
 
 func init() {

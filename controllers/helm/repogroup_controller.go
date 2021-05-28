@@ -101,8 +101,6 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	err = r.List(ctx, repos, opts)
 
-	log.Infof("Delete unwanted repos: %v.\n", repos.Items)
-
 	for _, repo := range repos.Items {
 		exists := false
 		for _, repository := range spec {
@@ -113,6 +111,7 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 
 		if !exists {
+			log.Infof("Delete unwanted repo: %v.\n", repo.Spec.Name)
 			if err = r.Delete(ctx, &repo); err != nil {
 				return ctrl.Result{}, err
 			}
