@@ -123,10 +123,17 @@ func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMa
 
 		log.Infof("ConvertedMap: %v", convertedMap)
 
-		testMap := hv.parseMap(parentKey, rawVals.Raw)
+		if err := json.Unmarshal(rawVals.Raw, &convertedMap); err != nil {
+			log.Infof("error on parsing:%v", err)
+			return valMap
+		}
 
-		log.Infof("Parsed converts: %v", testMap)
+		log.Infof("ConvertedMap: %v", convertedMap)
 
+		for key, val := range hv.parseFromUntypedMap(parentKey, convertedMap) {
+			valMap[key] = val
+			log.Infof("Parsed key: %v; Parsed value: %v", key, val)
+		}
 	}
 
 	for k, v := range values.Spec.Values {
@@ -152,15 +159,7 @@ func (hv *HelmValueTemplate) parseMap(key string, payload []byte) map[string]str
 	returnKey := key
 
 	if err := yaml.Unmarshal([]byte(payload), &testMap); err == nil {
-		for ix, entry := range testMap {
-			returnKey = returnKey + "." + ix
-			converted := fmt.Sprintf("%v", entry)
-			if err := yaml.Unmarshal([]byte(converted), &subMap); err != nil {
-				valMap[returnKey] = converted
-			} else {
-				return hv.parseMap(ix, []byte(converted))
-			}
-		}
+
 	}
 
 	log.Infof("TestMap: %v", testMap)
@@ -180,4 +179,30 @@ func (hv *HelmValueTemplate) parseMap(key string, payload []byte) map[string]str
 		}
 		return valMap
 	}
+}
+
+func (hv HelmValueTemplate) parseFromUntypedMap(parentKey string, convertedMap map[string]interface{}) map[string]string {
+
+	var targetMap map[string]string
+	valMap := make(map[string]string)
+	returnKey := parentKey
+
+	for ix, entry := range convertedMap {
+
+		if parentKey != "" {
+			returnKey = returnKey + "."
+		}
+		returnKey = returnKey + ix
+
+		if err := yaml.Unmarshal([]byte(fmt.Sprintf("%v", entry)), &targetMap); err != nil {
+			for k, v := range hv.parseFromUntypedMap(returnKey, entry.(map[string]interface{})) {
+				valMap[k] = v
+			}
+		} else {
+			valMap[returnKey] = entry.(string)
+			returnKey = parentKey
+		}
+	}
+
+	return valMap
 }
