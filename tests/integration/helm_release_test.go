@@ -20,8 +20,8 @@ var releaseRepo *helmv1alpha1.Repo
 var _ = Context("Install a release", func() {
 	ctx := context.TODO()
 	//repoNeeded = true
-	ns := SetupTest(ctx)
-	namespace = ns.ObjectMeta.Name
+	releaseNs := SetupTest(ctx, "default")
+	namespace = releaseNs.ObjectMeta.Name
 
 	Describe("when no existing resources exist", func() {
 
@@ -31,7 +31,7 @@ var _ = Context("Install a release", func() {
 			releaseRepo = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource-123",
-					Namespace: ns.Name,
+					Namespace: releaseNs.Name,
 				},
 				Spec: helmv1alpha1.RepoSpec{
 					Name: "deployment-name",
@@ -49,13 +49,13 @@ var _ = Context("Install a release", func() {
 			//configmap := &v1.ConfigMap{}
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: ns.Name}, deployment),
+				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: releaseNs.Name}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource-123"))
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: ns.Name}, repoChart),
+				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: releaseNs.Name}, repoChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(*&repoChart.ObjectMeta.Name).To(Equal("submariner"))
@@ -65,7 +65,7 @@ var _ = Context("Install a release", func() {
 			releaseKind = &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource",
-					Namespace: ns.Name,
+					Namespace: releaseNs.Name,
 				},
 				Spec: helmv1alpha1.ReleaseSpec{
 					Name:    "deployment-name",

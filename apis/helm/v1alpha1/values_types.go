@@ -18,10 +18,13 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+// +kubebuilder:pruning:PreserveUnknownFields
 
 // ValuesSpec defines the desired state of Values
 type ValuesSpec struct {
@@ -31,6 +34,11 @@ type ValuesSpec struct {
 	Values   map[string]string `json:"values,omitempty"`
 	Refs     map[string]string `json:"refs,omitempty"`
 	Selector string            `json:"selector,omitempty"`
+
+	// +kubebuilder:validation:any
+	// +kubebuilder:pruning:PreserveUnknownFields
+
+	ValuesMap *runtime.RawExtension `json:"json,omitempty"`
 }
 
 // ValuesStatus defines the observed state of Values

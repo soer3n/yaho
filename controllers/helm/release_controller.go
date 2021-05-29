@@ -112,6 +112,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	for _, valueObj := range valuesList {
+
 		if subRefList, err = r.collectValues(valueObj, 0); err != nil {
 			return ctrl.Result{}, err
 		}

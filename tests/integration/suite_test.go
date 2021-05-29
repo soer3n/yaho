@@ -66,11 +66,11 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-	Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
+	//Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
 
-	//Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
-	//Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
-	//Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
+	Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
+	Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
+	Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
 	// Expect(os.Setenv("CGO_ENABLED", "0")).To(Succeed())
 
 	By("bootstrapping test environment")
@@ -162,7 +162,7 @@ var _ = AfterSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
-func SetupTest(ctx context.Context) *core.Namespace {
+func SetupTest(ctx context.Context, prefix string) *core.Namespace {
 	var stopCh chan struct{}
 	repo := &helmv1alpha1.Repo{}
 	ns := &v1.Namespace{}
@@ -171,16 +171,16 @@ func SetupTest(ctx context.Context) *core.Namespace {
 	BeforeEach(func() {
 		stopCh = make(chan struct{})
 		*ns = v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{Name: "helm-test-" + randStringRunes(5)},
+			ObjectMeta: metav1.ObjectMeta{Name: prefix},
 		}
 
-		err = k8sClient.Create(context.TODO(), ns)
-		Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
+		_ = k8sClient.Create(context.TODO(), ns)
+		// Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
 	})
 
 	AfterEach(func() {
-		err = k8sClient.Delete(context.TODO(), ns)
-		Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
+		//err = k8sClient.Delete(context.TODO(), ns)
+		//Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
 		close(stopCh)
 	})
 

@@ -1,6 +1,9 @@
 package helm
 
 import (
+	"encoding/json"
+
+	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"sigs.k8s.io/yaml"
 )
@@ -108,7 +111,17 @@ func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMa
 		parentKey = parentKey + parent + "."
 	}
 
-	for k, v := range values.Spec.Values {
+	rawVals := values.Spec.ValuesMap
+	var convertedMap map[string]interface{}
+
+	if err := json.Unmarshal(rawVals.Raw, &convertedMap); err != nil {
+		log.Infof("error on parsing:%v", err)
+		return valMap
+	}
+
+	log.Infof("ConvertedMap: %v", convertedMap)
+
+	for k, v := range convertedMap {
 		valMap[parentKey+k] = v
 	}
 

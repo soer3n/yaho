@@ -19,8 +19,8 @@ var chart *helmv1alpha1.Chart
 var _ = Context("Install a repository group", func() {
 	ctx := context.TODO()
 	//repoNeeded = false
-	ns := SetupTest(ctx)
-	namespace = ns.ObjectMeta.Name
+	repoGroupNs := SetupTest(ctx, "default")
+	namespace = repoGroupNs.ObjectMeta.Name
 
 	Describe("when no existing resources exist", func() {
 
@@ -29,7 +29,7 @@ var _ = Context("Install a repository group", func() {
 			By("should create a new Repository resource with the specified name and specified url")
 			repoGroupKind = &helmv1alpha1.RepoGroup{
 				TypeMeta:   metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{Name: "testresource", Namespace: ns.Name},
+				ObjectMeta: metav1.ObjectMeta{Name: "testresource", Namespace: repoGroupNs.Name},
 				Spec: helmv1alpha1.RepoGroupSpec{
 					LabelSelector: "",
 					Repos: []helmv1alpha1.RepoSpec{

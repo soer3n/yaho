@@ -8,3 +8,8 @@ spec:
   refs:
     foo: values-sample-nested
     baz: values-sample-nested-2
+  json:
+    fruits:
+      apple: green
+      banana: yellow
+    enabled: true

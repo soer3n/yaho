@@ -19,8 +19,8 @@ var repoChart *helmv1alpha1.Chart
 var _ = Context("Install a repository", func() {
 	ctx := context.TODO()
 	//repoNeeded = false
-	ns := SetupTest(ctx)
-	namespace = ns.ObjectMeta.Name
+	repoNs := SetupTest(ctx, "default")
+	namespace = repoNs.ObjectMeta.Name
 
 	Describe("when no existing resources exist", func() {
 
@@ -30,7 +30,7 @@ var _ = Context("Install a repository", func() {
 			repoKind = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource",
-					Namespace: ns.Name,
+					Namespace: repoNs.Name,
 				},
 				Spec: helmv1alpha1.RepoSpec{
 					Name: "deployment-name",

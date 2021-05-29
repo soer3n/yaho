@@ -6,20 +6,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: values.helm.soer3n.info
+  name: repoes.helm.soer3n.info
 spec:
   group: helm.soer3n.info
   names:
-    kind: Values
-    listKind: ValuesList
-    plural: values
-    singular: values
+    kind: Repo
+    listKind: RepoList
+    plural: repoes
+    singular: repo
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Values is the Schema for the values API
+        description: Repo is the Schema for the repoes API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -34,25 +34,39 @@ spec:
           metadata:
             type: object
           spec:
-            description: ValuesSpec defines the desired state of Values
+            description: RepoSpec defines the desired state of Repo
             properties:
-              json:
+              auth:
+                properties:
+                  ca:
+                    type: string
+                  cert:
+                    type: string
+                  key:
+                    type: string
+                  pw:
+                    type: string
+                  user:
+                    type: string
                 type: object
-                x-kubernetes-preserve-unknown-fields: true
-              refs:
-                additionalProperties:
-                  type: string
-                type: object
-              selector:
+              name:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
                 type: string
-              values:
-                additionalProperties:
-                  type: string
-                type: object
+              url:
+                type: string
+            required:
+            - name
+            - url
             type: object
-            x-kubernetes-preserve-unknown-fields: true
           status:
-            description: ValuesStatus defines the observed state of Values
+            description: RepoStatus defines the observed state of Repo
+            properties:
+              phase:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: string
             type: object
         type: object
     served: true
