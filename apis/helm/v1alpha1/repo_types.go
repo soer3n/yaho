@@ -50,7 +50,7 @@ type RepoStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// Repo is the Schema for the repoes API
+// Repo is the Schema for the repos API
 type Repo struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

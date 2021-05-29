@@ -43,9 +43,9 @@ type RepoReconciler struct {
 	Recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repoes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repoes/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repoes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repos,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repos/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repos/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

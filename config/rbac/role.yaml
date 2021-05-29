@@ -87,32 +87,6 @@ rules:
 - apiGroups:
   - helm.soer3n.info
   resources:
-  - repoes
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - repoes/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - repoes/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
   - repogroups
   verbs:
   - create
@@ -132,6 +106,32 @@ rules:
   - helm.soer3n.info
   resources:
   - repogroups/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - helm.soer3n.info
+  resources:
+  - repos
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - helm.soer3n.info
+  resources:
+  - repos/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - helm.soer3n.info
+  resources:
+  - repos/status
   verbs:
   - get
   - patch
