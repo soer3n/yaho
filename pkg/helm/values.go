@@ -2,6 +2,7 @@ package helm
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -114,14 +115,21 @@ func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMa
 	rawVals := values.Spec.ValuesMap
 	var convertedMap map[string]interface{}
 
-	if err := json.Unmarshal(rawVals.Raw, &convertedMap); err != nil {
-		log.Infof("error on parsing:%v", err)
-		return valMap
+	if rawVals != nil && rawVals.Raw != nil {
+		if err := json.Unmarshal(rawVals.Raw, &convertedMap); err != nil {
+			log.Infof("error on parsing:%v", err)
+			return valMap
+		}
+
+		log.Infof("ConvertedMap: %v", convertedMap)
+
+		testMap := hv.parseMap(parentKey, rawVals.Raw)
+
+		log.Infof("Parsed converts: %v", testMap)
+
 	}
 
-	log.Infof("ConvertedMap: %v", convertedMap)
-
-	for k, v := range convertedMap {
+	for k, v := range values.Spec.Values {
 		valMap[parentKey+k] = v
 	}
 
@@ -140,9 +148,25 @@ func (hv *HelmValueTemplate) parseMap(key string, payload []byte) map[string]str
 
 	valMap := make(map[string]string)
 	subMap := make(map[string]string)
+	testMap := make(map[string]interface{})
 	returnKey := key
 
+	if err := yaml.Unmarshal([]byte(payload), &testMap); err == nil {
+		for ix, entry := range testMap {
+			returnKey = returnKey + "." + ix
+			converted := fmt.Sprintf("%v", entry)
+			if err := yaml.Unmarshal([]byte(converted), &subMap); err != nil {
+				valMap[returnKey] = converted
+			} else {
+				return hv.parseMap(ix, []byte(converted))
+			}
+		}
+	}
+
+	log.Infof("TestMap: %v", testMap)
+
 	if err := yaml.Unmarshal([]byte(payload), &subMap); err != nil {
+		log.Infof("Error: %v", err)
 		valMap[key] = string(payload[:])
 		return valMap
 	} else {
