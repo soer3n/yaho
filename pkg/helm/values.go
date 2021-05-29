@@ -193,15 +193,25 @@ func (hv HelmValueTemplate) parseFromUntypedMap(parentKey string, convertedMap m
 			returnKey = returnKey + "."
 		}
 		returnKey = returnKey + ix
+		stringVal, ok := entry.(string)
 
-		if err := yaml.Unmarshal([]byte(fmt.Sprintf("%v", entry)), &targetMap); err != nil {
+		if ok {
+			valMap[returnKey] = stringVal
+			returnKey = parentKey
+			continue
+		}
+
+		stringVal = fmt.Sprintf("%v", entry)
+
+		if err := yaml.Unmarshal([]byte(stringVal), &targetMap); err != nil {
 			for k, v := range hv.parseFromUntypedMap(returnKey, entry.(map[string]interface{})) {
 				valMap[k] = v
 			}
 		} else {
 			valMap[returnKey] = entry.(string)
-			returnKey = parentKey
 		}
+
+		returnKey = parentKey
 	}
 
 	return valMap
