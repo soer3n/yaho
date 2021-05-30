@@ -109,7 +109,11 @@ func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMa
 	var parentKey string
 
 	for _, parent := range parents {
-		parentKey = parentKey + parent + "."
+		if parentKey != "" {
+			parentKey = parentKey + "."
+		}
+
+		parentKey = parentKey + parent
 	}
 
 	rawVals := values.Spec.ValuesMap
@@ -136,9 +140,9 @@ func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMa
 		}
 	}
 
-	for k, v := range values.Spec.Values {
-		valMap[parentKey+k] = v
-	}
+	//for k, v := range values.Spec.Values {
+	//	valMap[parentKey+k] = v
+	//}
 
 	for ck, cv := range childMap {
 		bytes := []byte(cv.(string))
@@ -155,14 +159,7 @@ func (hv *HelmValueTemplate) parseMap(key string, payload []byte) map[string]str
 
 	valMap := make(map[string]string)
 	subMap := make(map[string]string)
-	testMap := make(map[string]interface{})
 	returnKey := key
-
-	if err := yaml.Unmarshal([]byte(payload), &testMap); err == nil {
-
-	}
-
-	log.Infof("TestMap: %v", testMap)
 
 	if err := yaml.Unmarshal([]byte(payload), &subMap); err != nil {
 		log.Infof("Error: %v", err)

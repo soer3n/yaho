@@ -19,6 +19,7 @@ package helm
 import (
 	"bytes"
 	"context"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
@@ -113,7 +114,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	for _, valueObj := range valuesList {
 
-		if subRefList, err = r.collectValues(valueObj, 0); err != nil {
+		if subRefList, err = r.collectValues(valueObj, 0, helmRelease.Name); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if err = r.updateValuesAnnotations(valueObj, helmRelease.Name); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -145,10 +150,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if _, err = r.handleFinalizer(hc, instance); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if err = r.Update(ctx, instance); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -204,6 +205,10 @@ func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, in
 		}
 
 		controllerutil.RemoveFinalizer(instance, "finalizer.releases.helm.soer3n.info")
+
+		if err := r.Update(context.TODO(), instance); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 	return ctrl.Result{}, nil
 }
@@ -248,7 +253,7 @@ func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *he
 	return nil
 }
 
-func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int32) ([]*helmutils.ValuesRef, error) {
+func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int32, releaseName string) ([]*helmutils.ValuesRef, error) {
 	var list []*helmutils.ValuesRef
 
 	// secure against infinite loop
@@ -276,6 +281,10 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 			return list, err
 		}
 
+		if err = r.updateValuesAnnotations(helmRef, releaseName); err != nil {
+			return list, err
+		}
+
 		if helmRef.Spec.Refs != nil {
 			nestedRef, err := r.collectValues(helmRef, (count + 1))
 			if err != nil {
@@ -295,6 +304,23 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 	}
 
 	return list, nil
+}
+
+func (r *ReleaseReconciler) updateValuesAnnotations(obj *helmv1alpha1.Values, releaseName string) error {
+
+	currentAnnotations := obj.ObjectMeta.GetAnnotations()
+
+	if value, ok := currentAnnotations["releases"]; !ok {
+		obj.ObjectMeta.Annotations["releases"] = releaseName
+		return r.Client.Update(context.TODO(), obj)
+	} else {
+		if !oputils.Contains(strings.Split(value, ","), releaseName) {
+			obj.ObjectMeta.Annotations["releases"] = currentAnnotations["releases"] + "," + releaseName
+			return r.Client.Update(context.TODO(), obj)
+		}
+	}
+
+	return nil
 }
 
 func (r *ReleaseReconciler) getValuesByReference(refs []string, namespace string) ([]*helmv1alpha1.Values, error) {

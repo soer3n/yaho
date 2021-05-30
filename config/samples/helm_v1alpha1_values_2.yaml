@@ -3,7 +3,7 @@ kind: Values
 metadata:
   name: values-sample-nested
 spec:
-  values:
+  json:
     foo: bar
     baz: |
       foo: bar
