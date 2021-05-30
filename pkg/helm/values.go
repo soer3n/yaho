@@ -84,7 +84,7 @@ func (hv HelmValueTemplate) getValuesAsList(values map[string]string) []string {
 
 	valueList := []string{}
 
-	for k, _ := range values {
+	for k := range values {
 		valueList = append(valueList, k)
 	}
 

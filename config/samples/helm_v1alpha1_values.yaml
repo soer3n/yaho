@@ -2,8 +2,6 @@ apiVersion: helm.soer3n.info/v1alpha1
 kind: Values
 metadata:
   name: values-sample
-  annotations:
-    releases: foo
 spec:
   values:
     bar: boo
@@ -15,5 +13,10 @@ spec:
       apple: green
       banana: yellow
       orange: orange
-      raspberry: red
+      tree:
+        type:
+          name: foo
+          color: blue
+        label: bar
+      # raspberry: red
     enabled: "true"

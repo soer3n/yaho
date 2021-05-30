@@ -286,7 +286,7 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 		}
 
 		if helmRef.Spec.Refs != nil {
-			nestedRef, err := r.collectValues(helmRef, (count + 1))
+			nestedRef, err := r.collectValues(helmRef, (count + 1), releaseName)
 			if err != nil {
 				return list, err
 			}

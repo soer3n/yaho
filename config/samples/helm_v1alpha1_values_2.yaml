@@ -5,5 +5,8 @@ metadata:
 spec:
   json:
     foo: bar
-    baz: |
+    baz:
       foo: bar
+      blub:
+        type: normal
+        name: spec

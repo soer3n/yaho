@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	actionlog "log"
 	"os"
-
-	"github.com/google/go-cmp/cmp"
+	"reflect"
 
 	"github.com/prometheus/common/log"
 	"helm.sh/helm/v3/pkg/action"
@@ -186,8 +185,8 @@ func (hc *HelmRelease) valuesChanged() (bool, error) {
 	defaultVals := hc.getDefaultValuesFromConfigMap(client.New(), "helm-default-"+hc.Chart+"-"+hc.Version)
 	requestedValues := mergeMaps(hc.getValues(), defaultVals)
 
-	for key, _ := range requestedValues {
-		if _, ok := installedValues[key]; !ok {
+	for key := range installedValues {
+		if _, ok := requestedValues[key]; !ok {
 			log.Errorf("missing key %v", key)
 		}
 	}
@@ -196,14 +195,14 @@ func (hc *HelmRelease) valuesChanged() (bool, error) {
 		return false, err
 	}
 
-	log.Infof("values installed: (%v)", installedValues)
-	log.Infof("values requested: (%v)", requestedValues)
+	//log.Infof("values installed: (%v)", installedValues)
+	//log.Infof("values requested: (%v)", requestedValues)
 
 	if len(requestedValues) < 1 && len(installedValues) < 1 {
 		return false, nil
 	}
 
-	if cmp.Equal(installedValues, requestedValues) {
+	if reflect.DeepEqual(installedValues, requestedValues) {
 		return false, nil
 	}
 
