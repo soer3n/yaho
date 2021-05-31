@@ -3,8 +3,6 @@ kind: Values
 metadata:
   name: values-sample
 spec:
-  values:
-    bar: boo
   refs:
     foo: values-sample-nested
     baz: values-sample-nested-2
@@ -17,6 +15,6 @@ spec:
         type:
           name: foo
           color: blue
-        label: bar
-      # raspberry: red
+        label: barboofoo
+      raspberry: red
     enabled: "true"

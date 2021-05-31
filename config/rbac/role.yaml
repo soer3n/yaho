@@ -136,3 +136,29 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - helm.soer3n.info
+  resources:
+  - values
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - helm.soer3n.info
+  resources:
+  - values/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - helm.soer3n.info
+  resources:
+  - values/status
+  verbs:
+  - get
+  - patch
+  - update

@@ -132,7 +132,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Don't reconcile.")
+	log.Info("Don't reconcile repos.")
 	return ctrl.Result{}, nil
 }
 

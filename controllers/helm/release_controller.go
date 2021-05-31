@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
@@ -34,6 +35,8 @@ import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	helmutils "github.com/soer3n/apps-operator/pkg/helm"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
+	meta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ReleaseReconciler reconciles a Release object
@@ -82,6 +85,15 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", metav1.ConditionTrue) {
+		condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "reconciling", Message: "reconcileSuccess"}
+		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+
+		if err := r.Status().Update(context.Background(), instance); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	var hc *helmutils.HelmClient
 	var helmRelease *helmutils.HelmRelease
 
@@ -91,13 +103,13 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if err := r.addFinalizer(reqLogger, instance); err != nil {
 			return ctrl.Result{}, err
 		}
+
+		if err = r.Update(ctx, instance); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	if hc, err = helmutils.GetHelmClient(instance); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if err = r.Update(ctx, instance); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -114,11 +126,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	for _, valueObj := range valuesList {
 
-		if subRefList, err = r.collectValues(valueObj, 0, helmRelease.Name); err != nil {
+		if subRefList, err = r.collectValues(valueObj, 0, instance); err != nil {
 			return ctrl.Result{}, err
 		}
 
-		if err = r.updateValuesAnnotations(valueObj, helmRelease.Name); err != nil {
+		if err = r.updateValuesAnnotations(valueObj, instance); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -153,6 +165,12 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	/*if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", metav1.ConditionTrue) {
+		condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "success", Message: "updateSuccessful"}
+		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+	}*/
+
+	log.Info("Don't reconcile releases.")
 	return ctrl.Result{}, nil
 }
 
@@ -206,7 +224,7 @@ func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, in
 
 		controllerutil.RemoveFinalizer(instance, "finalizer.releases.helm.soer3n.info")
 
-		if err := r.Update(context.TODO(), instance); err != nil {
+		if err := r.Update(context.Background(), instance); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -253,7 +271,7 @@ func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *he
 	return nil
 }
 
-func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int32, releaseName string) ([]*helmutils.ValuesRef, error) {
+func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int32, release *helmv1alpha1.Release) ([]*helmutils.ValuesRef, error) {
 	var list []*helmutils.ValuesRef
 
 	// secure against infinite loop
@@ -281,12 +299,12 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 			return list, err
 		}
 
-		if err = r.updateValuesAnnotations(helmRef, releaseName); err != nil {
+		if err = r.updateValuesAnnotations(helmRef, release); err != nil {
 			return list, err
 		}
 
 		if helmRef.Spec.Refs != nil {
-			nestedRef, err := r.collectValues(helmRef, (count + 1), releaseName)
+			nestedRef, err := r.collectValues(helmRef, (count + 1), release)
 			if err != nil {
 				return list, err
 			}
@@ -306,17 +324,19 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 	return list, nil
 }
 
-func (r *ReleaseReconciler) updateValuesAnnotations(obj *helmv1alpha1.Values, releaseName string) error {
+func (r *ReleaseReconciler) updateValuesAnnotations(obj *helmv1alpha1.Values, release *helmv1alpha1.Release) error {
 
 	currentAnnotations := obj.ObjectMeta.GetAnnotations()
 
 	if value, ok := currentAnnotations["releases"]; !ok {
-		obj.ObjectMeta.Annotations["releases"] = releaseName
-		return r.Client.Update(context.TODO(), obj)
+		obj.ObjectMeta.Annotations["releases"] = release.ObjectMeta.Name
+		patch := []byte(`{"metadata":{"annotations":{"releases": "` + obj.ObjectMeta.Annotations["releases"] + `"}}}`)
+		return r.Client.Patch(context.TODO(), obj, client.RawPatch(types.StrategicMergePatchType, patch))
 	} else {
-		if !oputils.Contains(strings.Split(value, ","), releaseName) {
-			obj.ObjectMeta.Annotations["releases"] = currentAnnotations["releases"] + "," + releaseName
-			return r.Client.Update(context.TODO(), obj)
+		if !oputils.Contains(strings.Split(value, ","), release.ObjectMeta.Name) {
+			obj.ObjectMeta.Annotations["releases"] = currentAnnotations["releases"] + "," + release.ObjectMeta.Name
+			patch := []byte(`{"metadata":{"annotations":{"releases": "` + obj.ObjectMeta.Annotations["releases"] + `"}}}`)
+			return r.Client.Patch(context.TODO(), obj, client.RawPatch(types.StrategicMergePatchType, patch))
 		}
 	}
 

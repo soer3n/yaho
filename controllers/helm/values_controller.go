@@ -18,27 +18,31 @@ package helm
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
 	"k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ChartReconciler reconciles a Chart object
+// ValuesReconciler reconciles a Values object
 type ValuesReconciler struct {
 	client.Client
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=charts,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=charts/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=charts/finalizers,verbs=update
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=values,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=values/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=values/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -73,6 +77,31 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// Error reading the object - requeue the request.
 		log.Error(err, "Failed to get HelmValues")
 		return ctrl.Result{}, err
+	}
+
+	annotations := instance.GetAnnotations()
+
+	if _, ok := annotations["releases"]; ok {
+		releaseList := strings.Split(annotations["releases"], ",")
+
+		for _, release := range releaseList {
+			current := &helmv1alpha1.Release{}
+			err := r.Client.Get(context.Background(), client.ObjectKey{
+				Namespace: instance.ObjectMeta.Namespace,
+				Name:      release,
+			}, current)
+
+			if err == nil {
+				if meta.IsStatusConditionTrue(current.Status.Conditions, "synced") {
+					condition := metav1.Condition{Type: "synced", Status: metav1.ConditionFalse, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "valueschange", Message: "valuesupdated"}
+					meta.SetStatusCondition(&current.Status.Conditions, condition)
+					err = r.Status().Update(ctx, current)
+					if err != nil {
+						return ctrl.Result{}, err
+					}
+				}
+			}
+		}
 	}
 
 	return ctrl.Result{}, nil
