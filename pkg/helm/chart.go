@@ -71,13 +71,13 @@ func (chart *HelmChart) CreateTemplates() error {
 			return err
 		}
 
-		log.Infof("Templates: %v", chartRequested.Templates)
+		log.Debugf("Templates: %v", chartRequested.Templates)
 		chart.Templates = chartRequested.Templates
 
-		log.Infof("CRDs: %v", chartRequested.CRDs())
+		log.Debugf("CRDs: %v", chartRequested.CRDs())
 		chart.CRDs = chartRequested.CRDs()
 
-		log.Infof("Default Values: %v", chartRequested.Values)
+		log.Debugf("Default Values: %v", chartRequested.Values)
 		chart.DefaultValues = chartRequested.Values
 
 		if err := removeFileByFulPath(cp); err != nil {

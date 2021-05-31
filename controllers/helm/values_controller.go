@@ -86,7 +86,7 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		for _, release := range releaseList {
 			current := &helmv1alpha1.Release{}
-			err := r.Client.Get(context.Background(), client.ObjectKey{
+			err := r.Client.Get(ctx, client.ObjectKey{
 				Namespace: instance.ObjectMeta.Namespace,
 				Name:      release,
 			}, current)
@@ -96,6 +96,7 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 					condition := metav1.Condition{Type: "synced", Status: metav1.ConditionFalse, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "valueschange", Message: "valuesupdated"}
 					meta.SetStatusCondition(&current.Status.Conditions, condition)
 					err = r.Status().Update(ctx, current)
+					log.Info("Trigger release sync.")
 					if err != nil {
 						return ctrl.Result{}, err
 					}

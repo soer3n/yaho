@@ -63,11 +63,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// fetch app instance
 	instance := &helmv1alpha1.Repo{}
 
-	log.Infof("Request: %v.\n", req)
-
 	err := r.Get(ctx, req.NamespacedName, instance)
-
-	log.Infof("Get: %v.\n", err)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -119,8 +115,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	}
 
-	for key, chartObj := range chartObjMap {
-		log.Infof("Trying to install HelmChart %v", key)
+	for _, chartObj := range chartObjMap {
 		_, err = r.deployChart(chartObj, instance)
 
 		if err != nil {
@@ -217,6 +212,7 @@ func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *he
 
 	if err != nil {
 		if errors.IsNotFound(err) {
+			log.Infof("Trying to install HelmChart %v", helmChart.Name)
 			err = r.Client.Create(context.TODO(), helmChart)
 
 			if err != nil {

@@ -66,11 +66,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// fetch app instance
 	instance := &helmv1alpha1.Release{}
 
-	log.Infof("Request: %v.\n", req)
-
 	err := r.Get(ctx, req.NamespacedName, instance)
-
-	log.Infof("Get: %v.\n", err)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -83,15 +79,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		// Error reading the object - requeue the request.
 		log.Error(err, "Failed to get HelmRelease")
 		return ctrl.Result{}, err
-	}
-
-	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", metav1.ConditionTrue) {
-		condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "reconciling", Message: "reconcileSuccess"}
-		meta.SetStatusCondition(&instance.Status.Conditions, condition)
-
-		if err := r.Status().Update(context.Background(), instance); err != nil {
-			return ctrl.Result{}, err
-		}
 	}
 
 	var hc *helmutils.HelmClient
@@ -110,6 +97,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if hc, err = helmutils.GetHelmClient(instance); err != nil {
+		log.Errorf("Failed to get helm client for release %v.", instance.ObjectMeta.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -120,6 +108,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if instance.Spec.ValuesTemplate != nil && instance.Spec.ValuesTemplate.ValueRefs != nil {
 		if valuesList, err = r.getValuesByReference(instance.Spec.ValuesTemplate.ValueRefs, instance.ObjectMeta.Namespace); err != nil {
+			log.Info("Getting Value resource refs for release %v failed.", instance.ObjectMeta.Name)
 			return ctrl.Result{}, err
 		}
 	}
@@ -127,10 +116,12 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	for _, valueObj := range valuesList {
 
 		if subRefList, err = r.collectValues(valueObj, 0, instance); err != nil {
+			log.Errorf("Collecting values for Value Resource %v for release %v failed.", valueObj.ObjectMeta.Name, instance.ObjectMeta.Name)
 			return ctrl.Result{}, err
 		}
 
 		if err = r.updateValuesAnnotations(valueObj, instance); err != nil {
+			log.Errorf("Updating values annotation for resource %v for release %v failed.", valueObj.ObjectMeta.Name, instance.ObjectMeta.Name)
 			return ctrl.Result{}, err
 		}
 
@@ -153,15 +144,18 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	for _, configmap := range helmRelease.GetParsedConfigMaps() {
 		if err := r.deployConfigMap(configmap, controller); err != nil {
+			log.Info("Error on deploying configmap %v. Error: %v", configmap.ObjectMeta.Name, err)
 			return ctrl.Result{}, err
 		}
 	}
 
 	if err = helmRelease.Update(); err != nil {
+		log.Errorf("Failed on updating release resources for %v.", helmRelease.Name)
 		return ctrl.Result{}, err
 	}
 
 	if _, err = r.handleFinalizer(hc, instance); err != nil {
+		log.Errorf("Handle finalizer for release %v failed.", helmRelease.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -169,6 +163,19 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "success", Message: "updateSuccessful"}
 		meta.SetStatusCondition(&instance.Status.Conditions, condition)
 	}*/
+
+	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", metav1.ConditionTrue) {
+		condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "reconciling", Message: "reconcileSuccess"}
+		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+
+		if err := r.Status().Update(ctx, instance); err != nil {
+			log.Info("Syncing release failed.")
+			return ctrl.Result{}, err
+		}
+
+		log.Info("Don't reconcile releases after sync.")
+		return ctrl.Result{}, nil
+	}
 
 	log.Info("Don't reconcile releases.")
 	return ctrl.Result{}, nil

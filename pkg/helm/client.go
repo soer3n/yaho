@@ -67,7 +67,7 @@ func (hc *HelmClient) setRepo(instance *helmv1alpha1.Repo) error {
 	var repoList []*HelmRepo
 	var helmRepo *HelmRepo
 
-	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
+	log.Debugf("Trying HelmRepo %v", instance.Spec.Name)
 
 	helmRepo = &HelmRepo{
 		Name:     instance.Spec.Name,
@@ -95,7 +95,7 @@ func (hc *HelmClient) setRelease(instance *helmv1alpha1.Release) error {
 	var releaseList []*HelmRelease
 	var helmRelease *HelmRelease
 
-	log.Infof("Trying HelmRepo %v", instance.Spec.Name)
+	log.Debugf("Trying HelmRepo %v", instance.Spec.Name)
 
 	helmRelease = &HelmRelease{
 		Name:     instance.Spec.Name,
@@ -112,7 +112,7 @@ func (hc *HelmClient) setRelease(instance *helmv1alpha1.Release) error {
 
 	helmRelease.Config = actionConfig
 
-	log.Infof("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
+	log.Debugf("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
 
 	if instance.Spec.ValuesTemplate != nil {
 		//if instance.Spec.ValuesTemplate.Values != nil {

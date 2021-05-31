@@ -4,7 +4,6 @@ import (
 	// "helm.sh/helm/pkg/kube"
 	"encoding/json"
 	"fmt"
-	"log"
 	"reflect"
 	"sync"
 
@@ -51,7 +50,7 @@ func (c *Client) Builder(namespace string, validate bool) *resource.Builder {
 		return &resource.Builder{}
 	}
 
-	log.Println("creating builder...")
+	// log.Println("creating builder...")
 
 	return c.Factory.NewBuilder().Unstructured().Schema(schema).ContinueOnError().NamespaceParam(namespace).DefaultNamespace()
 }
@@ -71,8 +70,6 @@ func (c *Client) GetResources(builder *resource.Builder, args []string) *APIResp
 	}
 
 	if infos, err = result.Infos(); err != nil {
-		log.Println("error on getting infos")
-		log.Printf("%v", err)
 		response.Message = fmt.Sprintf("%v", err)
 		return response
 	}
@@ -111,8 +108,6 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 	discoveryclient, err := c.Factory.ToDiscoveryClient()
 
 	if err != nil {
-		log.Println("error on getting discovery client")
-		log.Printf("%v", err)
 		response.Message = fmt.Sprintf("%v", err)
 		return response
 	}
@@ -120,8 +115,6 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 	lists, err := discoveryclient.ServerPreferredResources()
 
 	if err != nil {
-		log.Println("error on getting api resources")
-		log.Printf("%v", err)
 		response.Message = fmt.Sprintf("%v", err)
 		return response
 	}

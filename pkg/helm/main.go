@@ -3,10 +3,11 @@ package helm
 import (
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/prometheus/common/log"
 
 	"github.com/pkg/errors"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -18,12 +19,12 @@ import (
 func initActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) {
 
 	actionConfig := new(action.Configuration)
-	err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), log.Printf)
+	err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionConfig.Log)
 
 	// You can pass an empty string instead of settings.Namespace() to list
 	// all namespaces
 	if err != nil {
-		log.Printf("%+v", err)
+		log.Debugf("%+v", err)
 		return actionConfig, err
 	}
 
@@ -60,7 +61,7 @@ func DownloadTo(url, version, repo string, settings *cli.EnvSettings, options *a
 
 	defer file.Close()
 
-	log.Printf("Downloaded a file %s with size %d", fileName, size)
+	log.Debugf("Downloaded a file %s with size %d", fileName, size)
 
 	return fileName, nil
 }

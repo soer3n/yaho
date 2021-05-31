@@ -10,3 +10,6 @@ spec:
       blub:
         type: normal
         name: spec
+        data:
+          key: foo
+          value: bar

@@ -24,7 +24,7 @@ import (
 
 func (hc *HelmRelease) Update() error {
 
-	log.Infof("configinstall: %v", hc.Config)
+	log.Debugf("configinstall: %v", hc.Config)
 
 	installConfig := hc.Config
 	client := action.NewInstall(installConfig)
@@ -42,7 +42,7 @@ func (hc *HelmRelease) Update() error {
 		return err
 	}
 
-	log.Infof("configupdate: %v", hc.Config)
+	log.Debugf("configupdate: %v", hc.Config)
 	release, err := hc.getRelease()
 
 	_ = hc.SetValues()
@@ -75,7 +75,7 @@ func (hc *HelmRelease) Update() error {
 		return err
 	}
 
-	log.Infof("Release (%q) successfully installed.", release.Name)
+	log.Debugf("Release (%q) successfully installed.", release.Name)
 	return nil
 }
 
@@ -96,7 +96,7 @@ func (hc *HelmReleases) Remove() error {
 
 	for key, release := range installedReleases {
 		if !hc.shouldBeInstalled(release) {
-			log.Infof("Removing release: index: (%q) name: (%q)", key, release.Name)
+			log.Debugf("Removing release: index: (%q) name: (%q)", key, release.Name)
 			// purge releases
 			client.KeepHistory = false
 			_, err := client.Run(release.Name)
@@ -112,7 +112,7 @@ func (hc *HelmReleases) Remove() error {
 
 func (hc HelmRelease) getValues() map[string]interface{} {
 
-	log.Infof("init check (%v)", hc.ValuesTemplate)
+	log.Debugf("init check (%v)", hc.ValuesTemplate)
 
 	vals := &values.Options{}
 	initVals, _ := vals.MergeValues(getter.All(hc.Settings))
@@ -123,15 +123,15 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 
 	if hc.ValuesTemplate.ValueFiles != nil {
 		vals.ValueFiles = hc.ValuesTemplate.ValueFiles
-		log.Infof("first check (%q)", hc.ValuesTemplate.ValueFiles)
+		log.Debugf("first check (%q)", hc.ValuesTemplate.ValueFiles)
 	}
 
 	if hc.ValuesTemplate.ValuesMap != nil {
 		vals.Values = hc.getValuesAsList(hc.ValuesTemplate.ValuesMap)
-		log.Infof("second check (%q)", hc.ValuesTemplate.ValuesMap)
+		log.Debugf("second check (%q)", hc.ValuesTemplate.ValuesMap)
 	}
 
-	log.Info("third check")
+	log.Debug("third check")
 
 	mergedVals, _ := vals.MergeValues(getter.All(hc.Settings))
 	return mergedVals
@@ -176,7 +176,7 @@ func (hc *HelmRelease) valuesChanged() (bool, error) {
 
 	installedValues, err := hc.getInstalledValues()
 
-	log.Infof("installed values: (%v)", installedValues)
+	log.Debugf("installed values: (%v)", installedValues)
 
 	if err != nil {
 		return false, err
@@ -210,7 +210,7 @@ func (hc *HelmRelease) valuesChanged() (bool, error) {
 }
 
 func (hc *HelmRelease) getRelease() (*release.Release, error) {
-	log.Infof("config: %v", hc.Config)
+	log.Debugf("config: %v", hc.Config)
 	getConfig := hc.Config
 	client := action.NewGet(getConfig)
 	return client.Run(hc.Name)
@@ -236,7 +236,7 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 		chartName,
 	}
 
-	log.Infof("namespace: %v", hc.Namespace.Name)
+	log.Debugf("namespace: %v", hc.Namespace.Name)
 
 	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true), args)
 	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
@@ -433,7 +433,7 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	chartVersion := &HelmChartVersion{}
 	var err error
 
-	log.Infof("configinstall: %v", hc.Config)
+	log.Debugf("configinstall: %v", hc.Config)
 
 	rc := client.New()
 
@@ -492,7 +492,7 @@ func (hc *HelmRelease) upgrade(helmChart *chart.Chart, vals chartutil.Values) er
 		return err
 	}
 
-	log.Infof("(%q) has been upgraded.", rel.Name)
+	log.Debugf("(%q) has been upgraded.", rel.Name)
 	return nil
 }
 
@@ -526,7 +526,7 @@ func (hc HelmRelease) GetActionConfig(settings *cli.EnvSettings) (*action.Config
 	// You can pass an empty string instead of settings.Namespace() to list
 	// all namespaces
 	if err != nil {
-		log.Infof("%+v", err)
+		log.Debugf("%+v", err)
 		return actionConfig, err
 	}
 

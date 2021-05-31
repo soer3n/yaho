@@ -60,11 +60,7 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// fetch app instance
 	instance := &helmv1alpha1.RepoGroup{}
 
-	log.Infof("Request: %v.\n", req)
-
 	err := r.Get(ctx, req.NamespacedName, instance)
-
-	log.Infof("Get: %v.\n", err)
 
 	if err != nil {
 		if errors.IsNotFound(err) {

@@ -167,16 +167,16 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 			indexFile, err = repo.LoadIndexFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml")
 		}
 
-		log.Infof("IndexFileErr: %v", err)
+		log.Debugf("IndexFileErr: %v", err)
 
 		for _, chartMetadata := range indexFile.Entries {
 			// var chartObj *repo.ChartVersion
-			log.Infof("ChartMetadata: %v", chartMetadata)
+			log.Debugf("ChartMetadata: %v", chartMetadata)
 			chartList = append(chartList, NewChart(chartMetadata, settings, hr.Name))
 		}
 	}
 
-	log.Infof("Parsed Charts: %v", chartList)
+	log.Debugf("Parsed Charts: %v", chartList)
 
 	return chartList, nil
 }
@@ -222,7 +222,7 @@ func (hr *HelmRepos) UpdateRepoFile(entry *repo.Entry) error {
 		return err
 	}
 
-	log.Infof("%q has been added to your repositories", entry.Name)
+	log.Debugf("%q has been added to your repositories", entry.Name)
 
 	return nil
 }
