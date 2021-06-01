@@ -81,6 +81,16 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", metav1.ConditionTrue) {
+		condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "reconciling", Message: "reconcileSuccess"}
+		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+
+		_ = r.Status().Update(ctx, instance)
+
+		log.Info("Don't reconcile releases after sync.")
+		return ctrl.Result{}, nil
+	}
+
 	var hc *helmutils.HelmClient
 	var helmRelease *helmutils.HelmRelease
 
@@ -108,7 +118,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if instance.Spec.ValuesTemplate != nil && instance.Spec.ValuesTemplate.ValueRefs != nil {
 		if valuesList, err = r.getValuesByReference(instance.Spec.ValuesTemplate.ValueRefs, instance.ObjectMeta.Namespace); err != nil {
-			log.Info("Getting Value resource refs for release %v failed.", instance.ObjectMeta.Name)
+			log.Infof("Getting Value resource refs for release %v failed.", instance.ObjectMeta.Name)
 			return ctrl.Result{}, err
 		}
 	}
@@ -144,7 +154,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	for _, configmap := range helmRelease.GetParsedConfigMaps() {
 		if err := r.deployConfigMap(configmap, controller); err != nil {
-			log.Info("Error on deploying configmap %v. Error: %v", configmap.ObjectMeta.Name, err)
+			log.Infof("Error on deploying configmap %v. Error: %v", configmap.ObjectMeta.Name, err)
 			return ctrl.Result{}, err
 		}
 	}
@@ -163,19 +173,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "success", Message: "updateSuccessful"}
 		meta.SetStatusCondition(&instance.Status.Conditions, condition)
 	}*/
-
-	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", metav1.ConditionTrue) {
-		condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "reconciling", Message: "reconcileSuccess"}
-		meta.SetStatusCondition(&instance.Status.Conditions, condition)
-
-		if err := r.Status().Update(ctx, instance); err != nil {
-			log.Info("Syncing release failed.")
-			return ctrl.Result{}, err
-		}
-
-		log.Info("Don't reconcile releases after sync.")
-		return ctrl.Result{}, nil
-	}
 
 	log.Info("Don't reconcile releases.")
 	return ctrl.Result{}, nil

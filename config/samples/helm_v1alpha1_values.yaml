@@ -15,6 +15,6 @@ spec:
         type:
           name: foo
           color: blue
-        label: barboo
+        label: boobarfoo
       raspberry: red
     enabled: "true"

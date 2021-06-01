@@ -60,11 +60,7 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// fetch app instance
 	instance := &helmv1alpha1.Values{}
 
-	log.Infof("Request: %v.\n", req)
-
 	err := r.Get(ctx, req.NamespacedName, instance)
-
-	log.Infof("Get: %v.\n", err)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
