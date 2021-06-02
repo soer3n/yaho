@@ -19,12 +19,16 @@ var repoChart *helmv1alpha1.Chart
 var _ = Context("Install a repository", func() {
 	ctx := context.TODO()
 	//repoNeeded = false
-	repoNs := SetupTest(ctx, "default")
+	repoNs := SetupTest(ctx, "helm")
 	namespace = repoNs.ObjectMeta.Name
 
 	Describe("when no existing resources exist", func() {
 
 		It("should create a new namespace", func() {
+
+			By("when creating a resource for it")
+			err := k8sClient.Create(ctx, repoNs)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test namespace resource")
 
 			By("should create a new Repository resource with the specified name and specified url")
 			repoKind = &helmv1alpha1.Repo{
@@ -38,7 +42,7 @@ var _ = Context("Install a repository", func() {
 				},
 			}
 
-			err := k8sClient.Create(ctx, repoKind)
+			err = k8sClient.Create(ctx, repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(1 * time.Second)
@@ -73,6 +77,10 @@ var _ = Context("Install a repository", func() {
 			Eventually(
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			By("deleting namespace resource for it")
+			err = k8sClient.Delete(ctx, repoNs)
+			Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace resource")
 		})
 	})
 })

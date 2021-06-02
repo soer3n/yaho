@@ -83,14 +83,17 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	var chartList []*helmutils.HelmChart
 
 	if hc, err = helmutils.GetHelmClient(instance); err != nil {
+		log.Infof("Error on getting client for repo %v", instance.Spec.Name)
 		return ctrl.Result{}, err
 	}
 
 	if _, helmRepo, err = r.deployRepo(instance, hc); err != nil {
+		log.Infof("Error on deploying repo %v", instance.Spec.Name)
 		return ctrl.Result{}, err
 	}
 
 	if _, err := r.handleFinalizer(reqLogger, helmRepo, hc, instance); err != nil {
+		log.Infof("Failed on handling finalizer for repo %v", instance.Spec.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -102,6 +105,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	if chartList, err = helmRepo.GetCharts(hc.Repos.Settings, selector); err != nil {
+		log.Infof("Error on getting charts for repo %v", instance.Spec.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -111,6 +115,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	for _, chart := range chartList {
 		if chartObjMap, err = chart.AddOrUpdateChartMap(chartObjMap, instance); err != nil {
+			log.Infof("Error modifying chart map for repo %v chart %v", instance.Spec.Name, chart.Versions[0].Version.Name)
 			return ctrl.Result{}, err
 		}
 	}
@@ -119,6 +124,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		_, err = r.deployChart(chartObj, instance)
 
 		if err != nil {
+			log.Infof("Error on deploying chart: %v", chartObj.Spec.Name)
 			return ctrl.Result{}, err
 		}
 	}
@@ -127,6 +133,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Repo %v deployed in namespace %v", instance.Spec.Name, instance.ObjectMeta.Namespace)
 	log.Info("Don't reconcile repos.")
 	return ctrl.Result{}, nil
 }

@@ -409,6 +409,8 @@ func (hc *HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alp
 
 	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true), args)
 
+	log.Infof("Repo namespace: %v", hc.Namespace.Name)
+
 	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
 		return err, *repoObj
 	}

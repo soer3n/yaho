@@ -19,12 +19,16 @@ var chart *helmv1alpha1.Chart
 var _ = Context("Install a repository group", func() {
 	ctx := context.TODO()
 	//repoNeeded = false
-	repoGroupNs := SetupTest(ctx, "default")
+	repoGroupNs := SetupTest(ctx, "helm")
 	namespace = repoGroupNs.ObjectMeta.Name
 
 	Describe("when no existing resources exist", func() {
 
 		It("should create a new namespace", func() {
+
+			By("when creating a resource for it")
+			err := k8sClient.Create(ctx, repoGroupNs)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test namespace resource")
 
 			By("should create a new Repository resource with the specified name and specified url")
 			repoGroupKind = &helmv1alpha1.RepoGroup{
@@ -42,7 +46,7 @@ var _ = Context("Install a repository group", func() {
 				},
 			}
 
-			err := k8sClient.Create(ctx, repoGroupKind)
+			err = k8sClient.Create(ctx, repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(1 * time.Second)
@@ -129,6 +133,10 @@ var _ = Context("Install a repository group", func() {
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			By("deleting namespace resource for it")
+			err = k8sClient.Delete(ctx, repoGroupNs)
+			Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace resource")
 		})
 	})
 })
