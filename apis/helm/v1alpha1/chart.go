@@ -35,22 +35,23 @@ func (chart *Chart) ConvertChartVersions() []*repo.ChartVersion {
 	for _, item := range chart.Spec.Versions {
 		value := &repo.ChartVersion{
 			Metadata: &helmchart.Metadata{
-				Name:        chart.Name,
-				Home:        chart.Spec.Home,
-				Sources:     chart.Spec.Sources,
-				Version:     item.Name,
-				Description: chart.Spec.Description,
-				Keywords:    chart.Spec.Keywords,
-				Maintainers: chart.Spec.Maintainers,
-				Icon:        chart.Spec.Icon,
-				APIVersion:  chart.Spec.APIVersion,
-				Condition:   chart.Spec.Condition,
-				Tags:        chart.Spec.Tags,
-				AppVersion:  chart.Spec.AppVersion,
-				Deprecated:  chart.Spec.Deprecated,
-				Annotations: chart.Spec.Annotations,
-				KubeVersion: chart.Spec.KubeVersion,
-				Type:        chart.Spec.Type,
+				Name:         chart.Name,
+				Home:         chart.Spec.Home,
+				Sources:      chart.Spec.Sources,
+				Version:      item.Name,
+				Description:  chart.Spec.Description,
+				Dependencies: item.convertDependencies(),
+				Keywords:     chart.Spec.Keywords,
+				Maintainers:  chart.Spec.Maintainers,
+				Icon:         chart.Spec.Icon,
+				APIVersion:   chart.Spec.APIVersion,
+				Condition:    chart.Spec.Condition,
+				Tags:         chart.Spec.Tags,
+				AppVersion:   chart.Spec.AppVersion,
+				Deprecated:   chart.Spec.Deprecated,
+				Annotations:  chart.Spec.Annotations,
+				KubeVersion:  chart.Spec.KubeVersion,
+				Type:         chart.Spec.Type,
 			},
 			URLs: []string{item.URL},
 		}
@@ -59,4 +60,19 @@ func (chart *Chart) ConvertChartVersions() []*repo.ChartVersion {
 	}
 
 	return convertedVersions
+}
+
+func (version *ChartVersion) convertDependencies() []*helmchart.Dependency {
+
+	deps := []*helmchart.Dependency{}
+
+	for _, dep := range version.Dependencies {
+		deps = append(deps, &helmchart.Dependency{
+			Name:       dep.Name,
+			Version:    dep.Version,
+			Repository: dep.Repo,
+		})
+	}
+
+	return deps
 }
