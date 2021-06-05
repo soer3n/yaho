@@ -13,6 +13,7 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/helmpath"
 	"helm.sh/helm/v3/pkg/repo"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -134,9 +135,11 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 	var err error
 
 	rc := client.New()
-
 	_ = rc.SetClient()
-	foo := rc.ListResources(hr.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
+
+	foo := rc.SetOptions(metav1.ListOptions{
+		LabelSelector: selector,
+	}).ListResources(hr.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
 
 	for k, v := range foo {
 		if k == "items" {
@@ -153,7 +156,7 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 				}
 
 				chartList = append(chartList, NewChart(chartObj.ConvertChartVersions(), settings, hr.Name))
-				log.Infof("new: %v", v)
+				log.Debugf("new: %v", v)
 			}
 		}
 	}

@@ -63,7 +63,7 @@ func (hv *HelmValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]inter
 			}).
 			Filter(hv.valuesRef)
 
-		for k, v := range temp {
+		for _, v := range temp {
 			merged = make(map[string]interface{})
 			if v.Ref.Spec.Refs != nil {
 				if merged, err := hv.manageStruct(v); err != nil {
@@ -71,13 +71,23 @@ func (hv *HelmValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]inter
 				}
 			}
 
-			merged = hv.transformToMap(v.Ref, merged, hv.getValuesAsList(valueMap.Ref.Spec.Refs)[k])
+			merged = hv.transformToMap(v.Ref, merged, hv.getRefKeyByValue(v.Ref.Name, valueMap.Ref.Spec.Refs))
 			valMap = mergeMaps(merged, valMap)
 		}
 
 	}
 
 	return valMap, nil
+}
+
+func (hv HelmValueTemplate) getRefKeyByValue(value string, refMap map[string]string) string {
+	for k, v := range refMap {
+		if value == v {
+			return k
+		}
+	}
+
+	return ""
 }
 
 func (hv HelmValueTemplate) getValuesAsList(values map[string]string) []string {
