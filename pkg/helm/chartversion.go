@@ -91,7 +91,7 @@ func (chartVersion HelmChartVersion) createConfigMaps(namespace string) []v1.Con
 func (chartVersion HelmChartVersion) createTemplateConfigMap(name string, namespace string, list []*chart.File) v1.ConfigMap {
 
 	immutable := new(bool)
-	*immutable = false
+	*immutable = true
 	objectMeta := metav1.ObjectMeta{
 		Name:      "helm-" + name + "-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 		Namespace: namespace,
