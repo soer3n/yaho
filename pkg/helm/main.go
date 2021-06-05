@@ -68,19 +68,14 @@ func DownloadTo(url, version, repo string, settings *cli.EnvSettings, options *a
 
 func GetChartURL(rc *client.Client, chart, version, namespace string) (error, string) {
 
-	args := []string{
-		"charts.helm.soer3n.info",
-		chart,
-	}
-
 	var jsonbody []byte
 	var err error
 
 	chartObj := &helmv1alpha1.Chart{}
 
-	obj := rc.GetResources(rc.Builder(namespace, true), args)
+	obj := rc.GetResource(chart, namespace, "charts", "helm.soer3n.info", "v1alpha1")
 
-	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
+	if jsonbody, err = json.Marshal(obj); err != nil {
 		return err, ""
 	}
 

@@ -17,6 +17,7 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	client "github.com/soer3n/apps-operator/pkg/client"
@@ -228,18 +229,13 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 	}
 	chartObj := &helmv1alpha1.Chart{}
 	files := []*chart.File{}
-	args := make([]string, 0)
 	// namespace := "default"
 	rc := client.New()
-	args = []string{
-		"charts.helm.soer3n.info",
-		chartName,
-	}
 
 	log.Debugf("namespace: %v", hc.Namespace.Name)
 
-	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true), args)
-	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
+	obj := rc.GetResource(chartName, hc.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
+	if jsonbody, err = json.Marshal(obj); err != nil {
 		return err, helmChart, "foo"
 	}
 
@@ -290,17 +286,16 @@ func (hc *HelmRelease) getFiles(rc *client.Client, helmChart *helmv1alpha1.Chart
 }
 
 func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, deps []helmv1alpha1.ChartDep, selector string) error {
-	args := []string{
-		"charts.helm.soer3n.info",
-	}
 
 	var jsonbody []byte
 	var chartList []helmv1alpha1.Chart
 	var err error
 
-	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true).LabelSelector(selector), args)
+	obj := rc.SetOptions(metav1.ListOptions{
+		LabelSelector: selector,
+	}).ListResources(hc.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
 
-	if jsonbody, err = json.Marshal(obj.Data[1]["items"]); err != nil {
+	if jsonbody, err = json.Marshal(obj["items"]); err != nil {
 		return err
 	}
 
@@ -327,20 +322,15 @@ func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, de
 
 func (hc *HelmRelease) appendFilesFromConfigMap(rc *client.Client, name string, list []*chart.File) []*chart.File {
 
-	args := []string{
-		"configmaps",
-		name,
-	}
-
 	var jsonbody []byte
 	var err error
 
 	configmap := &v1.ConfigMap{}
 	files := []*chart.File{}
 
-	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true), args)
+	obj := rc.GetResource(name, hc.Namespace.Name, "configmaps", "", "v1")
 
-	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
+	if jsonbody, err = json.Marshal(obj); err != nil {
 		return files
 	}
 
@@ -365,20 +355,14 @@ func (hc *HelmRelease) appendFilesFromConfigMap(rc *client.Client, name string, 
 
 func (hc *HelmRelease) getDefaultValuesFromConfigMap(rc *client.Client, name string) map[string]interface{} {
 
-	values := make(map[string]interface{})
-	args := []string{
-		"configmaps",
-		name,
-	}
-
 	var jsonbody []byte
 	var err error
-
+	values := make(map[string]interface{})
 	configmap := &v1.ConfigMap{}
 
-	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true), args)
+	obj := rc.GetResource(name, hc.Namespace.Name, "configmaps", "", "v1")
 
-	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
+	if jsonbody, err = json.Marshal(obj); err != nil {
 		return values
 	}
 
@@ -397,21 +381,16 @@ func (hc *HelmRelease) getDefaultValuesFromConfigMap(rc *client.Client, name str
 
 func (hc *HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alpha1.Repo) {
 
-	args := []string{
-		"repos.helm.soer3n.info",
-		repo,
-	}
-
 	var jsonbody []byte
 	var err error
 
 	repoObj := &helmv1alpha1.Repo{}
 
-	obj := rc.GetResources(rc.Builder(hc.Namespace.Name, true), args)
+	obj := rc.GetResource(repo, hc.Namespace.Name, "repos", "helm.soer3n.info", "v1alpha1")
 
 	log.Infof("Repo namespace: %v", hc.Namespace.Name)
 
-	if jsonbody, err = json.Marshal(obj.Data[1]); err != nil {
+	if jsonbody, err = json.Marshal(obj); err != nil {
 		return err, *repoObj
 	}
 

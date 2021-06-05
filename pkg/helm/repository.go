@@ -135,15 +135,12 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 
 	rc := client.New()
 
-	args := []string{
-		"charts.helm.soer3n.info",
-	}
+	_ = rc.SetClient()
+	foo := rc.ListResources(hr.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
 
-	obj := rc.GetResources(rc.Builder(hr.Settings.Namespace(), true).LabelSelector(selector), args)
-
-	for key, item := range obj.Data[1] {
-		if key == "items" {
-			transformed := item.([]interface{})
+	for k, v := range foo {
+		if k == "items" {
+			transformed := v.([]interface{})
 			for _, foo := range transformed {
 				var jsonbody []byte
 				chartObj := &helmv1alpha1.Chart{}
@@ -156,6 +153,7 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 				}
 
 				chartList = append(chartList, NewChart(chartObj.ConvertChartVersions(), settings, hr.Name))
+				log.Infof("new: %v", v)
 			}
 		}
 	}
@@ -176,7 +174,7 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 		}
 	}
 
-	log.Debugf("Parsed Charts: %v", chartList)
+	log.Infof("Parsed Charts: %v", chartList)
 
 	return chartList, nil
 }

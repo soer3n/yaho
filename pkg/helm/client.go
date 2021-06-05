@@ -31,6 +31,7 @@ func GetHelmClient(instance interface{}) (*HelmClient, error) {
 	}
 
 	settings := hc.GetEnvSettings()
+	// hc.Env["Namespace"] = metaStruct.Namespace
 	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
 	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(metaStruct, hc.Env)
@@ -70,8 +71,12 @@ func (hc *HelmClient) setRepo(instance *helmv1alpha1.Repo) error {
 	log.Debugf("Trying HelmRepo %v", instance.Spec.Name)
 
 	helmRepo = &HelmRepo{
-		Name:     instance.Spec.Name,
-		Url:      instance.Spec.Url,
+		Name: instance.Spec.Name,
+		Url:  instance.Spec.Url,
+		Namespace: Namespace{
+			Name:    instance.ObjectMeta.Namespace,
+			Install: false,
+		},
 		Settings: hc.GetEnvSettings(),
 	}
 

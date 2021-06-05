@@ -42,10 +42,11 @@ type HelmRepos struct {
 }
 
 type HelmRepo struct {
-	Name     string
-	Url      string
-	Auth     HelmAuth
-	Settings *cli.EnvSettings
+	Name      string
+	Url       string
+	Auth      HelmAuth
+	Namespace Namespace
+	Settings  *cli.EnvSettings
 }
 
 type HelmChart struct {
