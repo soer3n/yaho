@@ -20,9 +20,24 @@ func NewHandler(version string) *Handler {
 func (h *Handler) K8sApiGroup(w http.ResponseWriter, r *http.Request) {
 	var payload []byte
 	var err error
+
 	vars := mux.Vars(r)
 	rc := client.New()
+	data := make([]map[string]interface{}, 0)
+	response := &APIResponse{
+		Message: "Fail",
+	}
+
 	objs, err := rc.GetAPIResources(vars["group"], true)
+
+	if err := json.Unmarshal(objs, &data); err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	response.Data = data
+	response.Message = "Success"
 
 	if payload, err = json.Marshal(objs); err != nil {
 		fmt.Println(err.Error())
@@ -31,8 +46,8 @@ func (h *Handler) K8sApiGroup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("%v", string(payload))
-	w.Header().Set("Content-Type", "application/json")
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(payload)
 }
@@ -68,17 +83,16 @@ func (h *Handler) K8sApiGroupResources(w http.ResponseWriter, r *http.Request) {
 
 	objs, err := rc.ListResources("", resource, group, version)
 
-	if err := json.Unmarshal([]byte(objs), &data); err != nil {
+	if err := json.Unmarshal(objs, &data); err != nil {
 		fmt.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	response.Data = data
+	response.Message = "Success"
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if payload, err = json.Marshal(objs); err != nil {
+	if payload, err = json.Marshal(response); err != nil {
 		fmt.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -86,8 +100,7 @@ func (h *Handler) K8sApiGroupResources(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("%v", string(payload))
 
-	response.Message = "Success"
-
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(payload)
 }
