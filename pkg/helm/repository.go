@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func (hr *HelmRepo) Update() error {
+func (hr HelmRepo) Update() error {
 
 	var entry *repo.Entry
 	var cr *repo.ChartRepository
@@ -40,7 +40,7 @@ func (hr *HelmRepo) Update() error {
 	return nil
 }
 
-func (hr *HelmRepos) Remove() error {
+func (hr HelmRepos) Remove() error {
 
 	if err := hr.SetInstalledRepos(); err != nil {
 		return err
@@ -65,7 +65,7 @@ func (hr *HelmRepos) Remove() error {
 	return hr.installed.WriteFile(hr.Settings.RepositoryConfig, 0644)
 }
 
-func (hr *HelmRepos) RemoveByName(name string) error {
+func (hr HelmRepos) RemoveByName(name string) error {
 
 	if ok := hr.installed.Remove(name); !ok {
 		return errors.Errorf("Error removing repository %q.", name)
@@ -78,7 +78,7 @@ func (hr *HelmRepos) RemoveByName(name string) error {
 	return hr.installed.WriteFile(hr.Settings.RepositoryConfig, 0644)
 }
 
-func (hr *HelmRepos) RemoveRepoCache(name string) error {
+func (hr HelmRepos) RemoveRepoCache(name string) error {
 
 	if err := removeFile(hr.Settings.RepositoryCache, helmpath.CacheIndexFile(name)); err != nil {
 		return err
@@ -91,7 +91,7 @@ func (hr *HelmRepos) RemoveRepoCache(name string) error {
 	return nil
 }
 
-func (hr *HelmRepos) shouldBeInstalled(name, url string) bool {
+func (hr HelmRepos) shouldBeInstalled(name, url string) bool {
 
 	for key, repository := range hr.Entries {
 		if repository.Name == name && repository.Url == url {
@@ -108,7 +108,7 @@ func (hr HelmRepos) Get(name string) (error, *repo.Entry) {
 	return nil, hr.installed.Get(name)
 }
 
-func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*HelmChart, error) {
+func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*HelmChart, error) {
 
 	var chartList []*HelmChart
 	var indexFile *repo.IndexFile
@@ -180,7 +180,7 @@ func (hr *HelmRepos) SetInstalledRepos() error {
 	return nil
 }
 
-func (hr *HelmRepos) UpdateRepoFile(entry *repo.Entry) error {
+func (hr HelmRepos) UpdateRepoFile(entry *repo.Entry) error {
 
 	var f *repo.File
 	var err error
@@ -202,7 +202,7 @@ func (hr *HelmRepos) UpdateRepoFile(entry *repo.Entry) error {
 	return nil
 }
 
-func (hr *HelmRepos) readRepoFile() (*repo.File, error) {
+func (hr HelmRepos) readRepoFile() (*repo.File, error) {
 
 	var b []byte
 	var f *repo.File
@@ -219,7 +219,7 @@ func (hr *HelmRepos) readRepoFile() (*repo.File, error) {
 	return f, nil
 }
 
-func (hr *HelmRepo) readRepoIndexFile() (*repo.IndexFile, error) {
+func (hr HelmRepo) readRepoIndexFile() (*repo.IndexFile, error) {
 
 	var b []byte
 	var f *repo.IndexFile

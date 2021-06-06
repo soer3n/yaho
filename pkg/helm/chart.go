@@ -107,7 +107,7 @@ func (chart *HelmChart) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1
 	return chartObjMap, nil
 }
 
-func (chart *HelmChart) CreateConfigMaps() []v1.ConfigMap {
+func (chart HelmChart) CreateConfigMaps() []v1.ConfigMap {
 
 	returnList := []v1.ConfigMap{}
 

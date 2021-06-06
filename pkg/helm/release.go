@@ -83,13 +83,13 @@ func (hc *HelmRelease) Update() error {
 	return nil
 }
 
-func (hc *HelmRelease) Remove() error {
+func (hc HelmRelease) Remove() error {
 	client := action.NewUninstall(hc.Config)
 	_, err := client.Run(hc.Name)
 	return err
 }
 
-func (hc *HelmReleases) Remove() error {
+func (hc HelmReleases) Remove() error {
 
 	var installedReleases []*release.Release
 	var err error
@@ -187,7 +187,7 @@ func (hc HelmRelease) getInstalledValues() (map[string]interface{}, error) {
 	return client.Run(hc.Name)
 }
 
-func (hc *HelmRelease) valuesChanged() (bool, error) {
+func (hc HelmRelease) valuesChanged() (bool, error) {
 
 	var installedValues map[string]interface{}
 	var err error
@@ -218,14 +218,14 @@ func (hc *HelmRelease) valuesChanged() (bool, error) {
 	return true, nil
 }
 
-func (hc *HelmRelease) getRelease() (*release.Release, error) {
+func (hc HelmRelease) getRelease() (*release.Release, error) {
 	log.Debugf("config: %v", hc.Config)
 	getConfig := hc.Config
 	client := action.NewGet(getConfig)
 	return client.Run(hc.Name)
 }
 
-func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.ChartPathOptions) (error, *chart.Chart) {
+func (hc HelmRelease) GetChart(chartName string, chartPathOptions *action.ChartPathOptions) (error, *chart.Chart) {
 
 	var jsonbody []byte
 	var err error
@@ -280,7 +280,7 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 	return nil, helmChart
 }
 
-func (hc *HelmRelease) getFiles(rc *client.Client, helmChart *helmv1alpha1.Chart) []*chart.File {
+func (hc HelmRelease) getFiles(rc *client.Client, helmChart *helmv1alpha1.Chart) []*chart.File {
 
 	files := []*chart.File{}
 
@@ -290,7 +290,7 @@ func (hc *HelmRelease) getFiles(rc *client.Client, helmChart *helmv1alpha1.Chart
 	return files
 }
 
-func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, deps []helmv1alpha1.ChartDep, selector string) error {
+func (hc HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, deps []helmv1alpha1.ChartDep, selector string) error {
 
 	var jsonbody []byte
 	var chartList helmv1alpha1.ChartList
@@ -321,7 +321,7 @@ func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, de
 	return nil
 }
 
-func (hc *HelmRelease) appendFilesFromConfigMap(rc *client.Client, name string, list []*chart.File) []*chart.File {
+func (hc HelmRelease) appendFilesFromConfigMap(rc *client.Client, name string, list []*chart.File) []*chart.File {
 
 	var jsonbody []byte
 	var err error
@@ -350,7 +350,7 @@ func (hc *HelmRelease) appendFilesFromConfigMap(rc *client.Client, name string, 
 	return files
 }
 
-func (hc *HelmRelease) getDefaultValuesFromConfigMap(rc *client.Client, name string) map[string]interface{} {
+func (hc HelmRelease) getDefaultValuesFromConfigMap(rc *client.Client, name string) map[string]interface{} {
 
 	var jsonbody []byte
 	var err error
@@ -372,7 +372,7 @@ func (hc *HelmRelease) getDefaultValuesFromConfigMap(rc *client.Client, name str
 	return jsonMap
 }
 
-func (hc *HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alpha1.Repo) {
+func (hc HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alpha1.Repo) {
 
 	var jsonbody []byte
 	var err error
@@ -392,7 +392,7 @@ func (hc *HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alp
 	return nil, *repoObj
 }
 
-func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
+func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 
 	var cp string
 	var chartRequested *chart.Chart
@@ -443,7 +443,7 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	return chartVersion.createConfigMaps(hc.Namespace.Name)
 }
 
-func (hc *HelmRelease) upgrade(helmChart *chart.Chart, vals chartutil.Values) error {
+func (hc HelmRelease) upgrade(helmChart *chart.Chart, vals chartutil.Values) error {
 
 	var rel *release.Release
 	var err error
@@ -462,7 +462,7 @@ func (hc *HelmRelease) upgrade(helmChart *chart.Chart, vals chartutil.Values) er
 	return nil
 }
 
-func (hc *HelmReleases) shouldBeInstalled(release *release.Release) bool {
+func (hc HelmReleases) shouldBeInstalled(release *release.Release) bool {
 
 	for key, chart := range hc.Entries {
 
@@ -490,7 +490,7 @@ func (hc HelmRelease) GetActionConfig(settings *cli.EnvSettings) (*action.Config
 	return actionConfig, nil
 }
 
-func (hc *HelmReleases) getRelease(name string) (*release.Release, error) {
+func (hc HelmReleases) getRelease(name string) (*release.Release, error) {
 	client := action.NewGet(hc.Config)
 	return client.Run(name)
 }

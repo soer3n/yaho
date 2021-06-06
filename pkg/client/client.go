@@ -36,7 +36,7 @@ func New() *Client {
 	kubeconfig := new(string)
 
 	if config, err = rest.InClusterConfig(); err != nil {
-		log.Info("Failed to get in cluster config")
+		log.Debug("Failed to get in cluster config")
 	}
 
 	// Add CRDs to the scheme. They are missing by default.

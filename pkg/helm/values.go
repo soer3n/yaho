@@ -113,7 +113,7 @@ func (hv *HelmValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
 
 }
 
-func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, parents ...string) map[string]interface{} {
+func (hv HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, parents ...string) map[string]interface{} {
 	valMap := make(map[string]interface{})
 	subMap := make(map[string]string)
 	var parentKey string
@@ -161,7 +161,7 @@ func (hv *HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMa
 	return valMap
 }
 
-func (hv *HelmValueTemplate) parseMap(key string, payload []byte) map[string]string {
+func (hv HelmValueTemplate) parseMap(key string, payload []byte) map[string]string {
 
 	valMap := make(map[string]string)
 	subMap := make(map[string]string)
