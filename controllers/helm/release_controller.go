@@ -161,7 +161,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if _, err = r.handleFinalizer(hc, instance); err != nil {
+	if err = r.handleFinalizer(hc, instance); err != nil {
 		log.Errorf("Handle finalizer for release %v failed.", helmRelease.Name)
 		return ctrl.Result{}, err
 	}
@@ -210,21 +210,21 @@ func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (error, *h
 
 }
 
-func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, instance *helmv1alpha1.Release) (ctrl.Result, error) {
+func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, instance *helmv1alpha1.Release) error {
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
 		if _, err := helmutils.HandleFinalizer(helmClient, instance.ObjectMeta); err != nil {
-			return ctrl.Result{}, nil
+			return err
 		}
 
 		controllerutil.RemoveFinalizer(instance, "finalizer.releases.helm.soer3n.info")
 
 		if err := r.Update(context.Background(), instance); err != nil {
-			return ctrl.Result{}, err
+			return err
 		}
 	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Repo) error {

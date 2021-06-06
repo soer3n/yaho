@@ -87,7 +87,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	if _, helmRepo, err = r.deployRepo(instance, hc); err != nil {
+	if helmRepo, err = r.deployRepo(instance, hc); err != nil {
 		log.Infof("Error on deploying repo %v", instance.Spec.Name)
 		return ctrl.Result{}, err
 	}
@@ -121,7 +121,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	for _, chartObj := range chartObjMap {
-		_, err = r.deployChart(chartObj, instance)
+		err = r.deployChart(chartObj, instance)
 
 		if err != nil {
 			log.Infof("Error on deploying chart: %v", chartObj.Spec.Name)
@@ -180,7 +180,7 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 	return ctrl.Result{}, nil
 }
 
-func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo, hc *helmutils.HelmClient) (ctrl.Result, *helmutils.HelmRepo, error) {
+func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo, hc *helmutils.HelmClient) (*helmutils.HelmRepo, error) {
 
 	var err error
 
@@ -191,24 +191,24 @@ func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo, hc *helmutils.H
 	var entryObj *repo.Entry
 
 	if err, entryObj = helmRepo.GetEntryObj(); err != nil {
-		return ctrl.Result{}, &helmutils.HelmRepo{}, err
+		return &helmutils.HelmRepo{}, err
 	}
 
 	if err = hc.Repos.UpdateRepoFile(entryObj); err != nil {
-		return ctrl.Result{}, &helmutils.HelmRepo{}, err
+		return &helmutils.HelmRepo{}, err
 	}
 
 	if err = helmRepo.Update(); err != nil {
-		return ctrl.Result{}, &helmutils.HelmRepo{}, err
+		return &helmutils.HelmRepo{}, err
 	}
 
-	return ctrl.Result{}, helmRepo, nil
+	return helmRepo, nil
 }
 
-func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo) (ctrl.Result, error) {
+func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo) error {
 
 	if err := controllerutil.SetControllerReference(instance, helmChart, r.Scheme); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	installedChart := &helmv1alpha1.Chart{}
@@ -223,20 +223,20 @@ func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *he
 			err = r.Client.Create(context.TODO(), helmChart)
 
 			if err != nil {
-				return ctrl.Result{}, err
+				return err
 			}
 		}
-		return ctrl.Result{}, err
+		return err
 	}
 
 	installedChart.Spec = helmChart.Spec
 	err = r.Client.Update(context.TODO(), installedChart)
 
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *RepoReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Repo) error {

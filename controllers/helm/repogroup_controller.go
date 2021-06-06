@@ -83,9 +83,7 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	for _, repository := range spec {
 
-		_, err = r.deployRepo(repository, instance)
-
-		if err != nil {
+		if err = r.deployRepo(repository, instance); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -119,7 +117,7 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, nil
 }
 
-func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, instance *helmv1alpha1.RepoGroup) (ctrl.Result, error) {
+func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, instance *helmv1alpha1.RepoGroup) error {
 
 	log.Infof("Trying to install HelmRepo %v", repository.Name)
 	helmRepo := &helmv1alpha1.Repo{
@@ -150,7 +148,7 @@ func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, insta
 	err := controllerutil.SetControllerReference(instance, helmRepo, r.Scheme)
 
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	installedRepo := &helmv1alpha1.Repo{}
@@ -164,20 +162,20 @@ func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, insta
 			err = r.Client.Create(context.TODO(), helmRepo)
 
 			if err != nil {
-				return ctrl.Result{}, err
+				return err
 			}
 		}
-		return ctrl.Result{}, nil
+		return nil
 	}
 
 	installedRepo.Spec = helmRepo.Spec
 	err = r.Client.Update(context.TODO(), installedRepo)
 
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -98,9 +98,7 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	for _, release := range spec {
 
-		_, err = r.deployRelease(&release, instance)
-
-		if err != nil {
+		if err = r.deployRelease(&release, instance); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -111,7 +109,7 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return ctrl.Result{}, nil
 }
 
-func (r *ReleaseGroupReconciler) deployRelease(release *helmv1alpha1.ReleaseSpec, instance *helmv1alpha1.ReleaseGroup) (ctrl.Result, error) {
+func (r *ReleaseGroupReconciler) deployRelease(release *helmv1alpha1.ReleaseSpec, instance *helmv1alpha1.ReleaseGroup) error {
 
 	helmRelease := &helmv1alpha1.Release{
 		ObjectMeta: metav1.ObjectMeta{
@@ -138,7 +136,7 @@ func (r *ReleaseGroupReconciler) deployRelease(release *helmv1alpha1.ReleaseSpec
 	err := controllerutil.SetControllerReference(instance, helmRelease, r.Scheme)
 
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	installedRelease := &helmv1alpha1.Release{}
@@ -152,15 +150,15 @@ func (r *ReleaseGroupReconciler) deployRelease(release *helmv1alpha1.ReleaseSpec
 			err = r.Client.Create(context.TODO(), helmRelease)
 
 			if err != nil {
-				return ctrl.Result{}, err
+				return err
 			}
 		}
-		return ctrl.Result{}, err
+		return err
 	}
 
 	installedRelease.Spec = helmRelease.Spec
 	err = r.Client.Update(context.TODO(), installedRelease)
-	return ctrl.Result{}, err
+	return err
 }
 
 // SetupWithManager sets up the controller with the Manager.
