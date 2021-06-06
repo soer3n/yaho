@@ -230,10 +230,7 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 
 	log.Debugf("namespace: %v", hc.Namespace.Name)
 
-	obj := rc.GetResource(chartName, hc.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
-	if jsonbody, err = json.Marshal(obj); err != nil {
-		return err, helmChart, ""
-	}
+	jsonbody, err = rc.GetResource(chartName, hc.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
 
 	if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
 		return err, helmChart, ""
@@ -284,16 +281,12 @@ func (hc *HelmRelease) getFiles(rc *client.Client, helmChart *helmv1alpha1.Chart
 func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, deps []helmv1alpha1.ChartDep, selector string) error {
 
 	var jsonbody []byte
-	var chartList []helmv1alpha1.Chart
+	var chartList helmv1alpha1.ChartList
 	var err error
 
-	obj := rc.SetOptions(metav1.ListOptions{
+	jsonbody, err = rc.SetOptions(metav1.ListOptions{
 		LabelSelector: selector,
 	}).ListResources(hc.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
-
-	if jsonbody, err = json.Marshal(obj["items"]); err != nil {
-		return err
-	}
 
 	if err = json.Unmarshal(jsonbody, &chartList); err != nil {
 		return err
@@ -301,7 +294,7 @@ func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, de
 
 	options := &action.ChartPathOptions{}
 
-	for _, item := range chartList {
+	for _, item := range chartList.Items {
 		for _, dep := range deps {
 			if item.Spec.Name == dep.Name {
 				options.RepoURL = dep.Repo
@@ -324,11 +317,7 @@ func (hc *HelmRelease) appendFilesFromConfigMap(rc *client.Client, name string, 
 	configmap := &v1.ConfigMap{}
 	files := []*chart.File{}
 
-	obj := rc.GetResource(name, hc.Namespace.Name, "configmaps", "", "v1")
-
-	if jsonbody, err = json.Marshal(obj); err != nil {
-		return files
-	}
+	jsonbody, err = rc.GetResource(name, hc.Namespace.Name, "configmaps", "", "v1")
 
 	if err = json.Unmarshal(jsonbody, &configmap); err != nil {
 		return files
@@ -356,11 +345,7 @@ func (hc *HelmRelease) getDefaultValuesFromConfigMap(rc *client.Client, name str
 	values := make(map[string]interface{})
 	configmap := &v1.ConfigMap{}
 
-	obj := rc.GetResource(name, hc.Namespace.Name, "configmaps", "", "v1")
-
-	if jsonbody, err = json.Marshal(obj); err != nil {
-		return values
-	}
+	jsonbody, err = rc.GetResource(name, hc.Namespace.Name, "configmaps", "", "v1")
 
 	if err = json.Unmarshal(jsonbody, &configmap); err != nil {
 		return values
@@ -382,13 +367,9 @@ func (hc *HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alp
 
 	repoObj := &helmv1alpha1.Repo{}
 
-	obj := rc.GetResource(repo, hc.Namespace.Name, "repos", "helm.soer3n.info", "v1alpha1")
+	jsonbody, err = rc.GetResource(repo, hc.Namespace.Name, "repos", "helm.soer3n.info", "v1alpha1")
 
 	log.Infof("Repo namespace: %v", hc.Namespace.Name)
-
-	if jsonbody, err = json.Marshal(obj); err != nil {
-		return err, *repoObj
-	}
 
 	if err = json.Unmarshal(jsonbody, &repoObj); err != nil {
 		return err, *repoObj

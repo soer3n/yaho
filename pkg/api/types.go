@@ -11,3 +11,8 @@ type Api struct {
 type Handler struct {
 	ApiVersion string
 }
+
+type APIResponse struct {
+	Message string
+	Data    []map[string]interface{}
+}

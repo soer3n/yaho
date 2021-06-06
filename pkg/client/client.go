@@ -83,7 +83,7 @@ func (c *Client) SetOptions(opts ClientOpts) *Client {
 	return c
 }
 
-func (c Client) GetResource(name, namespace, resource, group, version string) map[string]interface{} {
+func (c Client) GetResource(name, namespace, resource, group, version string) ([]byte, error) {
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
 	opts := metav1.GetOptions{}
 
@@ -98,12 +98,12 @@ func (c Client) GetResource(name, namespace, resource, group, version string) ma
 	obj, err := c.client.Resource(deploymentRes).Namespace(namespace).Get(context.TODO(), name, opts)
 
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return obj.UnstructuredContent()
+	return json.Marshal(obj.UnstructuredContent())
 }
 
-func (c Client) ListResources(namespace, resource, group, version string) map[string]interface{} {
+func (c Client) ListResources(namespace, resource, group, version string) ([]byte, error) {
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
 	opts := metav1.ListOptions{}
 
@@ -118,9 +118,9 @@ func (c Client) ListResources(namespace, resource, group, version string) map[st
 	obj, err := c.client.Resource(deploymentRes).Namespace(namespace).List(context.TODO(), opts)
 
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return obj.UnstructuredContent()
+	return json.Marshal(obj.UnstructuredContent())
 }
 
 func (c *Client) Builder(namespace string, validate bool) *resource.Builder {
@@ -160,12 +160,6 @@ func (c *Client) GetResources(builder *resource.Builder, args []string) *APIResp
 	for _, ix := range infos {
 		data, err = runtime.Encode(unstructured.UnstructuredJSONScheme, ix.Object)
 
-		/*req, _ := labels.ParseToRequirements("repo=submariner")
-		filterFunc := resource.FilterByLabelSelector(labels.NewSelector().Add(req[0]))
-		_, err := filterFunc(ix, err)
-
-		log.Printf("selector: %v", filterFunc)
-		*/
 		if err != nil {
 			response.Message = fmt.Sprintf("%v", err)
 			return response

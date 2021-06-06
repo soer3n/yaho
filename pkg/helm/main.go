@@ -73,11 +73,7 @@ func GetChartURL(rc *client.Client, chart, version, namespace string) (error, st
 
 	chartObj := &helmv1alpha1.Chart{}
 
-	obj := rc.GetResource(chart, namespace, "charts", "helm.soer3n.info", "v1alpha1")
-
-	if jsonbody, err = json.Marshal(obj); err != nil {
-		return err, ""
-	}
+	jsonbody, err = rc.GetResource(chart, namespace, "charts", "helm.soer3n.info", "v1alpha1")
 
 	if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
 		return err, ""

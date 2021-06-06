@@ -121,33 +121,24 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 
 	var chartList []*HelmChart
 	var indexFile *repo.IndexFile
+	var jsonbody []byte
+	var chartApiList helmv1alpha1.ChartList
 	var err error
 
 	rc := client.New()
 	_ = rc.SetClient()
 
-	foo := rc.SetOptions(metav1.ListOptions{
+	jsonbody, err = rc.SetOptions(metav1.ListOptions{
 		LabelSelector: selector,
 	}).ListResources(hr.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
 
-	for k, v := range foo {
-		if k == "items" {
-			transformed := v.([]interface{})
-			for _, foo := range transformed {
-				var jsonbody []byte
-				chartObj := &helmv1alpha1.Chart{}
-				if jsonbody, err = json.Marshal(foo); err != nil {
-					return chartList, err
-				}
+	if err = json.Unmarshal(jsonbody, &chartApiList); err != nil {
+		return chartList, err
+	}
 
-				if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
-					return chartList, err
-				}
-
-				chartList = append(chartList, NewChart(chartObj.ConvertChartVersions(), settings, hr.Name))
-				log.Debugf("new: %v", v)
-			}
-		}
+	for _, v := range chartApiList.Items {
+		chartList = append(chartList, NewChart(v.ConvertChartVersions(), settings, hr.Name))
+		log.Debugf("new: %v", v)
 	}
 
 	if chartList == nil {
