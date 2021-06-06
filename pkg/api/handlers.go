@@ -22,16 +22,16 @@ func (h *Handler) K8sApiGroup(w http.ResponseWriter, r *http.Request) {
 	var err error
 	vars := mux.Vars(r)
 	rc := client.New()
-	objs := rc.GetAPIResources(vars["group"], true)
-
-	log.Printf("%v", string(payload))
-	w.Header().Set("Content-Type", "application/json")
+	objs, err := rc.GetAPIResources(vars["group"], true)
 
 	if payload, err = json.Marshal(objs); err != nil {
 		fmt.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("%v", string(payload))
+	w.Header().Set("Content-Type", "application/json")
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(payload)

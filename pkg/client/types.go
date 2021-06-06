@@ -24,8 +24,3 @@ type Resource struct {
 
 type ClientOpts interface {
 }
-
-type APIResponse struct {
-	Message string
-	Data    []map[string]interface{}
-}

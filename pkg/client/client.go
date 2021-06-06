@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"path/filepath"
 	"reflect"
 	"sync"
@@ -120,24 +119,20 @@ func (c Client) ListResources(namespace, resource, group, version string) ([]byt
 	return json.Marshal(obj.UnstructuredContent())
 }
 
-func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...string) *APIResponse {
+func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...string) ([]byte, error) {
 
 	var resources []Resource
-	response := &APIResponse{
-		Message: "",
-	}
+
 	discoveryclient, err := c.Factory.ToDiscoveryClient()
 
 	if err != nil {
-		response.Message = fmt.Sprintf("%v", err)
-		return response
+		return []byte{}, err
 	}
 
 	lists, err := discoveryclient.ServerPreferredResources()
 
 	if err != nil {
-		response.Message = fmt.Sprintf("%v", err)
-		return response
+		return []byte{}, err
 	}
 
 	for _, list := range lists {
@@ -172,7 +167,5 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 		}
 	}
 
-	response.Data = reflect.ValueOf(resources).Interface().([]map[string]interface{})
-	response.Message = "Success"
-	return response
+	return json.Marshal(reflect.ValueOf(resources).Interface().([]map[string]interface{}))
 }
