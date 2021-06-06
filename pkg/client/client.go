@@ -14,11 +14,8 @@ import (
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -123,57 +120,6 @@ func (c Client) ListResources(namespace, resource, group, version string) ([]byt
 	return json.Marshal(obj.UnstructuredContent())
 }
 
-func (c *Client) Builder(namespace string, validate bool) *resource.Builder {
-
-	c.namespace = namespace
-	schema, err := c.Factory.Validator(validate)
-	if err != nil {
-		return &resource.Builder{}
-	}
-
-	// log.Println("creating builder...")
-
-	return c.Factory.NewBuilder().Unstructured().Schema(schema).ContinueOnError().NamespaceParam(namespace).DefaultNamespace()
-}
-
-func (c *Client) GetResources(builder *resource.Builder, args []string) *APIResponse {
-	result := builder.
-		ResourceTypeOrNameArgs(true, args...).
-		Do()
-
-	var infos []*resource.Info
-	var payload map[string]interface{}
-	var data []byte
-	var err error
-
-	response := &APIResponse{
-		Message: "",
-	}
-
-	if infos, err = result.Infos(); err != nil {
-		response.Message = fmt.Sprintf("%v", err)
-		return response
-	}
-
-	objs := make([]map[string]interface{}, len(infos))
-
-	for _, ix := range infos {
-		data, err = runtime.Encode(unstructured.UnstructuredJSONScheme, ix.Object)
-
-		if err != nil {
-			response.Message = fmt.Sprintf("%v", err)
-			return response
-		}
-
-		_ = json.Unmarshal([]byte(data), &payload)
-		objs = append(objs, payload)
-	}
-
-	response.Data = objs
-	response.Message = "Success"
-	return response
-}
-
 func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...string) *APIResponse {
 
 	var resources []Resource
@@ -228,14 +174,5 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 
 	response.Data = reflect.ValueOf(resources).Interface().([]map[string]interface{})
 	response.Message = "Success"
-	return response
-}
-
-func (c *Client) GetResourceObject(name string, apiGroup string, namespaced bool, verbs ...string) *APIResponse {
-
-	response := &APIResponse{
-		Message: "",
-	}
-
 	return response
 }
