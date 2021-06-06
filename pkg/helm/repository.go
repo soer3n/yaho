@@ -41,17 +41,6 @@ func (hr *HelmRepo) Update() error {
 	return nil
 }
 
-func (hr *HelmRepo) Delete() error {
-
-	// err, entry := hr.GetEntryObj()
-
-	//if err != nil {
-	//	return errors.Wrapf(err, "error on initializing object for %q ", hr.Url)
-	//}
-
-	return nil
-}
-
 func (hr *HelmRepos) Remove() error {
 
 	err := hr.SetInstalledRepos()
@@ -171,19 +160,12 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 		log.Debugf("IndexFileErr: %v", err)
 
 		for _, chartMetadata := range indexFile.Entries {
-			// var chartObj *repo.ChartVersion
 			log.Debugf("ChartMetadata: %v", chartMetadata)
 			chartList = append(chartList, NewChart(chartMetadata, settings, hr.Name))
 		}
 	}
 
-	log.Infof("Parsed Charts: %v", chartList)
-
 	return chartList, nil
-}
-
-func (hr *HelmRepo) configure() {
-
 }
 
 func (hr HelmRepo) GetEntryObj() (error, *repo.Entry) {

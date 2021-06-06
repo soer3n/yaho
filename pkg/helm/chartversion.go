@@ -116,7 +116,7 @@ func (chartVersion HelmChartVersion) createTemplateConfigMap(name string, namesp
 func (chartVersion HelmChartVersion) createDefaultValueConfigMap(namespace string, values map[string]interface{}) v1.ConfigMap {
 
 	immutable := new(bool)
-	*immutable = false
+	*immutable = true
 	objectMeta := metav1.ObjectMeta{
 		Name:      "helm-default-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 		Namespace: namespace,
@@ -132,20 +132,3 @@ func (chartVersion HelmChartVersion) createDefaultValueConfigMap(namespace strin
 
 	return configmap
 }
-
-/*func (chartVersions HelmChartVersions) ConvertVersions() []*repo.ChartVersion {
-
-	var convertedVersion []*repo.ChartVersion
-
-	for _, item := range chartVersions {
-		version := helmv1alpha1.ChartVersion{
-			Name:         chartMeta.Version,
-			Templates:    "helm-tmpl-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
-			CRDs:         "helm-crds-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
-			Dependencies: chartVersion.createDependenciesList(chartMeta),
-			URL:          chartVersion.Version.URLs[0],
-		}
-
-	}
-}
-*/

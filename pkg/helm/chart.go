@@ -62,7 +62,6 @@ func (chart *HelmChart) CreateTemplates() error {
 			Verify:                false,
 		}
 		_, chartURL := GetChartURL(rc, chartname, chart.Version.Name, client.Namespace)
-		//if cp, err = client.ChartPathOptions.LocateChart(chartname, settings); err != nil {
 		if cp, err = DownloadTo(chartURL, chart.Version.APIVersion, repo, settings, options); err != nil {
 			return err
 		}

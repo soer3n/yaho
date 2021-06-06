@@ -196,9 +196,6 @@ func (hc *HelmRelease) valuesChanged() (bool, error) {
 		return false, err
 	}
 
-	//log.Infof("values installed: (%v)", installedValues)
-	//log.Infof("values requested: (%v)", requestedValues)
-
 	if len(requestedValues) < 1 && len(installedValues) < 1 {
 		return false, nil
 	}
@@ -229,18 +226,17 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 	}
 	chartObj := &helmv1alpha1.Chart{}
 	files := []*chart.File{}
-	// namespace := "default"
 	rc := client.New()
 
 	log.Debugf("namespace: %v", hc.Namespace.Name)
 
 	obj := rc.GetResource(chartName, hc.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
 	if jsonbody, err = json.Marshal(obj); err != nil {
-		return err, helmChart, "foo"
+		return err, helmChart, ""
 	}
 
 	if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
-		return err, helmChart, "foo"
+		return err, helmChart, ""
 	}
 
 	cv := chartObj.GetChartVersion(hc.Version)
@@ -265,11 +261,11 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 	versionObj := chartObj.GetChartVersion(chartPathOptions.Version)
 
 	if err := hc.addDependencies(rc, helmChart, versionObj.Dependencies, repoSelector); err != nil {
-		return err, helmChart, "foo"
+		return err, helmChart, ""
 	}
 
 	if err := helmChart.Validate(); err != nil {
-		return err, helmChart, "foo"
+		return err, helmChart, ""
 	}
 
 	return nil, helmChart, cv.URL
@@ -425,7 +421,6 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	releaseClient.Version = hc.Version
 	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.Url
 
-	//if cp, err = releaseClient.ChartPathOptions.LocateChart(hc.Chart, settings); err != nil {
 	if cp, err = DownloadTo(chartURL, hc.Version, hc.Repo, hc.Settings, &releaseClient.ChartPathOptions); err != nil {
 		actionlog.Printf("err: %v", err)
 		return configmapList
@@ -451,14 +446,6 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	}
 
 	return chartVersion.createConfigMaps(hc.Namespace.Name)
-}
-
-func (hc HelmRelease) configure() {
-
-}
-
-func (hc HelmRelease) validate() error {
-	return nil
 }
 
 func (hc *HelmRelease) upgrade(helmChart *chart.Chart, vals chartutil.Values) error {

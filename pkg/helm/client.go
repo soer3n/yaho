@@ -31,7 +31,6 @@ func GetHelmClient(instance interface{}) (*HelmClient, error) {
 	}
 
 	settings := hc.GetEnvSettings()
-	// hc.Env["Namespace"] = metaStruct.Namespace
 	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
 	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(metaStruct, hc.Env)
@@ -100,7 +99,7 @@ func (hc *HelmClient) setRelease(instance *helmv1alpha1.Release) error {
 	var releaseList []*HelmRelease
 	var helmRelease *HelmRelease
 
-	log.Debugf("Trying HelmRepo %v", instance.Spec.Name)
+	log.Debugf("Trying HelmRelease %v", instance.Spec.Name)
 
 	helmRelease = &HelmRelease{
 		Name:     instance.Spec.Name,
