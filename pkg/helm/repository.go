@@ -19,22 +19,21 @@ import (
 
 func (hr *HelmRepo) Update() error {
 
-	err, entry := hr.GetEntryObj()
+	var entry *repo.Entry
+	var cr *repo.ChartRepository
+	var err error
 
-	if err != nil {
+	if err, entry = hr.GetEntryObj(); err != nil {
 		return errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
 	}
 
-	cr, err := repo.NewChartRepository(entry, getter.All(hr.Settings))
-
-	if err != nil {
+	if cr, err = repo.NewChartRepository(entry, getter.All(hr.Settings)); err != nil {
 		return errors.Wrapf(err, "error on initializing repo %q ", hr.Url)
 	}
 
 	cr.CachePath = hr.Settings.RepositoryCache
-	_, err = cr.DownloadIndexFile()
 
-	if err != nil {
+	if _, err = cr.DownloadIndexFile(); err != nil {
 		return errors.Wrapf(err, "looks like %q is not a valid chart repository or cannot be reached", hr.Url)
 	}
 
@@ -43,9 +42,7 @@ func (hr *HelmRepo) Update() error {
 
 func (hr *HelmRepos) Remove() error {
 
-	err := hr.SetInstalledRepos()
-
-	if err != nil {
+	if err := hr.SetInstalledRepos(); err != nil {
 		return err
 	}
 
@@ -59,9 +56,7 @@ func (hr *HelmRepos) Remove() error {
 				return errors.Errorf("Error removing repository %q.", repository.Name)
 			}
 
-			err := hr.RemoveRepoCache(repository.Name)
-
-			if err != nil {
+			if err := hr.RemoveRepoCache(repository.Name); err != nil {
 				return errors.Errorf("Error removing repository cache for %q.", repository.Name)
 			}
 		}
@@ -72,15 +67,11 @@ func (hr *HelmRepos) Remove() error {
 
 func (hr *HelmRepos) RemoveByName(name string) error {
 
-	ok := hr.installed.Remove(name)
-
-	if !ok {
+	if ok := hr.installed.Remove(name); !ok {
 		return errors.Errorf("Error removing repository %q.", name)
 	}
 
-	err := hr.RemoveRepoCache(name)
-
-	if err != nil {
+	if err := hr.RemoveRepoCache(name); err != nil {
 		return errors.Errorf("Error removing repository cache for %q.", name)
 	}
 
@@ -121,16 +112,21 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 
 	var chartList []*HelmChart
 	var indexFile *repo.IndexFile
-	var jsonbody []byte
 	var chartApiList helmv1alpha1.ChartList
+	var jsonbody []byte
 	var err error
 
 	rc := client.New()
-	_ = rc.SetClient()
 
-	jsonbody, err = rc.SetOptions(metav1.ListOptions{
+	if err = rc.SetClient(); err != nil {
+		return chartList, err
+	}
+
+	if jsonbody, err = rc.SetOptions(metav1.ListOptions{
 		LabelSelector: selector,
-	}).ListResources(hr.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
+	}).ListResources(hr.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1"); err != nil {
+		return chartList, err
+	}
 
 	if err = json.Unmarshal(jsonbody, &chartApiList); err != nil {
 		return chartList, err
@@ -144,7 +140,9 @@ func (hr *HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*He
 	if chartList == nil {
 
 		if indexFile, err = repo.LoadIndexFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml"); err != nil {
-			_ = hr.Update()
+			if err = hr.Update(); err != nil {
+				return chartList, err
+			}
 			indexFile, err = repo.LoadIndexFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml")
 		}
 
@@ -169,30 +167,33 @@ func (hr HelmRepo) GetEntryObj() (error, *repo.Entry) {
 
 func (hr *HelmRepos) SetInstalledRepos() error {
 
-	f, err := repo.LoadFile(hr.Settings.RepositoryConfig)
+	var f *repo.File
+	var err error
 
-	if err != nil {
-		err = f.WriteFile(hr.Settings.RepositoryConfig, 0644)
+	if f, err = repo.LoadFile(hr.Settings.RepositoryConfig); err != nil {
+		if err = f.WriteFile(hr.Settings.RepositoryConfig, 0644); err != nil {
+			return err
+		}
 	}
 
 	hr.installed = f
-	return err
+	return nil
 }
 
 func (hr *HelmRepos) UpdateRepoFile(entry *repo.Entry) error {
 
-	f, err := hr.readRepoFile()
+	var f *repo.File
+	var err error
 
-	if err != nil {
+	if f, err = hr.readRepoFile(); err != nil {
 		return err
 	}
 
 	log.Debugf("Repos before updating: %v", f)
 	f.Update(entry)
 	log.Debugf("Repos after updating: %v", f)
-	err = f.WriteFile(hr.Settings.RepositoryConfig, 0644)
 
-	if err != nil {
+	if err = f.WriteFile(hr.Settings.RepositoryConfig, 0644); err != nil {
 		return err
 	}
 
@@ -203,44 +204,42 @@ func (hr *HelmRepos) UpdateRepoFile(entry *repo.Entry) error {
 
 func (hr *HelmRepos) readRepoFile() (*repo.File, error) {
 
-	b, err := ioutil.ReadFile(hr.Settings.RepositoryConfig)
+	var b []byte
+	var f *repo.File
+	var err error
 
-	var f repo.File
-
-	if err != nil && !os.IsNotExist(err) {
-		return &f, err
+	if b, err = ioutil.ReadFile(hr.Settings.RepositoryConfig); err != nil && !os.IsNotExist(err) {
+		return f, err
 	}
 
-	if err := yaml.Unmarshal(b, &f); err != nil {
-		return &f, err
+	if err = yaml.Unmarshal(b, &f); err != nil {
+		return f, err
 	}
 
-	return &f, nil
+	return f, nil
 }
 
 func (hr *HelmRepo) readRepoIndexFile() (*repo.IndexFile, error) {
 
-	b, err := ioutil.ReadFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml")
+	var b []byte
+	var f *repo.IndexFile
+	var err error
 
-	var f repo.IndexFile
-
-	if err != nil && !os.IsNotExist(err) {
-		return &f, err
+	if b, err = ioutil.ReadFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml"); err != nil && !os.IsNotExist(err) {
+		return f, err
 	}
 
-	if err := yaml.Unmarshal(b, &f); err != nil {
-		return &f, err
+	if err = yaml.Unmarshal(b, &f); err != nil {
+		return f, err
 	}
 
-	return &f, nil
+	return f, nil
 }
 
 func (hr *HelmRepos) prepare() error {
 
 	if hr.installed == nil {
-		err := hr.SetInstalledRepos()
-
-		if err != nil {
+		if err := hr.SetInstalledRepos(); err != nil {
 			return err
 		}
 	}

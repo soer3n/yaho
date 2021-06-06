@@ -4,6 +4,7 @@ import (
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
+	"helm.sh/helm/v3/pkg/action"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -45,15 +46,16 @@ func GetHelmClient(instance interface{}) (*HelmClient, error) {
 
 func (hc *HelmClient) manageEntries(instance interface{}) error {
 
+	var releaseObj *helmv1alpha1.Release
 	repoObj, ok := instance.(*helmv1alpha1.Repo)
 
 	if ok {
-		_ = hc.setRepo(repoObj)
+		if err := hc.setRepo(repoObj); err != nil {
+			return err
+		}
 	}
 
-	releaseObj, ok := instance.(*helmv1alpha1.Release)
-
-	if ok {
+	if releaseObj, ok = instance.(*helmv1alpha1.Release); ok {
 		if err := hc.setRelease(releaseObj); err != nil {
 			return err
 		}
@@ -98,6 +100,8 @@ func (hc *HelmClient) setRepo(instance *helmv1alpha1.Repo) error {
 func (hc *HelmClient) setRelease(instance *helmv1alpha1.Release) error {
 	var releaseList []*HelmRelease
 	var helmRelease *HelmRelease
+	var actionConfig *action.Configuration
+	var err error
 
 	log.Debugf("Trying HelmRelease %v", instance.Spec.Name)
 
@@ -108,9 +112,7 @@ func (hc *HelmClient) setRelease(instance *helmv1alpha1.Release) error {
 		Settings: hc.GetEnvSettings(),
 	}
 
-	actionConfig, err := helmRelease.GetActionConfig(helmRelease.Settings)
-
-	if err != nil {
+	if actionConfig, err = helmRelease.GetActionConfig(helmRelease.Settings); err != nil {
 		return err
 	}
 

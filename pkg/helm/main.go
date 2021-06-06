@@ -66,20 +66,22 @@ func DownloadTo(url, version, repo string, settings *cli.EnvSettings, options *a
 	return fileName, nil
 }
 
-func GetChartURL(rc *client.Client, chart, version, namespace string) (error, string) {
+func GetChartURL(rc *client.Client, chart, version, namespace string) (string, error) {
 
 	var jsonbody []byte
 	var err error
 
 	chartObj := &helmv1alpha1.Chart{}
 
-	jsonbody, err = rc.GetResource(chart, namespace, "charts", "helm.soer3n.info", "v1alpha1")
-
-	if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
-		return err, ""
+	if jsonbody, err = rc.GetResource(chart, namespace, "charts", "helm.soer3n.info", "v1alpha1"); err != nil {
+		return "", err
 	}
 
-	return nil, chartObj.GetChartVersion(version).URL
+	if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
+		return "", err
+	}
+
+	return chartObj.GetChartVersion(version).URL, nil
 }
 
 func removeFile(path, name string) error {

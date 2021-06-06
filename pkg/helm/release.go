@@ -27,6 +27,11 @@ func (hc *HelmRelease) Update() error {
 
 	log.Debugf("configinstall: %v", hc.Config)
 
+	var release *release.Release
+	var helmChart *chart.Chart
+	var err error
+	var ok bool
+
 	installConfig := hc.Config
 	client := action.NewInstall(installConfig)
 	client.ReleaseName = hc.Name
@@ -37,25 +42,25 @@ func (hc *HelmRelease) Update() error {
 		InsecureSkipTLSverify: false,
 		Verify:                false,
 	}
-	err, helmChart, _ := hc.GetChart(hc.Chart, options)
-
-	if err != nil {
+	if err, helmChart = hc.GetChart(hc.Chart, options); err != nil {
 		return err
 	}
 
 	log.Debugf("configupdate: %v", hc.Config)
-	release, err := hc.getRelease()
+	if release, err = hc.getRelease(); err != nil {
+		return err
+	}
 
-	_ = hc.SetValues()
+	if err = hc.SetValues(); err != nil {
+		return err
+	}
 
 	client.Namespace = hc.Settings.Namespace()
 	vals := mergeMaps(hc.getValues(), helmChart.Values)
 
 	// Check if something changed regarding the existing release
 	if release != nil {
-		ok, err := hc.valuesChanged()
-
-		if err != nil {
+		if ok, err = hc.valuesChanged(); err != nil {
 			return err
 		}
 
@@ -66,13 +71,11 @@ func (hc *HelmRelease) Update() error {
 		return nil
 	}
 
-	if err := chartutil.ProcessDependencies(helmChart, vals); err != nil {
+	if err = chartutil.ProcessDependencies(helmChart, vals); err != nil {
 		return err
 	}
 
-	release, err = client.Run(helmChart, vals)
-
-	if err != nil {
+	if release, err = client.Run(helmChart, vals); err != nil {
 		return err
 	}
 
@@ -88,12 +91,14 @@ func (hc *HelmRelease) Remove() error {
 
 func (hc *HelmReleases) Remove() error {
 
-	installedReleases, err := hc.getReleases()
-	client := action.NewUninstall(hc.Config)
+	var installedReleases []*release.Release
+	var err error
 
-	if err != nil {
+	if installedReleases, err = hc.getReleases(); err != nil {
 		return err
 	}
+
+	client := action.NewUninstall(hc.Config)
 
 	for key, release := range installedReleases {
 		if !hc.shouldBeInstalled(release) {
@@ -115,8 +120,13 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 
 	log.Debugf("init check (%v)", hc.ValuesTemplate)
 
+	var initVals, mergedVals map[string]interface{}
+	var err error
+
 	vals := &values.Options{}
-	initVals, _ := vals.MergeValues(getter.All(hc.Settings))
+	if initVals, err = vals.MergeValues(getter.All(hc.Settings)); err != nil {
+		return map[string]interface{}{}
+	}
 
 	if hc.ValuesTemplate == nil {
 		return initVals
@@ -134,7 +144,10 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 
 	log.Debug("third check")
 
-	mergedVals, _ := vals.MergeValues(getter.All(hc.Settings))
+	if mergedVals, err = vals.MergeValues(getter.All(hc.Settings)); err != nil {
+		return map[string]interface{}{}
+	}
+
 	return mergedVals
 }
 
@@ -159,6 +172,7 @@ func (hc HelmRelease) getValuesAsList(values map[string]string) []string {
 	var valueList []string
 	var transformedVal string
 	valueList = []string{}
+
 	for k, v := range values {
 		transformedVal = k + "=" + v
 		valueList = append(valueList, transformedVal)
@@ -175,13 +189,14 @@ func (hc HelmRelease) getInstalledValues() (map[string]interface{}, error) {
 
 func (hc *HelmRelease) valuesChanged() (bool, error) {
 
-	installedValues, err := hc.getInstalledValues()
+	var installedValues map[string]interface{}
+	var err error
 
-	log.Debugf("installed values: (%v)", installedValues)
-
-	if err != nil {
+	if installedValues, err = hc.getInstalledValues(); err != nil {
 		return false, err
 	}
+
+	log.Debugf("installed values: (%v)", installedValues)
 
 	defaultVals := hc.getDefaultValuesFromConfigMap(client.New(), "helm-default-"+hc.Chart+"-"+hc.Version)
 	requestedValues := mergeMaps(hc.getValues(), defaultVals)
@@ -190,10 +205,6 @@ func (hc *HelmRelease) valuesChanged() (bool, error) {
 		if _, ok := requestedValues[key]; !ok {
 			log.Errorf("missing key %v", key)
 		}
-	}
-
-	if err != nil {
-		return false, err
 	}
 
 	if len(requestedValues) < 1 && len(installedValues) < 1 {
@@ -214,10 +225,11 @@ func (hc *HelmRelease) getRelease() (*release.Release, error) {
 	return client.Run(hc.Name)
 }
 
-func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.ChartPathOptions) (error, *chart.Chart, string) {
+func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.ChartPathOptions) (error, *chart.Chart) {
 
 	var jsonbody []byte
 	var err error
+
 	helmChart := &chart.Chart{
 		Metadata:  &chart.Metadata{},
 		Files:     []*chart.File{},
@@ -230,13 +242,13 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 
 	log.Debugf("namespace: %v", hc.Namespace.Name)
 
-	jsonbody, err = rc.GetResource(chartName, hc.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
-
-	if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
-		return err, helmChart, ""
+	if jsonbody, err = rc.GetResource(chartName, hc.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1"); err != nil {
+		return err, helmChart
 	}
 
-	cv := chartObj.GetChartVersion(hc.Version)
+	if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
+		return err, helmChart
+	}
 
 	repoSelector := "repo=" + hc.Repo
 
@@ -258,14 +270,14 @@ func (hc *HelmRelease) GetChart(chartName string, chartPathOptions *action.Chart
 	versionObj := chartObj.GetChartVersion(chartPathOptions.Version)
 
 	if err := hc.addDependencies(rc, helmChart, versionObj.Dependencies, repoSelector); err != nil {
-		return err, helmChart, ""
+		return err, helmChart
 	}
 
 	if err := helmChart.Validate(); err != nil {
-		return err, helmChart, ""
+		return err, helmChart
 	}
 
-	return nil, helmChart, cv.URL
+	return nil, helmChart
 }
 
 func (hc *HelmRelease) getFiles(rc *client.Client, helmChart *helmv1alpha1.Chart) []*chart.File {
@@ -300,7 +312,7 @@ func (hc *HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, de
 				options.RepoURL = dep.Repo
 				options.Version = dep.Version
 
-				_, subChart, _ := hc.GetChart(item.Spec.Name, options)
+				_, subChart := hc.GetChart(item.Spec.Name, options)
 				chart.AddDependency(subChart)
 			}
 		}
@@ -367,7 +379,9 @@ func (hc *HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alp
 
 	repoObj := &helmv1alpha1.Repo{}
 
-	jsonbody, err = rc.GetResource(repo, hc.Namespace.Name, "repos", "helm.soer3n.info", "v1alpha1")
+	if jsonbody, err = rc.GetResource(repo, hc.Namespace.Name, "repos", "helm.soer3n.info", "v1alpha1"); err != nil {
+		return err, *repoObj
+	}
 
 	log.Infof("Repo namespace: %v", hc.Namespace.Name)
 
@@ -380,23 +394,23 @@ func (hc *HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alp
 
 func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 
+	var cp string
+	var chartRequested *chart.Chart
+	var err error
+
 	configmapList := []v1.ConfigMap{}
 	installConfig := hc.Config
 	releaseClient := action.NewInstall(installConfig)
 	releaseClient.ReleaseName = hc.Name
 	hc.Client = releaseClient
-
-	var cp string
-	var chartRequested *chart.Chart
 	chartVersion := &HelmChartVersion{}
-	var err error
 
 	log.Debugf("configinstall: %v", hc.Config)
 
 	rc := client.New()
 
 	_, repoObj := hc.getRepo(rc, hc.Repo)
-	_, chartURL := GetChartURL(rc, hc.Chart, hc.Version, hc.Namespace.Name)
+	chartURL, _ := GetChartURL(rc, hc.Chart, hc.Version, hc.Namespace.Name)
 
 	releaseClient.ReleaseName = hc.Name
 	releaseClient.Version = hc.Version
@@ -430,28 +444,22 @@ func (hc HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 }
 
 func (hc *HelmRelease) upgrade(helmChart *chart.Chart, vals chartutil.Values) error {
+
+	var rel *release.Release
+	var err error
+
 	client := action.NewUpgrade(hc.Config)
 
-	if err := chartutil.ProcessDependencies(helmChart, vals); err != nil {
+	if err = chartutil.ProcessDependencies(helmChart, vals); err != nil {
 		return err
 	}
-	rel, err := client.Run(hc.Name, helmChart, vals)
 
-	if err != nil {
+	if rel, err = client.Run(hc.Name, helmChart, vals); err != nil {
 		return err
 	}
 
 	log.Debugf("(%q) has been upgraded.", rel.Name)
 	return nil
-}
-
-func (hc HelmRelease) IsAlreadyInstalled() (error, bool) {
-	return nil, false
-}
-
-func (hc HelmReleases) getCharts() (error, []*chart.Chart) {
-
-	return nil, []*chart.Chart{}
 }
 
 func (hc *HelmReleases) shouldBeInstalled(release *release.Release) bool {

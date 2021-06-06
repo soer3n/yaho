@@ -15,6 +15,8 @@ import (
 func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string) *HelmChart {
 
 	var chartVersions []HelmChartVersion
+	var config *action.Configuration
+	var err error
 
 	for _, version := range versions {
 		item := HelmChartVersion{
@@ -24,7 +26,10 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 		chartVersions = append(chartVersions, item)
 	}
 
-	config, _ := initActionConfig(settings)
+	if config, err = initActionConfig(settings); err != nil {
+		log.Infof("Error on getting action config for chart %v: %v", chartVersions[0].Version.Metadata.Name, err)
+		return &HelmChart{}
+	}
 
 	return &HelmChart{
 		Versions: chartVersions,
@@ -36,7 +41,7 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 
 func (chart *HelmChart) CreateTemplates() error {
 	var argsList []string
-	var name, chartname, cp string
+	var name, chartname, cp, chartURL string
 	var chartRequested *helmchart.Chart
 	var err error
 
@@ -61,7 +66,11 @@ func (chart *HelmChart) CreateTemplates() error {
 			InsecureSkipTLSverify: false,
 			Verify:                false,
 		}
-		_, chartURL := GetChartURL(rc, chartname, chart.Version.Name, client.Namespace)
+
+		if chartURL, err = GetChartURL(rc, chartname, chart.Version.Name, client.Namespace); err != nil {
+			return err
+		}
+
 		if cp, err = DownloadTo(chartURL, chart.Version.APIVersion, repo, settings, options); err != nil {
 			return err
 		}
