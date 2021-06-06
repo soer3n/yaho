@@ -9,13 +9,14 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/prometheus/common/log"
+
 	"helm.sh/helm/v3/pkg/cli"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -26,7 +27,17 @@ import (
 var addToScheme sync.Once
 
 func New() *Client {
+
+	var config *rest.Config
+	var err error
+
 	env := cli.New()
+	getter := env.RESTClientGetter()
+	kubeconfig := new(string)
+
+	if config, err = rest.InClusterConfig(); err != nil {
+		log.Info("Failed to get in cluster config")
+	}
 
 	// Add CRDs to the scheme. They are missing by default.
 	addToScheme.Do(func() {
@@ -39,38 +50,30 @@ func New() *Client {
 		}
 	})
 
-	getter := env.RESTClientGetter()
-
-	kubeconfig := new(string)
-	var config *rest.Config
-	var err error
-
-	config, err = rest.InClusterConfig()
-
 	if err != nil {
+
 		if home := homedir.HomeDir(); home != "" {
 			*kubeconfig = filepath.Join(home, ".kube", "config")
 		} else {
 			*kubeconfig = ""
 		}
+
 		flag.Parse()
 
-		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
-		if err != nil {
+		if config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig); err != nil {
 			panic(err)
 		}
 	}
 
 	return &Client{
-		RestClientGetter: getter,
-		Factory:          cmdutil.NewFactory(getter),
-		Config:           config,
+		Factory: cmdutil.NewFactory(getter),
+		Config:  config,
 	}
 }
 
 func (c *Client) SetClient() error {
 	var err error
-	c.client, err = dynamic.NewForConfig(c.Config)
+	c.client, err = c.Factory.DynamicClient()
 	return err
 }
 
@@ -80,11 +83,14 @@ func (c *Client) SetOptions(opts ClientOpts) *Client {
 }
 
 func (c Client) GetResource(name, namespace, resource, group, version string) ([]byte, error) {
+
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
 	opts := metav1.GetOptions{}
 
 	if c.client == nil {
-		_ = c.SetClient()
+		if err := c.SetClient(); err != nil {
+			return nil, err
+		}
 	}
 
 	if c.opts != nil {
@@ -96,6 +102,7 @@ func (c Client) GetResource(name, namespace, resource, group, version string) ([
 	if err != nil {
 		return nil, err
 	}
+
 	return json.Marshal(obj.UnstructuredContent())
 }
 
@@ -104,7 +111,9 @@ func (c Client) ListResources(namespace, resource, group, version string) ([]byt
 	opts := metav1.ListOptions{}
 
 	if c.client == nil {
-		_ = c.SetClient()
+		if err := c.SetClient(); err != nil {
+			return nil, err
+		}
 	}
 
 	if c.opts != nil {
@@ -116,6 +125,7 @@ func (c Client) ListResources(namespace, resource, group, version string) ([]byt
 	if err != nil {
 		return nil, err
 	}
+
 	return json.Marshal(obj.UnstructuredContent())
 }
 
@@ -136,14 +146,19 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 	}
 
 	for _, list := range lists {
+
 		if len(list.APIResources) == 0 {
 			continue
 		}
+
 		gv, err := schema.ParseGroupVersion(list.GroupVersion)
+
 		if err != nil {
 			continue
 		}
+
 		for _, resource := range list.APIResources {
+
 			if len(resource.Verbs) == 0 {
 				continue
 			}

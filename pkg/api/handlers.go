@@ -39,7 +39,7 @@ func (h *Handler) K8sApiGroup(w http.ResponseWriter, r *http.Request) {
 	response.Data = data
 	response.Message = "Success"
 
-	if payload, err = json.Marshal(objs); err != nil {
+	if payload, err = json.Marshal(response); err != nil {
 		fmt.Println(err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
