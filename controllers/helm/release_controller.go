@@ -147,11 +147,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	helmRelease.ValuesTemplate = helmutils.NewValueTemplate(refList)
 	helmRelease.Namespace.Name = instance.ObjectMeta.Namespace
 	helmRelease.Version = instance.Spec.Version
-
-	//if helmRelease.Values, err = helmRelease.GetValues(); err != nil {
-	//	return ctrl.Result{}, err
-	//}
-
 	_, controller := r.getControllerRepo(instance.Spec.Repo, instance.ObjectMeta.Namespace)
 
 	for _, configmap := range helmRelease.GetParsedConfigMaps() {
@@ -170,11 +165,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		log.Errorf("Handle finalizer for release %v failed.", helmRelease.Name)
 		return ctrl.Result{}, err
 	}
-
-	/*if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", metav1.ConditionTrue) {
-		condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "success", Message: "updateSuccessful"}
-		meta.SetStatusCondition(&instance.Status.Conditions, condition)
-	}*/
 
 	log.Info("Don't reconcile releases.")
 	return ctrl.Result{}, nil
