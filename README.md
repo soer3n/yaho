@@ -1,6 +1,6 @@
 # Yet Another Helm Operator 
 
-This operator is for managing helm repositories, releases and values in a declarative way. This project was originally created with the idea to deploy helm charts in a simple way without any binary except the kubernetes go-client. During the development more and more ideas came to my mind. The most aren't implemented until now. But this is exactly why i decided to publish this "private" project. When dozens of ideas came up when i'm thinking on it, it could be possible that i'm not the only one.
+This operator is for managing helm repositories, releases and values in a declarative way. This project was originally created by the idea to deploy helm charts in a simple way without any binary except the kubernetes go-client. During the development more and more ideas came to my mind. The most aren't implemented until now. But this is exactly why i decided to publish this "private" project. When dozens of ideas came up when i'm thinking on it, it could be possible that i'm not the only one.
 
 
 ## Installation
@@ -19,8 +19,7 @@ IMG="image_name:image_tag" make docker-build docker-push
 
 # Deploy the built operator
 kubectl apply -f deploy/rbac.yaml
-export OPERATOR_IMAGE=yourimagname
-cat deploy/operator.yaml | envsubst | kubectl apply -f -
+OPERATOR_IMAGE=yourimagname cat deploy/operator.yaml | envsubst | kubectl apply -f -
 
 ########
 ## OR ##
