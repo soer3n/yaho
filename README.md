@@ -15,11 +15,12 @@ make install
 
 
 # Building and pushing an image
-IMG="image_name:image_tag" make docker-build docker-push
+export IMG="image_name:image_tag"
+make docker-build docker-push
 
 # Deploy the built operator
 kubectl apply -f deploy/rbac.yaml
-OPERATOR_IMAGE=yourimagname cat deploy/operator.yaml | envsubst | kubectl apply -f -
+cat deploy/operator.yaml | envsubst | kubectl apply -f -
 
 ########
 ## OR ##

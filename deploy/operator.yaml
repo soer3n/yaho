@@ -31,7 +31,7 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: ${OPERATOR_IMAGE}
+        image: ${IMG}
         name: manager
         securityContext:
           allowPrivilegeEscalation: false
