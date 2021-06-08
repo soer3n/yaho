@@ -5,7 +5,7 @@ This operator is for managing helm repositories, releases and values in a declar
 
 ## Installation
 
-Until now there is no docker image neither for the operator nor for the planned web backend. So you have to run it either local or you have to build an image and have to push it to your own account/repository. For both ways you need to install [golang](https://golang.org/doc/install) if not already done. Due to [operator-sdk](https://sdk.operatorframework.io/docs/installation/) layout it's quite simple to do that.
+For now there is no docker image neither for the operator nor for the planned web backend. So you have to run it either local or you have to build an image and have to push it to your own account/repository. For both ways you need to install [golang](https://golang.org/doc/install) if not already done. Due to [operator-sdk](https://sdk.operatorframework.io/docs/installation/) layout it's quite simple to do that.
 
 ```
 
