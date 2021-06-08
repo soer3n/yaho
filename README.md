@@ -30,3 +30,11 @@ cat deploy/operator.yaml | envsubst | kubectl apply -f -
 make run
 
 ```
+
+
+## Architecture
+
+[Here](docs/ARCHITECTURE.md) is an explanation how the operator works and a comparison between the operator and helm usage on your workstation or somewhere else.
+
+
+## Usage
