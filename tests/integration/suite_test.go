@@ -48,7 +48,8 @@ import (
 
 var cfg *rest.Config
 var k8sClient client.Client
-var namespace string
+
+//var namespace string
 
 // var ns *v1.Namespace
 var err error
@@ -66,12 +67,11 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-	Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
+	// Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
 
-	//Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
-	//Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
-	//Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
-	// Expect(os.Setenv("CGO_ENABLED", "0")).To(Succeed())
+	Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
+	Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
+	Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -85,21 +85,6 @@ var _ = BeforeSuite(func() {
 	err = helmv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = helmv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = helmv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = helmv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = helmv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = helmv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
 	// +kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
@@ -107,9 +92,9 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).NotTo(BeNil())
 
 	Expect(os.Setenv("WATCH_NAMESPACE", "")).To(Succeed())
-	logf.Log.Info("namespace:", "namespace", namespace)
+	logf.Log.Info("namespace:", "namespace", "default")
 
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Namespace: namespace, MetricsBindAddress: "0"})
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Namespace: "default", MetricsBindAddress: "0"})
 	Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 	controller := &helmrepo.RepoReconciler{
@@ -127,7 +112,7 @@ var _ = BeforeSuite(func() {
 	repoGroupController := &helmrepo.RepoGroupReconciler{
 		Client:   mgr.GetClient(),
 		Log:      logf.Log,
-		Recorder: mgr.GetEventRecorderFor("repo-controller"),
+		Recorder: mgr.GetEventRecorderFor("repogroup-controller"),
 		Scheme:   mgr.GetScheme(),
 	}
 	err = repoGroupController.SetupWithManager(mgr)
@@ -153,7 +138,7 @@ var _ = BeforeSuite(func() {
 
 	go func() {
 		err := mgr.Start(context.TODO())
-		Expect(err).NotTo(HaveOccurred(), "failed to start repogroup manager")
+		Expect(err).NotTo(HaveOccurred(), "failed to start helm manager")
 	}()
 
 }, 60)

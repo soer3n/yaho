@@ -17,25 +17,18 @@ var release *helmv1alpha1.Release
 var releaseChart *helmv1alpha1.Chart
 var releaseRepo *helmv1alpha1.Repo
 
-var _ = Context("Install a release", func() {
-	ctx := context.TODO()
-	//repoNeeded = true
-	releaseNs := SetupTest(ctx, "helm")
-	namespace = releaseNs.ObjectMeta.Name
+var _ = Describe("Install a release", func() {
 
-	Describe("when no existing resources exist", func() {
+	Context("when no existing resources exist", func() {
 
-		It("should create a new namespace", func() {
+		ctx := context.TODO()
 
-			By("when creating a resource for it")
-			err := k8sClient.Create(ctx, releaseNs)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test namespace resource")
-
+		It("should create a new Repository resource with the specified name and specified url", func() {
 			By("should create a new Repository resource with the specified name and specified url")
 			releaseRepo = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource-123",
-					Namespace: releaseNs.Name,
+					Namespace: "default",
 				},
 				Spec: helmv1alpha1.RepoSpec{
 					Name: "deployment-name",
@@ -53,23 +46,26 @@ var _ = Context("Install a release", func() {
 			//configmap := &v1.ConfigMap{}
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: releaseNs.Name}, deployment),
+				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: "default"}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource-123"))
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: releaseNs.Name}, repoChart),
+				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: "default"}, repoChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(*&repoChart.ObjectMeta.Name).To(Equal("submariner"))
 
+		})
+
+		It("should create a new Release resource with specified", func() {
 			By("should create a new Release resource with specified")
 
 			releaseKind = &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource",
-					Namespace: releaseNs.Name,
+					Namespace: "default",
 				},
 				Spec: helmv1alpha1.ReleaseSpec{
 					Name:    "deployment-name",
@@ -99,7 +95,9 @@ var _ = Context("Install a release", func() {
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(*&releaseChart.ObjectMeta.Name).To(Equal("submariner"))
+		})
 
+		It("should remove this Release resource with the specified configmaps after deletion", func() {
 			By("should remove this Release resource with the specified configmaps after deletion")
 
 			err = k8sClient.Delete(ctx, releaseKind)
@@ -113,26 +111,25 @@ var _ = Context("Install a release", func() {
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: releaseKind.Namespace}, releaseChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
+		})
+
+		It("should remove this Repository resource with the specified name and specified url", func() {
 			By("should remove this Repository resource with the specified name and specified url")
 
 			err = k8sClient.Delete(ctx, repoKind)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
 
 			time.Sleep(1 * time.Second)
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
+				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: repoKind.Namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
-			By("deleting namespace resource for it")
-			err = k8sClient.Delete(ctx, releaseNs)
-			Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace resource")
 		})
-
 	})
 })
 

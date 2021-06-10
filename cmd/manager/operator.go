@@ -80,7 +80,7 @@ func run() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	watchNamespace, err := getWatchNamespace()
+	_, err := getWatchNamespace()
 
 	if err != nil {
 		setupLog.Error(err, "unable to get WatchNamespace, "+
@@ -94,7 +94,7 @@ func run() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "bb07b8f2.soer3n.info",
-		Namespace:              watchNamespace,
+		// Namespace:              watchNamespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

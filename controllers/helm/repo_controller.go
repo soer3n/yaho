@@ -25,7 +25,6 @@ import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	helmutils "github.com/soer3n/apps-operator/pkg/helm"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
-	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -187,16 +186,6 @@ func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo, hc *helmutils.H
 	helmRepo := hc.Repos.Entries[0]
 
 	log.Infof("Get: %v.\n", helmRepo.Settings)
-
-	var entryObj *repo.Entry
-
-	if err, entryObj = helmRepo.GetEntryObj(); err != nil {
-		return &helmutils.HelmRepo{}, err
-	}
-
-	if err = hc.Repos.UpdateRepoFile(entryObj); err != nil {
-		return &helmutils.HelmRepo{}, err
-	}
 
 	if err = helmRepo.Update(); err != nil {
 		return &helmutils.HelmRepo{}, err

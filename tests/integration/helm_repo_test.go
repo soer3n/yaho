@@ -16,25 +16,18 @@ var repoKind *helmv1alpha1.Repo
 var deployment *helmv1alpha1.Repo
 var repoChart *helmv1alpha1.Chart
 
-var _ = Context("Install a repository", func() {
-	ctx := context.TODO()
-	//repoNeeded = false
-	repoNs := SetupTest(ctx, "helm")
-	namespace = repoNs.ObjectMeta.Name
+var _ = Describe("Install a repository", func() {
 
-	Describe("when no existing resources exist", func() {
+	Context("when no existing resources exist", func() {
 
-		It("should create a new namespace", func() {
+		ctx := context.TODO()
 
-			By("when creating a resource for it")
-			err := k8sClient.Create(ctx, repoNs)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test namespace resource")
-
+		It("should create a new Repository resource with the specified name and specified url", func() {
 			By("should create a new Repository resource with the specified name and specified url")
 			repoKind = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource",
-					Namespace: repoNs.Name,
+					Namespace: "default",
 				},
 				Spec: helmv1alpha1.RepoSpec{
 					Name: "deployment-name",
@@ -63,6 +56,9 @@ var _ = Context("Install a repository", func() {
 
 			Expect(*&repoChart.ObjectMeta.Name).To(Equal("submariner"))
 
+		})
+
+		It("should remove this Repository resource with the specified name and specified url", func() {
 			By("should remove this Repository resource with the specified name and specified url")
 
 			err = k8sClient.Delete(ctx, repoKind)
@@ -78,9 +74,6 @@ var _ = Context("Install a repository", func() {
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
-			By("deleting namespace resource for it")
-			err = k8sClient.Delete(ctx, repoNs)
-			Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace resource")
 		})
 	})
 })

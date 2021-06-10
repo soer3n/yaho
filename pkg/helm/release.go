@@ -47,9 +47,7 @@ func (hc *HelmRelease) Update() error {
 	}
 
 	log.Debugf("configupdate: %v", hc.Config)
-	if release, err = hc.getRelease(); err != nil {
-		return err
-	}
+	release, err = hc.getRelease()
 
 	if err = hc.SetValues(); err != nil {
 		return err
@@ -378,6 +376,15 @@ func (hc HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alph
 	var err error
 
 	repoObj := &helmv1alpha1.Repo{}
+	list := &helmv1alpha1.RepoList{}
+
+	if jsonbody, err = rc.ListResources("", "repos", "helm.soer3n.info", "v1alpha1"); err != nil {
+		return err, *repoObj
+	}
+
+	if err = json.Unmarshal(jsonbody, &list); err != nil {
+		return err, *repoObj
+	}
 
 	if jsonbody, err = rc.GetResource(repo, hc.Namespace.Name, "repos", "helm.soer3n.info", "v1alpha1"); err != nil {
 		return err, *repoObj
