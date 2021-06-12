@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tests
+package helm
 
 import (
 	"context"
@@ -26,9 +26,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	core "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -39,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	helmrepo "github.com/soer3n/apps-operator/controllers/helm"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -48,6 +44,7 @@ import (
 
 var cfg *rest.Config
 var k8sClient client.Client
+var stopCh context.Context
 
 //var namespace string
 
@@ -65,19 +62,20 @@ func TestAPIs(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-var _ = BeforeSuite(func() {
+var _ = BeforeSuite(func(done Done) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-	// Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
+	Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
 
-	Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
-	Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
-	Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
+	// Expect(os.Setenv("TEST_ASSET_KUBE_APISERVER", "/opt/kubebuilder/testbin/bin/kube-apiserver")).To(Succeed())
+	// Expect(os.Setenv("TEST_ASSET_ETCD", "/opt/kubebuilder/testbin/bin/etcd")).To(Succeed())
+	// Expect(os.Setenv("TEST_ASSET_KUBECTL", "/opt/kubebuilder/testbin/bin/kubectl")).To(Succeed())
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd", "bases")},
 	}
 
+	// stopCh = ctrl.SetupSignalHandler()
 	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
@@ -87,92 +85,106 @@ var _ = BeforeSuite(func() {
 
 	// +kubebuilder:scaffold:scheme
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	err = helmv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
 
-	Expect(os.Setenv("WATCH_NAMESPACE", "")).To(Succeed())
+	// +kubebuilder:scaffold:scheme
+
+	err = helmv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	// +kubebuilder:scaffold:scheme
+
+	err = helmv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	// +kubebuilder:scaffold:scheme
+
+	err = helmv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	// +kubebuilder:scaffold:scheme
+
+	err = helmv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	// +kubebuilder:scaffold:scheme
+
+	// Expect(os.Setenv("WATCH_NAMESPACE", "")).To(Succeed())
 	logf.Log.Info("namespace:", "namespace", "default")
 
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Namespace: "default", MetricsBindAddress: "0"})
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
-	controller := &helmrepo.RepoReconciler{
+	err = (&RepoReconciler{
 		Client:   mgr.GetClient(),
 		Log:      logf.Log,
-		Recorder: mgr.GetEventRecorderFor("repo-controller"),
+		Recorder: mgr.GetEventRecorderFor("charts-controller"),
 		Scheme:   mgr.GetScheme(),
-	}
-	err = controller.SetupWithManager(mgr)
+	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
 	//repoGroupMgr, err := ctrl.NewManager(cfg, ctrl.Options{Namespace: ns.Name, MetricsBindAddress: "0"})
 	//Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
-	repoGroupController := &helmrepo.RepoGroupReconciler{
+	err = (&RepoGroupReconciler{
 		Client:   mgr.GetClient(),
 		Log:      logf.Log,
-		Recorder: mgr.GetEventRecorderFor("repogroup-controller"),
+		Recorder: mgr.GetEventRecorderFor("repo-controller"),
 		Scheme:   mgr.GetScheme(),
-	}
-	err = repoGroupController.SetupWithManager(mgr)
+	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
 
-	releaseGroupController := &helmrepo.ReleaseGroupReconciler{
-		Client:   mgr.GetClient(),
-		Log:      logf.Log,
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("releasegroup-controller"),
-	}
-	err = releaseGroupController.SetupWithManager(mgr)
-	Expect(err).NotTo(HaveOccurred(), "failed to setup release group controller")
+	err = (&ChartReconciler{
+		Client: mgr.GetClient(),
+		Log:    logf.Log,
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
 
-	releaseController := &helmrepo.ReleaseReconciler{
+	err = (&ReleaseGroupReconciler{
 		Client:   mgr.GetClient(),
 		Log:      logf.Log,
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("release-controller"),
-	}
-	err = releaseController.SetupWithManager(mgr)
+	}).SetupWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred(), "failed to setup release group controller")
+
+	err = (&ReleaseReconciler{
+		Client:   mgr.GetClient(),
+		Log:      logf.Log,
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("values-controller"),
+	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred(), "failed to setup release controller")
 
+	err = (&ValuesReconciler{
+		Client: mgr.GetClient(),
+		Log:    logf.Log,
+		Scheme: mgr.GetScheme(),
+		// Recorder: mgr.GetEventRecorderFor("values-controller"),
+	}).SetupWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred(), "failed to setup values controller")
+
 	go func() {
-		err := mgr.Start(context.TODO())
+		err := mgr.Start(ctrl.SetupSignalHandler())
 		Expect(err).NotTo(HaveOccurred(), "failed to start helm manager")
 	}()
 
+	//k8sClient = mgr.GetClient()
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(k8sClient).NotTo(BeNil())
+
+	close(done)
 }, 60)
 
 var _ = AfterSuite(func() {
+	//close(stopCh)
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
-
-func SetupTest(ctx context.Context, prefix string) *core.Namespace {
-	var stopCh chan struct{}
-	repo := &helmv1alpha1.Repo{}
-	ns := &v1.Namespace{}
-	repo.ObjectMeta.Name = "testresource"
-
-	BeforeEach(func() {
-		stopCh = make(chan struct{})
-		*ns = v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{Name: prefix + "-" + randStringRunes(3)},
-		}
-
-		//_ = k8sClient.Create(context.TODO(), ns)
-		// Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
-	})
-
-	AfterEach(func() {
-		//err = k8sClient.Delete(context.TODO(), ns)
-		//Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
-		close(stopCh)
-	})
-
-	return ns
-}
 
 func init() {
 	rand.Seed(time.Now().UnixNano())

@@ -1,4 +1,4 @@
-package tests
+package helm
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -16,17 +17,27 @@ var repoGroupKind *helmv1alpha1.RepoGroup
 var repoGroup *helmv1alpha1.RepoGroup
 var chart *helmv1alpha1.Chart
 
-var _ = Describe("Install a repository group", func() {
+var _ = Context("Install a repository group", func() {
 
-	Context("when no existing resources exist", func() {
-
-		ctx := context.TODO()
+	Describe("when no existing resources exist", func() {
 
 		It("should create a new Repository resource with the specified name and specified url", func() {
+			ctx := context.Background()
+			namespace := "test-" + randStringRunes(7)
+
+			By("should create a new namespace")
+			repoGroupNamespace := &v1.Namespace{
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{Name: namespace},
+			}
+
+			err = k8sClient.Create(ctx, repoGroupNamespace)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+
 			By("should create a new Repository resource with the specified name and specified url")
 			repoGroupKind = &helmv1alpha1.RepoGroup{
 				TypeMeta:   metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{Name: "testresource", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testresource", Namespace: namespace},
 				Spec: helmv1alpha1.RepoGroupSpec{
 					LabelSelector: "",
 					Repos: []helmv1alpha1.RepoSpec{
@@ -60,9 +71,6 @@ var _ = Describe("Install a repository group", func() {
 
 			Expect(*&chart.ObjectMeta.Name).To(Equal("submariner"))
 
-		})
-
-		It("should add a new Repository resource with the specified name and specified url to the group", func() {
 			By("should add a new Repository resource with the specified name and specified url to the group")
 
 			repoGroupKind.Spec.Repos = append(repoGroupKind.Spec.Repos, helmv1alpha1.RepoSpec{
@@ -94,9 +102,6 @@ var _ = Describe("Install a repository group", func() {
 
 			Expect(*&chart.ObjectMeta.Name).To(Equal("rocketchat"))
 
-		})
-
-		It("should remove the first Repository resource from the group", func() {
 			By("should remove the first Repository resource from the group")
 
 			repoGroupKind.Spec.Repos = []helmv1alpha1.RepoSpec{
@@ -120,9 +125,6 @@ var _ = Describe("Install a repository group", func() {
 
 			Expect(*&chart.ObjectMeta.Name).To(Equal("rocketchat"))
 
-		})
-
-		It("should  remove every repository left when group is deleted", func() {
 			By("should  remove every repository left when group is deleted")
 
 			err = k8sClient.Delete(ctx, repoGroupKind)
@@ -135,6 +137,15 @@ var _ = Describe("Install a repository group", func() {
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			By("by deletion of namespace")
+			repoGroupNamespace = &v1.Namespace{
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{Name: namespace},
+			}
+
+			err = k8sClient.Delete(ctx, repoGroupNamespace)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 		})
 	})

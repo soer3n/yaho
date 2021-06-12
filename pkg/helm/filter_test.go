@@ -1,19 +1,26 @@
-package main
+package helm
 
 import (
 	"testing"
 
-	helmv1 "github.com/soer3n/apps-operator/pkg/helm"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetFilterSpec(t *testing.T) {
 	options := make(map[string]string)
-	fitlerOptions := helmv1.NewOptions(options)
+	fitlerOptions := NewOptions(options)
 
-	valuesObj := []*helmv1.ValuesRef{}
+	valuesObj := []*ValuesRef{
+		{
+			Parent: "parent",
+		},
+	}
 
-	expectedReturnStruct := []*helmv1.ValuesRef{}
+	expectedReturnStruct := []*ValuesRef{
+		{
+			Parent: "parent",
+		},
+	}
 
 	returnStruct := fitlerOptions.Filter(valuesObj)
 

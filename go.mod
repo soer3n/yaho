@@ -18,6 +18,7 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/mod v0.3.1-0.20200828183125-ce943fd02449 // indirect
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
 	golang.org/x/sys v0.0.0-20210303074136-134d130e1a04 // indirect

@@ -1,4 +1,4 @@
-package tests
+package helm
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -17,22 +18,32 @@ var release *helmv1alpha1.Release
 var releaseChart *helmv1alpha1.Chart
 var releaseRepo *helmv1alpha1.Repo
 
-var _ = Describe("Install a release", func() {
+var _ = Context("Install a release", func() {
 
-	Context("when no existing resources exist", func() {
-
-		ctx := context.TODO()
+	Describe("when no existing resources exist", func() {
 
 		It("should create a new Repository resource with the specified name and specified url", func() {
+			ctx := context.Background()
+			namespace := "test-" + randStringRunes(7)
+
+			By("should create a new namespace")
+			releaseNamespace := &v1.Namespace{
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{Name: namespace},
+			}
+
+			err = k8sClient.Create(ctx, releaseNamespace)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+
 			By("should create a new Repository resource with the specified name and specified url")
 			releaseRepo = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource-123",
-					Namespace: "default",
+					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepoSpec{
 					Name: "deployment-name",
-					Url:  "https://submariner-io.github.io/submariner-charts/charts",
+					Url:  "https://jfelten.github.io/helm-charts/charts",
 				},
 			}
 
@@ -46,32 +57,29 @@ var _ = Describe("Install a release", func() {
 			//configmap := &v1.ConfigMap{}
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: "default"}, deployment),
+				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource-123"))
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: "default"}, repoChart),
+				GetChartFunc(ctx, client.ObjectKey{Name: "busybox", Namespace: namespace}, repoChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&repoChart.ObjectMeta.Name).To(Equal("submariner"))
+			Expect(*&repoChart.ObjectMeta.Name).To(Equal("busybox"))
 
-		})
-
-		It("should create a new Release resource with specified", func() {
-			By("should create a new Release resource with specified")
+			/*By("should create a new Release resource with specified")
 
 			releaseKind = &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource",
-					Namespace: "default",
+					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.ReleaseSpec{
 					Name:    "deployment-name",
-					Chart:   "submariner",
+					Chart:   "busybox",
 					Repo:    "testresource-123",
-					Version: "0.6.0",
+					Version: "0.1.0",
 				},
 			}
 
@@ -91,43 +99,49 @@ var _ = Describe("Install a release", func() {
 			Expect(*&release.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: releaseKind.Namespace}, releaseChart),
+				GetChartFunc(ctx, client.ObjectKey{Name: "busybox", Namespace: releaseKind.Namespace}, releaseChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&releaseChart.ObjectMeta.Name).To(Equal("submariner"))
-		})
+			Expect(*&releaseChart.ObjectMeta.Name).To(Equal("busybox"))
 
-		It("should remove this Release resource with the specified configmaps after deletion", func() {
 			By("should remove this Release resource with the specified configmaps after deletion")
 
 			err = k8sClient.Delete(ctx, releaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+
+			time.Sleep(1 * time.Second)
 
 			Eventually(
 				GetReleaseFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: releaseKind.Namespace}, release),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: releaseKind.Namespace}, releaseChart),
+				GetChartFunc(ctx, client.ObjectKey{Name: "busybox", Namespace: releaseKind.Namespace}, releaseChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
-
-		})
-
-		It("should remove this Repository resource with the specified name and specified url", func() {
+			*/
 			By("should remove this Repository resource with the specified name and specified url")
 
-			err = k8sClient.Delete(ctx, repoKind)
+			err = k8sClient.Delete(ctx, releaseRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
 
 			time.Sleep(1 * time.Second)
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: repoKind.Namespace}, deployment),
+				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: releaseRepo.Namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
+				GetChartFunc(ctx, client.ObjectKey{Name: "busybox", Namespace: releaseRepo.Namespace}, repoChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			By("by deletion of namespace")
+			releaseNamespace = &v1.Namespace{
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{Name: namespace},
+			}
+
+			err = k8sClient.Delete(ctx, releaseNamespace)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 		})
 	})

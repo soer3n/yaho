@@ -69,7 +69,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
+			log.Infof("HelmRepo resource %v not found. Ignoring since object must be deleted", req.Name)
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
@@ -80,6 +80,11 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	var hc *helmutils.HelmClient
 	var helmRepo *helmutils.HelmRepo
 	var chartList []*helmutils.HelmChart
+
+	if instance.GetDeletionTimestamp() != nil && len(instance.GetFinalizers()) == 0 {
+		log.Infof("Exit after deletion of repo %v", instance.Spec.Name)
+		return ctrl.Result{}, nil
+	}
 
 	if hc, err = helmutils.GetHelmClient(instance); err != nil {
 		log.Infof("Error on getting client for repo %v", instance.Spec.Name)

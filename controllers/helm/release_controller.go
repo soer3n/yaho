@@ -96,6 +96,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	var hc *helmutils.HelmClient
 	var helmRelease *helmutils.HelmRelease
 
+	if instance.GetDeletionTimestamp() != nil && len(instance.GetFinalizers()) == 0 {
+		log.Infof("Exit after deletion of repo %v", instance.Spec.Name)
+		return ctrl.Result{}, nil
+	}
+
 	log.Infof("Trying HelmRelease %v", instance.Spec.Name)
 
 	if !oputils.Contains(instance.GetFinalizers(), "finalizer.releases.helm.soer3n.info") {
@@ -147,7 +152,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	helmRelease.ValuesTemplate = helmutils.NewValueTemplate(refList)
 	helmRelease.Namespace.Name = instance.ObjectMeta.Namespace
 	helmRelease.Version = instance.Spec.Version
-	_, controller := r.getControllerRepo(instance.Spec.Repo, instance.ObjectMeta.Namespace)
+	controller, _ := r.getControllerRepo(instance.Spec.Repo, instance.ObjectMeta.Namespace)
 
 	for _, configmap := range helmRelease.GetParsedConfigMaps() {
 		if err := r.deployConfigMap(configmap, controller); err != nil {
@@ -182,7 +187,7 @@ func (r *ReleaseReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.
 	return nil
 }
 
-func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (error, *helmv1alpha1.Repo) {
+func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (*helmv1alpha1.Repo, error) {
 	instance := &helmv1alpha1.Repo{}
 
 	err := r.Get(context.Background(), types.NamespacedName{
@@ -199,14 +204,14 @@ func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (error, *h
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
-			return err, instance
+			return instance, err
 		}
 		// Error reading the object - requeue the request.
 		log.Error(err, "Failed to get ControllerRepo")
-		return err, instance
+		return instance, err
 	}
 
-	return nil, instance
+	return instance, nil
 
 }
 
@@ -322,18 +327,22 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 
 func (r *ReleaseReconciler) updateValuesAnnotations(obj *helmv1alpha1.Values, release *helmv1alpha1.Release) error {
 
+	var patch []byte
+	var value string
+	var ok bool
+
 	currentAnnotations := obj.ObjectMeta.GetAnnotations()
 
-	if value, ok := currentAnnotations["releases"]; !ok {
+	if value, ok = currentAnnotations["releases"]; !ok {
 		obj.ObjectMeta.Annotations["releases"] = release.ObjectMeta.Name
 		patch := []byte(`{"metadata":{"annotations":{"releases": "` + obj.ObjectMeta.Annotations["releases"] + `"}}}`)
 		return r.Client.Patch(context.TODO(), obj, client.RawPatch(types.StrategicMergePatchType, patch))
-	} else {
-		if !oputils.Contains(strings.Split(value, ","), release.ObjectMeta.Name) {
-			obj.ObjectMeta.Annotations["releases"] = currentAnnotations["releases"] + "," + release.ObjectMeta.Name
-			patch := []byte(`{"metadata":{"annotations":{"releases": "` + obj.ObjectMeta.Annotations["releases"] + `"}}}`)
-			return r.Client.Patch(context.TODO(), obj, client.RawPatch(types.StrategicMergePatchType, patch))
-		}
+	}
+
+	if !oputils.Contains(strings.Split(value, ","), release.ObjectMeta.Name) {
+		obj.ObjectMeta.Annotations["releases"] = currentAnnotations["releases"] + "," + release.ObjectMeta.Name
+		patch = []byte(`{"metadata":{"annotations":{"releases": "` + obj.ObjectMeta.Annotations["releases"] + `"}}}`)
+		return r.Client.Patch(context.TODO(), obj, client.RawPatch(types.StrategicMergePatchType, patch))
 	}
 
 	return nil
