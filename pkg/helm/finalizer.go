@@ -1,5 +1,7 @@
 package helm
 
+import "github.com/prometheus/common/log"
+
 func HandleFinalizer(hc *HelmClient, instance interface{}) (bool, error) {
 
 	if len(hc.Repos.Entries) > 0 {
@@ -31,6 +33,11 @@ func removeRepo(hc *HelmClient) error {
 }
 
 func removeRelease(helmRelease *HelmRelease) error {
+
+	if _, err := helmRelease.getRelease(); err != nil {
+		log.Debugf("%v", err)
+		return nil
+	}
 
 	if err := helmRelease.Remove(); err != nil {
 		return err

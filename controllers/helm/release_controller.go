@@ -109,12 +109,18 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		if err = r.Update(ctx, instance); err != nil {
-			return ctrl.Result{}, err
+			//don't reconcile!
+			condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
+			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+
+			_ = r.Status().Update(ctx, instance)
+			return ctrl.Result{}, nil
 		}
 	}
 
 	if hc, err = helmutils.GetHelmClient(instance); err != nil {
 		log.Errorf("Failed to get helm client for release %v.", instance.ObjectMeta.Name)
+		// reconcile?
 		return ctrl.Result{}, err
 	}
 
@@ -123,10 +129,20 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	var refList, subRefList []*helmutils.ValuesRef
 	var valuesList []*helmv1alpha1.Values
 
+	if err = r.handleFinalizer(hc, instance); err != nil {
+		log.Errorf("Handle finalizer for release %v failed.", helmRelease.Name)
+		return ctrl.Result{}, err
+	}
+
 	if instance.Spec.ValuesTemplate != nil && instance.Spec.ValuesTemplate.ValueRefs != nil {
 		if valuesList, err = r.getValuesByReference(instance.Spec.ValuesTemplate.ValueRefs, instance.ObjectMeta.Namespace); err != nil {
 			log.Infof("Getting Value resource refs for release %v failed.", instance.ObjectMeta.Name)
-			return ctrl.Result{}, err
+			// don't reconcile!
+			condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
+			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+
+			_ = r.Status().Update(ctx, instance)
+			return ctrl.Result{}, nil
 		}
 	}
 
@@ -134,12 +150,22 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 		if subRefList, err = r.collectValues(valueObj, 0, instance); err != nil {
 			log.Errorf("Collecting values for Value Resource %v for release %v failed.", valueObj.ObjectMeta.Name, instance.ObjectMeta.Name)
-			return ctrl.Result{}, err
+			// don't reconcile!
+			condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
+			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+
+			_ = r.Status().Update(ctx, instance)
+			return ctrl.Result{}, nil
 		}
 
 		if err = r.updateValuesAnnotations(valueObj, instance); err != nil {
 			log.Errorf("Updating values annotation for resource %v for release %v failed.", valueObj.ObjectMeta.Name, instance.ObjectMeta.Name)
-			return ctrl.Result{}, err
+			// don't reconcile!
+			condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
+			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+
+			_ = r.Status().Update(ctx, instance)
+			return ctrl.Result{}, nil
 		}
 
 		for _, subValueObj := range subRefList {
@@ -157,18 +183,23 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	for _, configmap := range helmRelease.GetParsedConfigMaps() {
 		if err := r.deployConfigMap(configmap, controller); err != nil {
 			log.Infof("Error on deploying configmap %v. Error: %v", configmap.ObjectMeta.Name, err)
-			return ctrl.Result{}, err
+			// don't reconcile!
+			condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
+			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+
+			_ = r.Status().Update(ctx, instance)
+			return ctrl.Result{}, nil
 		}
 	}
 
 	if err = helmRelease.Update(); err != nil {
 		log.Errorf("Failed on updating release resources for %v.", helmRelease.Name)
-		return ctrl.Result{}, err
-	}
+		// don't reconcile!
+		condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
+		meta.SetStatusCondition(&instance.Status.Conditions, condition)
 
-	if err = r.handleFinalizer(hc, instance); err != nil {
-		log.Errorf("Handle finalizer for release %v failed.", helmRelease.Name)
-		return ctrl.Result{}, err
+		_ = r.Status().Update(ctx, instance)
+		return ctrl.Result{}, nil
 	}
 
 	log.Info("Don't reconcile releases.")

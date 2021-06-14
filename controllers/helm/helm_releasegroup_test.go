@@ -13,12 +13,12 @@ import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 )
 
-var releaseKind *helmv1alpha1.Release
-var release *helmv1alpha1.Release
-var releaseChart *helmv1alpha1.Chart
-var releaseRepo *helmv1alpha1.Repo
+var releaseGroupKind *helmv1alpha1.ReleaseGroup
+var releaseGroupChart *helmv1alpha1.Chart
+var releaseGroup *helmv1alpha1.ReleaseGroup
+var releaseGroupRepo *helmv1alpha1.Repo
 
-var _ = Context("Install a release", func() {
+var _ = Context("Install a releasegroup", func() {
 
 	Describe("when no existing resources exist", func() {
 
@@ -52,8 +52,23 @@ var _ = Context("Install a release", func() {
 
 			time.Sleep(1 * time.Second)
 
+			By("should create a new Repository resource with the specified name and specified url")
+			releaseRepo = &helmv1alpha1.Repo{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testresource-321",
+					Namespace: namespace,
+				},
+				Spec: helmv1alpha1.RepoSpec{
+					Name: "deployment-name2",
+					Url:  "https://jfelten.github.io/helm-charts/charts",
+				},
+			}
+
+			err = k8sClient.Create(ctx, releaseRepo)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+
 			deployment = &helmv1alpha1.Repo{}
-			repoChart = &helmv1alpha1.Chart{}
+			releaseGroupChart = &helmv1alpha1.Chart{}
 			//configmap := &v1.ConfigMap{}
 
 			Eventually(
@@ -63,71 +78,81 @@ var _ = Context("Install a release", func() {
 			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource-123"))
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, repoChart),
+				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, releaseGroupChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&repoChart.ObjectMeta.Name).To(Equal("submariner-operator"))
+			Expect(*&releaseGroupChart.ObjectMeta.Name).To(Equal("submariner-operator"))
 
 			By("should create a new Release resource with specified")
 
-			releaseKind = &helmv1alpha1.Release{
+			releaseGroupKind := &helmv1alpha1.ReleaseGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource",
 					Namespace: namespace,
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    "deployment-name",
-					Chart:   "submariner-operator",
-					Repo:    "testresource-123",
-					Version: "0.7.0",
+				Spec: helmv1alpha1.ReleaseGroupSpec{
+					Releases: []helmv1alpha1.ReleaseSpec{
+						{
+							Name:    "deployment-name",
+							Chart:   "submariner-operator",
+							Repo:    "testresource-123",
+							Version: "0.7.0",
+						},
+						{
+							Name:    "deployment-name2",
+							Chart:   "busybox",
+							Repo:    "testresource-321",
+							Version: "0.1.0",
+						},
+					},
 				},
 			}
 
-			err = k8sClient.Create(ctx, releaseKind)
+			err = k8sClient.Create(ctx, releaseGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(5 * time.Second)
 
-			release = &helmv1alpha1.Release{}
-			releaseChart = &helmv1alpha1.Chart{}
+			releaseGroup = &helmv1alpha1.ReleaseGroup{}
+			releaseGroupChart = &helmv1alpha1.Chart{}
 			//configmap := &v1.ConfigMap{}
 
 			Eventually(
-				GetReleaseFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: releaseKind.Namespace}, release),
+				GetReleaseGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: releaseGroupKind.Namespace}, releaseGroup),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&release.ObjectMeta.Name).To(Equal("testresource"))
+			Expect(*&releaseGroup.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: releaseKind.Namespace}, releaseChart),
+				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: releaseGroupKind.Namespace}, releaseGroupChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&releaseChart.ObjectMeta.Name).To(Equal("submariner-operator"))
+			Expect(*&releaseGroupChart.ObjectMeta.Name).To(Equal("submariner-operator"))
 
 			By("should remove this Release resource with the specified configmaps after deletion")
 
-			err = k8sClient.Delete(ctx, releaseKind)
+			err = k8sClient.Delete(ctx, releaseGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(1 * time.Second)
 
 			Eventually(
-				GetReleaseFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: releaseKind.Namespace}, release),
+				GetReleaseGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: releaseGroupKind.Namespace}, releaseGroup),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			By("should remove this Repository resource with the specified name and specified url")
 
-			err = k8sClient.Delete(ctx, releaseRepo)
+			err = k8sClient.Delete(ctx, releaseGroupRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
 
 			time.Sleep(1 * time.Second)
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: releaseRepo.Namespace}, deployment),
+				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: releaseGroupRepo.Namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: releaseRepo.Namespace}, repoChart),
+				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: releaseGroupRepo.Namespace}, releaseGroupChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			By("by deletion of namespace")
@@ -143,7 +168,7 @@ var _ = Context("Install a release", func() {
 	})
 })
 
-func GetReleaseFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Release) func() error {
+func GetReleaseGroupFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.ReleaseGroup) func() error {
 	return func() error {
 		return k8sClient.Get(ctx, key, obj)
 	}
