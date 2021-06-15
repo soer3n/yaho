@@ -38,7 +38,7 @@ var _ = Context("Install a releasegroup", func() {
 			By("should create a new Repository resource with the specified name and specified url")
 			releaseRepo = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "testresource-123",
+					Name:      "test-releasegroup-123",
 					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepoSpec{
@@ -55,7 +55,7 @@ var _ = Context("Install a releasegroup", func() {
 			By("should create a new Repository resource with the specified name and specified url")
 			releaseRepo = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "testresource-321",
+					Name:      "test-releasegroup-321",
 					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepoSpec{
@@ -72,10 +72,10 @@ var _ = Context("Install a releasegroup", func() {
 			//configmap := &v1.ConfigMap{}
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: namespace}, deployment),
+				GetResourceFunc(ctx, client.ObjectKey{Name: "test-releasegroup-123", Namespace: namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource-123"))
+			Expect(*&deployment.ObjectMeta.Name).To(Equal("test-releasegroup-123"))
 
 			Eventually(
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, releaseGroupChart),
@@ -91,11 +91,13 @@ var _ = Context("Install a releasegroup", func() {
 					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.ReleaseGroupSpec{
+					Name: "ReleaseGroup",
+					// LabelSelector: "select",
 					Releases: []helmv1alpha1.ReleaseSpec{
 						{
 							Name:    "deployment-name",
 							Chart:   "submariner-operator",
-							Repo:    "testresource-123",
+							Repo:    "test-releasegroup-123",
 							Version: "0.7.0",
 						},
 						{
@@ -128,6 +130,8 @@ var _ = Context("Install a releasegroup", func() {
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(*&releaseGroupChart.ObjectMeta.Name).To(Equal("submariner-operator"))
+
+			time.Sleep(5 * time.Second)
 
 			By("should remove this Release resource with the specified configmaps after deletion")
 

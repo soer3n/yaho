@@ -76,7 +76,7 @@ var _ = Context("Install a release", func() {
 					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    "deployment-name",
+					Name:    "deployment-values",
 					Chart:   "submariner-operator",
 					Repo:    "testresource-123",
 					Version: "0.7.0",

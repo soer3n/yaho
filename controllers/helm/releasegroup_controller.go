@@ -116,17 +116,21 @@ func (r *ReleaseGroupReconciler) deployRelease(release *helmv1alpha1.ReleaseSpec
 			Name:      release.Name,
 			Namespace: instance.ObjectMeta.Namespace,
 			Labels: map[string]string{
-				"release":   release.Name,
-				"chart":     release.Chart,
-				"repo":      release.Repo,
-				"repoGroup": instance.Spec.LabelSelector,
+				"release": release.Name,
+				"chart":   release.Chart,
+				"repo":    release.Repo,
 			},
 		},
 		Spec: helmv1alpha1.ReleaseSpec{
-			Name:  release.Name,
-			Repo:  release.Repo,
-			Chart: release.Chart,
+			Name:    release.Name,
+			Repo:    release.Repo,
+			Chart:   release.Chart,
+			Version: release.Version,
 		},
+	}
+
+	if instance.Spec.LabelSelector != "" {
+		helmRelease.ObjectMeta.Labels["repoGroup"] = instance.Spec.LabelSelector
 	}
 
 	if release.ValuesTemplate != nil {

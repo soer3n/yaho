@@ -38,6 +38,8 @@ func DownloadTo(url, version, repo string, settings *cli.EnvSettings, options *a
 	var err error
 	var size int64
 
+	log.Infof("Chart path: %v", fileName)
+
 	if file, err = os.Create(fileName); err != nil {
 		log.Fatal(err)
 	}
@@ -73,15 +75,6 @@ func GetChartURL(rc *client.Client, chart, version, namespace string) (string, e
 	var err error
 
 	chartObj := &helmv1alpha1.Chart{}
-	list := &helmv1alpha1.ChartList{}
-
-	if jsonbody, err = rc.ListResources("", "charts", "helm.soer3n.info", "v1alpha1"); err != nil {
-		return "", err
-	}
-
-	if err = json.Unmarshal(jsonbody, &list); err != nil {
-		return "", err
-	}
 
 	if jsonbody, err = rc.GetResource(chart, namespace, "charts", "helm.soer3n.info", "v1alpha1"); err != nil {
 		return "", err
