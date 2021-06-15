@@ -32,11 +32,18 @@ func initActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) 
 }
 
 func DownloadTo(url, version, repo string, settings *cli.EnvSettings, options *action.ChartPathOptions) (string, error) {
-	fileName := settings.RepositoryCache + "/" + repo + "-" + version + ".tgz"
+	directory := settings.RepositoryCache + "/"
+	fileName := directory + repo + "-" + version + ".tgz"
 	var file *os.File
 	var resp *http.Response
 	var err error
 	var size int64
+
+	if _, err = os.Stat(directory); os.IsNotExist(err) {
+		if err = os.MkdirAll(directory, 0640); err != nil {
+			return fileName, err
+		}
+	}
 
 	log.Infof("Chart path: %v", fileName)
 
