@@ -365,6 +365,10 @@ func (r *ReleaseReconciler) updateValuesAnnotations(obj *helmv1alpha1.Values, re
 	currentAnnotations := obj.ObjectMeta.GetAnnotations()
 
 	if value, ok = currentAnnotations["releases"]; !ok {
+		if currentAnnotations == nil {
+			obj.ObjectMeta.Annotations = make(map[string]string)
+		}
+
 		obj.ObjectMeta.Annotations["releases"] = release.ObjectMeta.Name
 		patch := []byte(`{"metadata":{"annotations":{"releases": "` + obj.ObjectMeta.Annotations["releases"] + `"}}}`)
 		return r.Client.Patch(context.TODO(), obj, client.RawPatch(types.StrategicMergePatchType, patch))
