@@ -2,12 +2,14 @@ package helm
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -17,6 +19,7 @@ var valuesReleaseKind *helmv1alpha1.Release
 var valuesRelease *helmv1alpha1.Release
 var valuesReleaseChart *helmv1alpha1.Chart
 var valuesReleaseRepo *helmv1alpha1.Repo
+var values *helmv1alpha1.Values
 
 var _ = Context("Install a release with values", func() {
 
@@ -56,6 +59,66 @@ var _ = Context("Install a release with values", func() {
 			valuesReleaseChart = &helmv1alpha1.Chart{}
 			//configmap := &v1.ConfigMap{}
 
+			By("should create a new values resource with specified")
+
+			nestedMap := map[string]string{
+				"baz": "faz",
+			}
+
+			valuesSpec := map[string]interface{}{
+				"foo": "bar",
+				"boo": nestedMap,
+			}
+
+			valuesSpecRaw, err := json.Marshal(valuesSpec)
+			Expect(err).NotTo(HaveOccurred(), "failed to convert values")
+
+			values = &helmv1alpha1.Values{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testresource",
+					Namespace: namespace,
+				},
+				Spec: helmv1alpha1.ValuesSpec{
+					ValuesMap: &runtime.RawExtension{
+						Raw: []byte(valuesSpecRaw),
+					},
+					Refs: map[string]string{
+						"ref": "testresource-nested",
+					},
+				},
+			}
+
+			err = k8sClient.Create(ctx, values)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+
+			By("should create a new values resource with specified")
+
+			nestedMap = map[string]string{
+				"baz": "faz",
+			}
+			valuesSpec = map[string]interface{}{
+				"foo": "bar",
+				"boo": nestedMap,
+			}
+
+			valuesSpecRaw, err = json.Marshal(valuesSpec)
+			Expect(err).NotTo(HaveOccurred(), "failed to convert values")
+
+			values = &helmv1alpha1.Values{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testresource-nested",
+					Namespace: namespace,
+				},
+				Spec: helmv1alpha1.ValuesSpec{
+					ValuesMap: &runtime.RawExtension{
+						Raw: []byte(valuesSpecRaw),
+					},
+				},
+			}
+
+			err = k8sClient.Create(ctx, values)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+
 			Eventually(
 				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
@@ -80,6 +143,11 @@ var _ = Context("Install a release with values", func() {
 					Chart:   "submariner-operator",
 					Repo:    "testresource-123",
 					Version: "0.7.0",
+					ValuesTemplate: &helmv1alpha1.ValueTemplate{
+						ValueRefs: []string{
+							"testresource",
+						},
+					},
 				},
 			}
 
