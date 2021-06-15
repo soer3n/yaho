@@ -131,14 +131,12 @@ var _ = Context("Install a releasegroup", func() {
 
 			Expect(*&releaseGroupChart.ObjectMeta.Name).To(Equal("submariner-operator"))
 
-			time.Sleep(5 * time.Second)
-
 			By("should remove this Release resource with the specified configmaps after deletion")
 
 			err = k8sClient.Delete(ctx, releaseGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			time.Sleep(5 * time.Second)
+			time.Sleep(10 * time.Second)
 
 			Eventually(
 				GetReleaseGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: releaseGroupKind.Namespace}, releaseGroup),
