@@ -138,7 +138,7 @@ var _ = Context("Install a releasegroup", func() {
 			err = k8sClient.Delete(ctx, releaseGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			time.Sleep(1 * time.Second)
+			time.Sleep(5 * time.Second)
 
 			Eventually(
 				GetReleaseGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: releaseGroupKind.Namespace}, releaseGroup),
