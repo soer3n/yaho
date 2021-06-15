@@ -18,7 +18,7 @@ var valuesRelease *helmv1alpha1.Release
 var valuesReleaseChart *helmv1alpha1.Chart
 var valuesReleaseRepo *helmv1alpha1.Repo
 
-var _ = Context("Install a release", func() {
+var _ = Context("Install a release with values", func() {
 
 	Describe("when no existing resources exist", func() {
 

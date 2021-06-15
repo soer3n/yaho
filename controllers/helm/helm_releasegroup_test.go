@@ -36,7 +36,7 @@ var _ = Context("Install a releasegroup", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("should create a new Repository resource with the specified name and specified url")
-			releaseRepo = &helmv1alpha1.Repo{
+			releaseGroupRepo = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-releasegroup-123",
 					Namespace: namespace,
@@ -47,13 +47,13 @@ var _ = Context("Install a releasegroup", func() {
 				},
 			}
 
-			err = k8sClient.Create(ctx, releaseRepo)
+			err = k8sClient.Create(ctx, releaseGroupRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(1 * time.Second)
 
 			By("should create a new Repository resource with the specified name and specified url")
-			releaseRepo = &helmv1alpha1.Repo{
+			releaseGroupRepo = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-releasegroup-321",
 					Namespace: namespace,
@@ -64,7 +64,7 @@ var _ = Context("Install a releasegroup", func() {
 				},
 			}
 
-			err = k8sClient.Create(ctx, releaseRepo)
+			err = k8sClient.Create(ctx, releaseGroupRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			deployment = &helmv1alpha1.Repo{}
@@ -103,7 +103,7 @@ var _ = Context("Install a releasegroup", func() {
 						{
 							Name:    "deployment-name2",
 							Chart:   "busybox",
-							Repo:    "testresource-321",
+							Repo:    "test-releasegroup-321",
 							Version: "0.1.0",
 						},
 					},
@@ -148,6 +148,22 @@ var _ = Context("Install a releasegroup", func() {
 
 			err = k8sClient.Delete(ctx, releaseGroupRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
+
+			By("should remove this Repository resource with the specified name and specified url")
+
+			releaseGroupRepo = &helmv1alpha1.Repo{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-releasegroup-123",
+					Namespace: namespace,
+				},
+				Spec: helmv1alpha1.RepoSpec{
+					Name: "deployment-name",
+					Url:  "https://submariner-io.github.io/submariner-charts/charts",
+				},
+			}
+
+			err = k8sClient.Delete(ctx, releaseGroupRepo)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(1 * time.Second)
 

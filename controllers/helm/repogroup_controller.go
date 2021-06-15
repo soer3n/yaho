@@ -182,6 +182,5 @@ func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, insta
 func (r *RepoGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&helmv1alpha1.RepoGroup{}).
-		Owns(&helmv1alpha1.Repo{}).
 		Complete(r)
 }

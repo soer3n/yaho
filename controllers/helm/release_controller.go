@@ -415,6 +415,5 @@ func (r *ReleaseReconciler) getValuesByReference(refs []string, namespace string
 func (r *ReleaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&helmv1alpha1.Release{}).
-		Owns(&helmv1alpha1.Values{}).
 		Complete(r)
 }
