@@ -149,7 +149,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	for _, valueObj := range valuesList {
 
 		if subRefList, err = r.collectValues(valueObj, 0, instance); err != nil {
-			log.Errorf("Collecting values for Value Resource %v for release %v failed.", valueObj.ObjectMeta.Name, instance.ObjectMeta.Name)
+			log.Errorf("Collecting values for Value Resource %v for release %v failed: %v", valueObj.ObjectMeta.Name, instance.ObjectMeta.Name, err)
 			// don't reconcile!
 			condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
 			meta.SetStatusCondition(&instance.Status.Conditions, condition)
@@ -332,6 +332,7 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 		}
 
 		if err = r.updateValuesAnnotations(helmRef, release); err != nil {
+			log.Infof("annotations error: %v", err)
 			return list, err
 		}
 
@@ -371,13 +372,13 @@ func (r *ReleaseReconciler) updateValuesAnnotations(obj *helmv1alpha1.Values, re
 
 		obj.ObjectMeta.Annotations["releases"] = release.ObjectMeta.Name
 		patch := []byte(`{"metadata":{"annotations":{"releases": "` + obj.ObjectMeta.Annotations["releases"] + `"}}}`)
-		return r.Client.Patch(context.TODO(), obj, client.RawPatch(types.StrategicMergePatchType, patch))
+		return r.Client.Patch(context.TODO(), obj, client.RawPatch(types.MergePatchType, patch))
 	}
 
 	if !oputils.Contains(strings.Split(value, ","), release.ObjectMeta.Name) {
 		obj.ObjectMeta.Annotations["releases"] = currentAnnotations["releases"] + "," + release.ObjectMeta.Name
 		patch = []byte(`{"metadata":{"annotations":{"releases": "` + obj.ObjectMeta.Annotations["releases"] + `"}}}`)
-		return r.Client.Patch(context.TODO(), obj, client.RawPatch(types.StrategicMergePatchType, patch))
+		return r.Client.Patch(context.TODO(), obj, client.RawPatch(types.MergePatchType, patch))
 	}
 
 	return nil

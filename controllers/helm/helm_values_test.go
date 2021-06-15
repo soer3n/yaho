@@ -10,6 +10,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -172,12 +173,64 @@ var _ = Context("Install a release with values", func() {
 
 			Expect(*&valuesReleaseChart.ObjectMeta.Name).To(Equal("submariner-operator"))
 
+			By("should update release after changing value resource")
+
+			nestedMap = map[string]string{
+				"baz": "foo",
+			}
+			valuesSpec = map[string]interface{}{
+				"foo": "bar",
+				"boo": nestedMap,
+			}
+
+			valuesSpecRaw, err = json.Marshal(valuesSpec)
+			Expect(err).NotTo(HaveOccurred(), "failed to convert values")
+
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Name:      "testresource-nested",
+				Namespace: namespace,
+			}, values)
+			Expect(err).NotTo(HaveOccurred(), "failed to get values resource")
+
+			values.Spec.ValuesMap.Raw = []byte(valuesSpecRaw)
+
+			err = k8sClient.Update(ctx, values)
+			Expect(err).NotTo(HaveOccurred(), "failed to update values resource")
+
+			time.Sleep(5 * time.Second)
+
+			secondValuesReleaseKind := &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testresource-2",
+					Namespace: namespace,
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:    "deployment-values-2",
+					Chart:   "submariner-operator",
+					Repo:    "testresource-123",
+					Version: "0.7.0",
+					ValuesTemplate: &helmv1alpha1.ValueTemplate{
+						ValueRefs: []string{
+							"testresource",
+						},
+					},
+				},
+			}
+
+			err = k8sClient.Create(ctx, secondValuesReleaseKind)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+
+			time.Sleep(5 * time.Second)
+
 			By("should remove this Release resource with the specified configmaps after deletion")
 
 			err = k8sClient.Delete(ctx, valuesReleaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			time.Sleep(1 * time.Second)
+			err = k8sClient.Delete(ctx, secondValuesReleaseKind)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+
+			time.Sleep(5 * time.Second)
 
 			Eventually(
 				GetReleaseFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: valuesReleaseKind.Namespace}, valuesRelease),
