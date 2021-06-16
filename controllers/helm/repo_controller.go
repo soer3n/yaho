@@ -17,7 +17,6 @@ limitations under the License.
 package helm
 
 import (
-	"bytes"
 	"context"
 
 	"github.com/go-logr/logr"
@@ -25,7 +24,6 @@ import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	helmutils "github.com/soer3n/apps-operator/pkg/helm"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -228,46 +226,6 @@ func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *he
 
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (r *RepoReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Repo) error {
-
-	if err := controllerutil.SetControllerReference(instance, &configmap, r.Scheme); err != nil {
-		return err
-	}
-
-	current := &v1.ConfigMap{}
-	err := r.Client.Get(context.Background(), client.ObjectKey{
-		Namespace: configmap.ObjectMeta.Namespace,
-		Name:      configmap.ObjectMeta.Name,
-	}, current)
-
-	if err != nil {
-		if errors.IsNotFound(err) {
-			if err = r.Client.Create(context.TODO(), &configmap); err != nil {
-				return err
-			}
-		}
-		return err
-	}
-
-	for key, data := range current.BinaryData {
-
-		val, ok := configmap.BinaryData[key]
-		compare := bytes.Compare(val, data)
-
-		if !ok || compare != 0 {
-			if err = r.Client.Delete(context.TODO(), current); err != nil {
-				return err
-			}
-
-			if err = r.Client.Create(context.TODO(), &configmap); err != nil {
-				return err
-			}
-		}
 	}
 
 	return nil
