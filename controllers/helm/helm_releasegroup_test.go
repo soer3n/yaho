@@ -105,6 +105,11 @@ var _ = Context("Install a releasegroup", func() {
 							Chart:   "busybox",
 							Repo:    "test-releasegroup-321",
 							Version: "0.1.0",
+							ValuesTemplate: &helmv1alpha1.ValueTemplate{
+								ValueRefs: []string{
+									"notpresent",
+								},
+							},
 						},
 					},
 				},

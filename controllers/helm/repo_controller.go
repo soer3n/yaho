@@ -88,10 +88,10 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	if helmRepo, err = r.deployRepo(instance, hc); err != nil {
 		log.Infof("Error on deploying repo %v", instance.Spec.Name)
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
 	}
 
-	if _, err := r.handleFinalizer(reqLogger, helmRepo, hc, instance); err != nil {
+	if err := r.handleFinalizer(reqLogger, helmRepo, hc, instance); err != nil {
 		log.Infof("Failed on handling finalizer for repo %v", instance.Spec.Name)
 		return ctrl.Result{}, err
 	}
@@ -105,7 +105,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	if chartList, err = helmRepo.GetCharts(hc.Repos.Settings, selector); err != nil {
 		log.Infof("Error on getting charts for repo %v", instance.Spec.Name)
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
 	}
 
 	log.Infof("HelmChartCount: %v", len(chartList))
@@ -113,23 +113,17 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	chartObjMap := make(map[string]*helmv1alpha1.Chart)
 
 	for _, chart := range chartList {
-		if chartObjMap, err = chart.AddOrUpdateChartMap(chartObjMap, instance); err != nil {
-			log.Infof("Error modifying chart map for repo %v chart %v", instance.Spec.Name, chart.Versions[0].Version.Name)
-			return ctrl.Result{}, err
-		}
+		chartObjMap = chart.AddOrUpdateChartMap(chartObjMap, instance)
 	}
 
 	for _, chartObj := range chartObjMap {
-		err = r.deployChart(chartObj, instance)
-
-		if err != nil {
+		if err = r.deployChart(chartObj, instance); err != nil {
 			log.Infof("Error on deploying chart: %v", chartObj.Spec.Name)
-			return ctrl.Result{}, err
 		}
 	}
 
 	if err := hc.Repos.RemoveRepoCache(instance.Spec.Name); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
 	}
 
 	log.Infof("Repo %v deployed in namespace %v", instance.Spec.Name, instance.ObjectMeta.Namespace)
@@ -144,17 +138,16 @@ func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Rep
 	// Update CR
 	err := r.Update(context.TODO(), m)
 	if err != nil {
-		reqLogger.Error(err, "Failed to update Repo with finalizer")
 		return err
 	}
 	return nil
 }
 
-func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmutils.HelmRepo, hc *helmutils.HelmClient, instance *helmv1alpha1.Repo) (ctrl.Result, error) {
+func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmutils.HelmRepo, hc *helmutils.HelmClient, instance *helmv1alpha1.Repo) error {
 
 	if !oputils.Contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
 		if err := r.addFinalizer(reqLogger, instance); err != nil {
-			return ctrl.Result{}, err
+			return err
 		}
 	}
 
@@ -164,7 +157,7 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
 		if del, err = helmutils.HandleFinalizer(hc, instance.ObjectMeta); err != nil {
-			return ctrl.Result{}, nil
+			return nil
 		}
 
 		if del {
@@ -173,10 +166,10 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmut
 	}
 
 	if err := r.Client.Update(context.TODO(), instance); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo, hc *helmutils.HelmClient) (*helmutils.HelmRepo, error) {
@@ -209,23 +202,17 @@ func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *he
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Infof("Trying to install HelmChart %v", helmChart.Name)
-			err = r.Client.Create(context.TODO(), helmChart)
 
-			if err != nil {
+			if err = r.Client.Create(context.TODO(), helmChart); err != nil {
 				return err
 			}
 		}
+
 		return err
 	}
 
 	installedChart.Spec = helmChart.Spec
-	err = r.Client.Update(context.TODO(), installedChart)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.Client.Update(context.TODO(), installedChart)
 }
 
 // SetupWithManager sets up the controller with the Manager.

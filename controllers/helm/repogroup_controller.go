@@ -66,9 +66,6 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
 			log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}

@@ -171,6 +171,7 @@ var _ = Context("Install a release with values", func() {
 					ValuesTemplate: &helmv1alpha1.ValueTemplate{
 						ValueRefs: []string{
 							"testresource",
+							"notpresent",
 						},
 					},
 				},

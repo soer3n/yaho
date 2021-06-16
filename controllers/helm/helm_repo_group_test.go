@@ -39,7 +39,7 @@ var _ = Context("Install a repository group", func() {
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: "testresource", Namespace: namespace},
 				Spec: helmv1alpha1.RepoGroupSpec{
-					LabelSelector: "",
+					LabelSelector: "foo",
 					Repos: []helmv1alpha1.RepoSpec{
 						{
 							Name: "deployment-name-2",

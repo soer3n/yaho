@@ -17,7 +17,6 @@ limitations under the License.
 package helm
 
 import (
-	"bytes"
 	"context"
 	"strings"
 	"time"
@@ -84,7 +83,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", metav1.ConditionTrue) {
-		log.Info("Don't reconcile releases after sync.")
 		return r.syncStatus(ctx, instance, metav1.ConditionTrue, "reconciling", "reconcileSuccess")
 	}
 
@@ -92,7 +90,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	var helmRelease *helmutils.HelmRelease
 
 	if instance.GetDeletionTimestamp() != nil && len(instance.GetFinalizers()) == 0 {
-		log.Infof("Exit after deletion of repo %v", instance.Spec.Name)
 		return ctrl.Result{}, nil
 	}
 
@@ -118,7 +115,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if instance.Spec.ValuesTemplate != nil && instance.Spec.ValuesTemplate.ValueRefs != nil {
 		if valuesList, err = r.getValuesByReference(instance.Spec.ValuesTemplate.ValueRefs, instance.ObjectMeta.Namespace); err != nil {
-			log.Infof("Getting Value resource refs for release %v failed.", instance.ObjectMeta.Name)
 			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
 		}
 	}
@@ -126,12 +122,10 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	for _, valueObj := range valuesList {
 
 		if subRefList, err = r.collectValues(valueObj, 0, instance); err != nil {
-			log.Errorf("Collecting values for Value Resource %v for release %v failed: %v", valueObj.ObjectMeta.Name, instance.ObjectMeta.Name, err)
 			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
 		}
 
 		if err = r.updateValuesAnnotations(valueObj, instance); err != nil {
-			log.Errorf("Updating values annotation for resource %v for release %v failed.", valueObj.ObjectMeta.Name, instance.ObjectMeta.Name)
 			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
 		}
 
@@ -149,13 +143,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	for _, configmap := range helmRelease.GetParsedConfigMaps() {
 		if err := r.deployConfigMap(configmap, controller); err != nil {
-			log.Infof("Error on deploying configmap %v. Error: %v", configmap.ObjectMeta.Name, err)
 			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
 		}
 	}
 
 	if err = helmRelease.Update(); err != nil {
-		log.Errorf("Failed on updating release resources for %v.", helmRelease.Name)
 		return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
 	}
 
@@ -188,9 +180,6 @@ func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (*helmv1al
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
 			log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
 			return instance, err
 		}
@@ -239,22 +228,6 @@ func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *he
 			}
 		}
 		return err
-	}
-
-	for key, data := range current.BinaryData {
-
-		val, ok := configmap.BinaryData[key]
-		compare := bytes.Compare(val, data)
-
-		if !ok || compare != 0 {
-			if err = r.Client.Delete(context.TODO(), current); err != nil {
-				return err
-			}
-
-			if err = r.Client.Create(context.TODO(), &configmap); err != nil {
-				return err
-			}
-		}
 	}
 
 	return nil

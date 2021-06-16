@@ -96,15 +96,15 @@ func (chart *HelmChart) CreateTemplates() error {
 	return nil
 }
 
-func (chart *HelmChart) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
+func (chart *HelmChart) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, instance *helmv1alpha1.Repo) map[string]*helmv1alpha1.Chart {
 
 	for _, version := range chart.Versions {
 		if chartObjMap, err := version.AddOrUpdateChartMap(chartObjMap, instance); err != nil {
-			return chartObjMap, err
+			return chartObjMap
 		}
 	}
 
-	return chartObjMap, nil
+	return chartObjMap
 }
 
 func (chart HelmChart) CreateConfigMaps() []v1.ConfigMap {
