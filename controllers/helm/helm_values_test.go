@@ -114,6 +114,30 @@ var _ = Context("Install a release with values", func() {
 					ValuesMap: &runtime.RawExtension{
 						Raw: []byte(valuesSpecRaw),
 					},
+
+					Refs: map[string]string{
+						"ref": "testresource-embedded",
+					},
+				},
+			}
+
+			err = k8sClient.Create(ctx, values)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+
+			By("should create a new values resource with specified")
+
+			valuesSpecRaw, err = json.Marshal(valuesSpec)
+			Expect(err).NotTo(HaveOccurred(), "failed to convert values")
+
+			values = &helmv1alpha1.Values{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testresource-embedded",
+					Namespace: namespace,
+				},
+				Spec: helmv1alpha1.ValuesSpec{
+					ValuesMap: &runtime.RawExtension{
+						Raw: []byte(valuesSpecRaw),
+					},
 				},
 			}
 
@@ -159,7 +183,6 @@ var _ = Context("Install a release with values", func() {
 
 			valuesRelease = &helmv1alpha1.Release{}
 			valuesReleaseChart = &helmv1alpha1.Chart{}
-			//configmap := &v1.ConfigMap{}
 
 			Eventually(
 				GetReleaseFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: valuesReleaseKind.Namespace}, valuesRelease),

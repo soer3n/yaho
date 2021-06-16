@@ -84,10 +84,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	if hc, err = helmutils.GetHelmClient(instance); err != nil {
-		log.Infof("Error on getting client for repo %v", instance.Spec.Name)
-		return ctrl.Result{}, err
-	}
+	hc = helmutils.GetHelmClient(instance)
 
 	if helmRepo, err = r.deployRepo(instance, hc); err != nil {
 		log.Infof("Error on deploying repo %v", instance.Spec.Name)

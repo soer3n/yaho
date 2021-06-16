@@ -84,13 +84,8 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", metav1.ConditionTrue) {
-		condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "reconciling", Message: "reconcileSuccess"}
-		meta.SetStatusCondition(&instance.Status.Conditions, condition)
-
-		_ = r.Status().Update(ctx, instance)
-
 		log.Info("Don't reconcile releases after sync.")
-		return ctrl.Result{}, nil
+		return r.syncStatus(ctx, instance, metav1.ConditionTrue, "reconciling", "reconcileSuccess")
 	}
 
 	var hc *helmutils.HelmClient
@@ -107,23 +102,10 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if err := r.addFinalizer(reqLogger, instance); err != nil {
 			return ctrl.Result{}, err
 		}
-
-		if err = r.Update(ctx, instance); err != nil {
-			//don't reconcile!
-			condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
-			meta.SetStatusCondition(&instance.Status.Conditions, condition)
-
-			_ = r.Status().Update(ctx, instance)
-			return ctrl.Result{}, nil
-		}
+		return ctrl.Result{}, r.Update(ctx, instance)
 	}
 
-	if hc, err = helmutils.GetHelmClient(instance); err != nil {
-		log.Errorf("Failed to get helm client for release %v.", instance.ObjectMeta.Name)
-		// reconcile?
-		return ctrl.Result{}, err
-	}
-
+	hc = helmutils.GetHelmClient(instance)
 	helmRelease = hc.Releases.Entries[0]
 
 	var refList, subRefList []*helmutils.ValuesRef
@@ -137,12 +119,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if instance.Spec.ValuesTemplate != nil && instance.Spec.ValuesTemplate.ValueRefs != nil {
 		if valuesList, err = r.getValuesByReference(instance.Spec.ValuesTemplate.ValueRefs, instance.ObjectMeta.Namespace); err != nil {
 			log.Infof("Getting Value resource refs for release %v failed.", instance.ObjectMeta.Name)
-			// don't reconcile!
-			condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
-			meta.SetStatusCondition(&instance.Status.Conditions, condition)
-
-			_ = r.Status().Update(ctx, instance)
-			return ctrl.Result{}, nil
+			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
 		}
 	}
 
@@ -150,22 +127,12 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 		if subRefList, err = r.collectValues(valueObj, 0, instance); err != nil {
 			log.Errorf("Collecting values for Value Resource %v for release %v failed: %v", valueObj.ObjectMeta.Name, instance.ObjectMeta.Name, err)
-			// don't reconcile!
-			condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
-			meta.SetStatusCondition(&instance.Status.Conditions, condition)
-
-			_ = r.Status().Update(ctx, instance)
-			return ctrl.Result{}, nil
+			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
 		}
 
 		if err = r.updateValuesAnnotations(valueObj, instance); err != nil {
 			log.Errorf("Updating values annotation for resource %v for release %v failed.", valueObj.ObjectMeta.Name, instance.ObjectMeta.Name)
-			// don't reconcile!
-			condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
-			meta.SetStatusCondition(&instance.Status.Conditions, condition)
-
-			_ = r.Status().Update(ctx, instance)
-			return ctrl.Result{}, nil
+			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
 		}
 
 		for _, subValueObj := range subRefList {
@@ -183,23 +150,13 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	for _, configmap := range helmRelease.GetParsedConfigMaps() {
 		if err := r.deployConfigMap(configmap, controller); err != nil {
 			log.Infof("Error on deploying configmap %v. Error: %v", configmap.ObjectMeta.Name, err)
-			// don't reconcile!
-			condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
-			meta.SetStatusCondition(&instance.Status.Conditions, condition)
-
-			_ = r.Status().Update(ctx, instance)
-			return ctrl.Result{}, nil
+			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
 		}
 	}
 
 	if err = helmRelease.Update(); err != nil {
 		log.Errorf("Failed on updating release resources for %v.", helmRelease.Name)
-		// don't reconcile!
-		condition := metav1.Condition{Type: "synced", Status: metav1.ConditionTrue, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "failed", Message: err.Error()}
-		meta.SetStatusCondition(&instance.Status.Conditions, condition)
-
-		_ = r.Status().Update(ctx, instance)
-		return ctrl.Result{}, nil
+		return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
 	}
 
 	log.Info("Don't reconcile releases.")
@@ -382,6 +339,16 @@ func (r *ReleaseReconciler) updateValuesAnnotations(obj *helmv1alpha1.Values, re
 	}
 
 	return nil
+}
+
+func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Release, stats metav1.ConditionStatus, reason, message string) (ctrl.Result, error) {
+	condition := metav1.Condition{Type: "synced", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
+	meta.SetStatusCondition(&instance.Status.Conditions, condition)
+
+	_ = r.Status().Update(ctx, instance)
+
+	log.Info("Don't reconcile releases after sync.")
+	return ctrl.Result{}, nil
 }
 
 func (r *ReleaseReconciler) getValuesByReference(refs []string, namespace string) ([]*helmv1alpha1.Values, error) {

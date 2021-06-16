@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func GetHelmClient(instance interface{}) (*HelmClient, error) {
+func GetHelmClient(instance interface{}) *HelmClient {
 
 	hc := &HelmClient{
 		Repos:    &HelmRepos{},
@@ -37,11 +37,11 @@ func GetHelmClient(instance interface{}) (*HelmClient, error) {
 	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(metaStruct, hc.Env)
 
 	if err := hc.manageEntries(instance); err != nil {
-		return hc, err
+		return hc
 	}
 
 	hc.Repos.Settings = hc.GetEnvSettings()
-	return hc, nil
+	return hc
 }
 
 func (hc *HelmClient) manageEntries(instance interface{}) error {
