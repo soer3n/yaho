@@ -97,7 +97,7 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 
 - syncing state of releases from helm cli and other tools which are using the binary
 - switching to previous revision and back
-- translate cii flags to release spec
+- translate cli flags to release spec
 - auto-sync for new chart versions from repository
 - black- and whitelisting for charts when auto-sync for repository is enabled
 - loading charts from volume or git
