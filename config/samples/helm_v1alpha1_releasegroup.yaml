@@ -6,18 +6,7 @@ spec:
   name: sample
   labelSelector: foo
   releases:
-  - name: kubed
-    repo: appscode
-    chart: kubed
-    version: 0.12.0
-    releaseSpec:
-      valueRefs:
-      - values-sample
-  - name: step-ca
-    repo: smallstep
-    chart: step-certificates
-    version: 1.15.4
-#  - name: cert-manager
-#    repo: jetstack
-#    chart: cert-manager
-#    version: v1.0.0
+  - name: memcached
+    repo: bitnami
+    chart: memcached
+    version: 5.4.2
