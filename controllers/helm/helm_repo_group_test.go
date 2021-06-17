@@ -19,13 +19,13 @@ var chart *helmv1alpha1.Chart
 
 var _ = Context("Install a repository group", func() {
 
-	Describe("when no existing resources exist", func() {
+	Describe("when no existing resource exist", func() {
 
-		It("should create a new Repository resource with the specified name and specified url", func() {
+		It("should start with creating dependencies", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
 
-			By("should create a new namespace")
+			By("install a new namespace")
 			repoGroupNamespace := &v1.Namespace{
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
@@ -34,7 +34,7 @@ var _ = Context("Install a repository group", func() {
 			err = k8sClient.Create(ctx, repoGroupNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			By("should create a new Repository resource with the specified name and specified url")
+			By("creating a new repository group resource with the specified names and specified urls")
 			repoGroupKind = &helmv1alpha1.RepoGroup{
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: "testresource", Namespace: namespace},
@@ -51,13 +51,12 @@ var _ = Context("Install a repository group", func() {
 			}
 
 			err = k8sClient.Create(ctx, repoGroupKind)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
 			time.Sleep(1 * time.Second)
 
 			repoGroup = &helmv1alpha1.RepoGroup{}
 			chart = &helmv1alpha1.Chart{}
-			//configmap := &v1.ConfigMap{}
 
 			Eventually(
 				getRepoGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoGroupKind.Namespace}, repoGroup),
@@ -71,7 +70,7 @@ var _ = Context("Install a repository group", func() {
 
 			Expect(*&chart.ObjectMeta.Name).To(Equal("submariner"))
 
-			By("should add a new Repository resource with the specified name and specified url to the group")
+			By("update group by adding another repository resource with the specified name and specified url")
 
 			repoGroupKind.Spec.Repos = append(repoGroupKind.Spec.Repos, helmv1alpha1.RepoSpec{
 				Name: "deployment-name-3",
@@ -80,7 +79,7 @@ var _ = Context("Install a repository group", func() {
 			})
 
 			err = k8sClient.Update(ctx, repoGroupKind)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
 			time.Sleep(1 * time.Second)
 
@@ -102,7 +101,7 @@ var _ = Context("Install a repository group", func() {
 
 			Expect(*&chart.ObjectMeta.Name).To(Equal("rocketchat"))
 
-			By("should remove the first Repository resource from the group")
+			By("should remove the first repository resource from the group")
 
 			repoGroupKind.Spec.Repos = []helmv1alpha1.RepoSpec{
 				{
@@ -113,7 +112,7 @@ var _ = Context("Install a repository group", func() {
 			}
 
 			err = k8sClient.Update(ctx, repoGroupKind)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
@@ -125,10 +124,10 @@ var _ = Context("Install a repository group", func() {
 
 			Expect(*&chart.ObjectMeta.Name).To(Equal("rocketchat"))
 
-			By("should  remove every repository left when group is deleted")
+			By("remove every repository left when group is deleted")
 
 			err = k8sClient.Delete(ctx, repoGroupKind)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
 
 			Eventually(
 				getRepoGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoGroupKind.Namespace}, repoGroup),
@@ -138,14 +137,14 @@ var _ = Context("Install a repository group", func() {
 				getChartFunc(ctx, client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
-			By("by deletion of namespace")
+			By("by deletion of namespace test should finish successfully")
 			repoGroupNamespace = &v1.Namespace{
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
 			err = k8sClient.Delete(ctx, repoGroupNamespace)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
 
 		})
 	})
