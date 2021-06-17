@@ -67,9 +67,11 @@ var _ = Context("Install a releasegroup", func() {
 			err = k8sClient.Create(ctx, releaseGroupRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
+			time.Sleep(5 * time.Second)
+
 			deployment = &helmv1alpha1.Repo{}
 			releaseGroupChart = &helmv1alpha1.Chart{}
-			//configmap := &v1.ConfigMap{}
+			configmap := &v1.ConfigMap{}
 
 			Eventually(
 				GetResourceFunc(ctx, client.ObjectKey{Name: "test-releasegroup-123", Namespace: namespace}, deployment),
@@ -122,7 +124,6 @@ var _ = Context("Install a releasegroup", func() {
 
 			releaseGroup = &helmv1alpha1.ReleaseGroup{}
 			releaseGroupChart = &helmv1alpha1.Chart{}
-			//configmap := &v1.ConfigMap{}
 
 			Eventually(
 				GetReleaseGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: releaseGroupKind.Namespace}, releaseGroup),
@@ -131,10 +132,42 @@ var _ = Context("Install a releasegroup", func() {
 			Expect(*&releaseGroup.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: releaseGroupKind.Namespace}, releaseGroupChart),
+				GetChartFunc(ctx, client.ObjectKey{Name: "busybox", Namespace: releaseGroupKind.Namespace}, releaseGroupChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&releaseGroupChart.ObjectMeta.Name).To(Equal("submariner-operator"))
+			Expect(*&releaseGroupChart.ObjectMeta.Name).To(Equal("busybox"))
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-tmpl-submariner-operator-0.7.0", Namespace: releaseGroupKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Expect(*&configmap.ObjectMeta.Name).To(Equal("helm-tmpl-submariner-operator-0.7.0"))
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-crds-submariner-operator-0.7.0", Namespace: releaseGroupKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Expect(*&configmap.ObjectMeta.Name).To(Equal("helm-crds-submariner-operator-0.7.0"))
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-default-submariner-operator-0.7.0", Namespace: releaseGroupKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-tmpl-busybox-0.1.0", Namespace: releaseGroupKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Expect(*&configmap.ObjectMeta.Name).To(Equal("helm-tmpl-busybox-0.1.0"))
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-crds-busybox-0.1.0", Namespace: releaseGroupKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Expect(*&configmap.ObjectMeta.Name).To(Equal("helm-crds-busybox-0.1.0"))
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-default-busybox-0.1.0", Namespace: releaseGroupKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			By("should remove this Release resource with the specified configmaps after deletion")
 
@@ -176,6 +209,30 @@ var _ = Context("Install a releasegroup", func() {
 
 			Eventually(
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: releaseGroupRepo.Namespace}, releaseGroupChart),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-tmpl-submariner-operator-0.7.0", Namespace: releaseGroupKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-crds-submariner-operator-0.7.0", Namespace: releaseGroupKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-default-submariner-operator-0.7.0", Namespace: releaseGroupKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-tmpl-busybox-0.1.0", Namespace: releaseGroupKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-crds-busybox-0.1.0", Namespace: releaseGroupKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-default-busybox-0.1.0", Namespace: releaseGroupKind.Namespace}, configmap),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			By("by deletion of namespace")

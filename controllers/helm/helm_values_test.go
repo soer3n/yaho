@@ -58,7 +58,6 @@ var _ = Context("Install a release with values", func() {
 
 			deployment := &helmv1alpha1.Repo{}
 			valuesReleaseChart = &helmv1alpha1.Chart{}
-			//configmap := &v1.ConfigMap{}
 
 			By("should create a new values resource with specified")
 
@@ -184,6 +183,7 @@ var _ = Context("Install a release with values", func() {
 
 			valuesRelease = &helmv1alpha1.Release{}
 			valuesReleaseChart = &helmv1alpha1.Chart{}
+			configmap := &v1.ConfigMap{}
 
 			Eventually(
 				GetReleaseFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: valuesReleaseKind.Namespace}, valuesRelease),
@@ -196,6 +196,24 @@ var _ = Context("Install a release with values", func() {
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(*&valuesReleaseChart.ObjectMeta.Name).To(Equal("submariner-operator"))
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-tmpl-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Expect(*&configmap.ObjectMeta.Name).To(Equal("helm-tmpl-submariner-operator-0.7.0"))
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-crds-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Expect(*&configmap.ObjectMeta.Name).To(Equal("helm-crds-submariner-operator-0.7.0"))
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-default-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Expect(*&configmap.ObjectMeta.Name).To(Equal("helm-default-submariner-operator-0.7.0"))
 
 			By("should update release after changing value resource")
 
@@ -273,6 +291,18 @@ var _ = Context("Install a release with values", func() {
 
 			Eventually(
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: valuesReleaseRepo.Namespace}, valuesReleaseChart),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-tmpl-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-crds-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			Eventually(
+				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-default-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			By("by deletion of namespace")
