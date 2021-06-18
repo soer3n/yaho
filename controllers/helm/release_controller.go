@@ -89,7 +89,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	var hc *helmutils.HelmClient
 	var helmRelease *helmutils.HelmRelease
 
-	hc = helmutils.GetHelmClient(instance)
+	hc = helmutils.NewHelmClient(instance)
 
 	if instance.GetDeletionTimestamp() != nil {
 
@@ -110,7 +110,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, r.Update(ctx, instance)
 	}
 
-	helmRelease = hc.Releases.Entries[0]
+	helmRelease = hc.GetRelease(instance.Spec.Name, instance.Spec.Repo)
 
 	var refList, subRefList []*helmutils.ValuesRef
 	var valuesList []*helmv1alpha1.Values

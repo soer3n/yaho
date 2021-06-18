@@ -430,21 +430,3 @@ func (hc HelmRelease) upgrade(helmChart *chart.Chart, vals chartutil.Values) err
 	log.Debugf("(%q) has been upgraded.", rel.Name)
 	return nil
 }
-
-func (hc HelmReleases) shouldBeInstalled(release *release.Release) bool {
-
-	for key, chart := range hc.Entries {
-
-		if chart.Name == release.Name {
-			log.Debugf("Release %v (index: %v) already installed.", chart.Name, key)
-			return true
-		}
-	}
-
-	return false
-}
-
-func (hc HelmReleases) getRelease(name string) (*release.Release, error) {
-	client := action.NewGet(hc.Config)
-	return client.Run(name)
-}

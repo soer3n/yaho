@@ -84,7 +84,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	hc = helmutils.GetHelmClient(instance)
+	hc = helmutils.NewHelmClient(instance)
 
 	if helmRepo, err = r.deployRepo(instance, hc); err != nil {
 		log.Infof("Error on deploying repo %v", instance.Spec.Name)
@@ -176,7 +176,7 @@ func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo, hc *helmutils.H
 
 	var err error
 
-	helmRepo := hc.Repos.Entries[0]
+	helmRepo := hc.GetRepo(instance.Spec.Name)
 
 	log.Infof("Get: %v.\n", helmRepo.Settings)
 

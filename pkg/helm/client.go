@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func GetHelmClient(instance interface{}) *HelmClient {
+func NewHelmClient(instance interface{}) *HelmClient {
 
 	hc := &HelmClient{
 		Repos:    &HelmRepos{},
@@ -61,6 +61,27 @@ func (hc HelmClient) getActionConfig(settings *cli.EnvSettings) (*action.Configu
 	}
 
 	return actionConfig, nil
+}
+
+func (hc *HelmClient) GetRepo(name string) *HelmRepo {
+
+	for _, repo := range hc.Repos.Entries {
+		if name == repo.Name {
+			return repo
+		}
+	}
+
+	return &HelmRepo{}
+}
+
+func (hc *HelmClient) GetRelease(name, repo string) *HelmRelease {
+
+	for _, release := range hc.Releases.Entries {
+		if release.Name == name && release.Repo == repo {
+			return release
+		}
+	}
+	return &HelmRelease{}
 }
 
 func (hc *HelmClient) manageEntries(instance interface{}) error {
