@@ -1,10 +1,14 @@
 package helm
 
 import (
+	actionlog "log"
+	"os"
+
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -42,6 +46,21 @@ func GetHelmClient(instance interface{}) *HelmClient {
 
 	hc.Repos.Settings = hc.GetEnvSettings()
 	return hc
+}
+
+func (hc HelmClient) getActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) {
+
+	actionConfig := new(action.Configuration)
+	err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionlog.Printf)
+
+	// You can pass an empty string instead of settings.Namespace() to list
+	// all namespaces
+	if err != nil {
+		log.Debugf("%+v", err)
+		return actionConfig, err
+	}
+
+	return actionConfig, nil
 }
 
 func (hc *HelmClient) manageEntries(instance interface{}) error {
@@ -112,7 +131,7 @@ func (hc *HelmClient) setRelease(instance *helmv1alpha1.Release) error {
 		Settings: hc.GetEnvSettings(),
 	}
 
-	if actionConfig, err = helmRelease.GetActionConfig(helmRelease.Settings); err != nil {
+	if actionConfig, err = hc.getActionConfig(helmRelease.Settings); err != nil {
 		return err
 	}
 

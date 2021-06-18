@@ -3,7 +3,6 @@ package helm
 import (
 	"encoding/json"
 	actionlog "log"
-	"os"
 	"reflect"
 
 	"github.com/prometheus/common/log"
@@ -11,7 +10,6 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
-	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
@@ -42,14 +40,14 @@ func (hc *HelmRelease) Update() error {
 		InsecureSkipTLSverify: false,
 		Verify:                false,
 	}
-	if err, helmChart = hc.GetChart(hc.Chart, options); err != nil {
+	if helmChart, err = hc.getChart(hc.Chart, options); err != nil {
 		return err
 	}
 
 	log.Debugf("configupdate: %v", hc.Config)
 	release, err = hc.getRelease()
 
-	if err = hc.SetValues(); err != nil {
+	if err = hc.setValues(); err != nil {
 		return err
 	}
 
@@ -149,7 +147,7 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 	return mergedVals
 }
 
-func (hc *HelmRelease) SetValues() error {
+func (hc *HelmRelease) setValues() error {
 
 	templateObj := hc.ValuesTemplate
 	values := make(map[string]interface{})
@@ -223,7 +221,7 @@ func (hc HelmRelease) getRelease() (*release.Release, error) {
 	return client.Run(hc.Name)
 }
 
-func (hc HelmRelease) GetChart(chartName string, chartPathOptions *action.ChartPathOptions) (error, *chart.Chart) {
+func (hc HelmRelease) getChart(chartName string, chartPathOptions *action.ChartPathOptions) (*chart.Chart, error) {
 
 	var jsonbody []byte
 	var err error
@@ -241,11 +239,11 @@ func (hc HelmRelease) GetChart(chartName string, chartPathOptions *action.ChartP
 	log.Debugf("namespace: %v", hc.Namespace.Name)
 
 	if jsonbody, err = rc.GetResource(chartName, hc.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1"); err != nil {
-		return err, helmChart
+		return helmChart, err
 	}
 
 	if err = json.Unmarshal(jsonbody, &chartObj); err != nil {
-		return err, helmChart
+		return helmChart, err
 	}
 
 	repoSelector := "repo=" + hc.Repo
@@ -268,14 +266,14 @@ func (hc HelmRelease) GetChart(chartName string, chartPathOptions *action.ChartP
 	versionObj := chartObj.GetChartVersion(chartPathOptions.Version)
 
 	if err := hc.addDependencies(rc, helmChart, versionObj.Dependencies, repoSelector); err != nil {
-		return err, helmChart
+		return helmChart, err
 	}
 
 	if err := helmChart.Validate(); err != nil {
-		return err, helmChart
+		return helmChart, err
 	}
 
-	return nil, helmChart
+	return helmChart, nil
 }
 
 func (hc HelmRelease) getFiles(rc *client.Client, helmChart *helmv1alpha1.Chart) []*chart.File {
@@ -310,7 +308,7 @@ func (hc HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, dep
 				options.RepoURL = dep.Repo
 				options.Version = dep.Version
 
-				_, subChart := hc.GetChart(item.Spec.Name, options)
+				subChart, _ := hc.getChart(item.Spec.Name, options)
 				chart.AddDependency(subChart)
 			}
 		}
@@ -471,21 +469,6 @@ func (hc HelmReleases) shouldBeInstalled(release *release.Release) bool {
 	}
 
 	return false
-}
-
-func (hc HelmRelease) GetActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) {
-
-	actionConfig := new(action.Configuration)
-	err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionlog.Printf)
-
-	// You can pass an empty string instead of settings.Namespace() to list
-	// all namespaces
-	if err != nil {
-		log.Debugf("%+v", err)
-		return actionConfig, err
-	}
-
-	return actionConfig, nil
 }
 
 func (hc HelmReleases) getRelease(name string) (*release.Release, error) {
