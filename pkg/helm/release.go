@@ -85,33 +85,6 @@ func (hc HelmRelease) Remove() error {
 	return err
 }
 
-func (hc HelmReleases) Remove() error {
-
-	var installedReleases []*release.Release
-	var err error
-
-	if installedReleases, err = hc.getReleases(); err != nil {
-		return err
-	}
-
-	client := action.NewUninstall(hc.Config)
-
-	for key, release := range installedReleases {
-		if !hc.shouldBeInstalled(release) {
-			log.Debugf("Removing release: index: (%q) name: (%q)", key, release.Name)
-			// purge releases
-			client.KeepHistory = false
-			_, err := client.Run(release.Name)
-
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
 func (hc HelmRelease) getValues() map[string]interface{} {
 
 	log.Debugf("init check (%v)", hc.ValuesTemplate)
@@ -474,16 +447,4 @@ func (hc HelmReleases) shouldBeInstalled(release *release.Release) bool {
 func (hc HelmReleases) getRelease(name string) (*release.Release, error) {
 	client := action.NewGet(hc.Config)
 	return client.Run(name)
-}
-
-func (hc HelmReleases) getReleases() ([]*release.Release, error) {
-
-	// Init cmd
-	client := action.NewList(hc.Config)
-
-	// Only list deployed
-	client.Deployed = true
-
-	// Run cmd
-	return client.Run()
 }
