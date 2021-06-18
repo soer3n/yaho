@@ -89,7 +89,15 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	var hc *helmutils.HelmClient
 	var helmRelease *helmutils.HelmRelease
 
-	if instance.GetDeletionTimestamp() != nil && len(instance.GetFinalizers()) == 0 {
+	hc = helmutils.GetHelmClient(instance)
+
+	if instance.GetDeletionTimestamp() != nil {
+
+		if err = r.handleFinalizer(hc, instance); err != nil {
+			log.Errorf("Handle finalizer for release %v failed.", helmRelease.Name)
+			return ctrl.Result{}, err
+		}
+
 		return ctrl.Result{}, nil
 	}
 
@@ -102,16 +110,10 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, r.Update(ctx, instance)
 	}
 
-	hc = helmutils.GetHelmClient(instance)
 	helmRelease = hc.Releases.Entries[0]
 
 	var refList, subRefList []*helmutils.ValuesRef
 	var valuesList []*helmv1alpha1.Values
-
-	if err = r.handleFinalizer(hc, instance); err != nil {
-		log.Errorf("Handle finalizer for release %v failed.", helmRelease.Name)
-		return ctrl.Result{}, err
-	}
 
 	if instance.Spec.ValuesTemplate != nil && instance.Spec.ValuesTemplate.ValueRefs != nil {
 		if valuesList, err = r.getValuesByReference(instance.Spec.ValuesTemplate.ValueRefs, instance.ObjectMeta.Namespace); err != nil {

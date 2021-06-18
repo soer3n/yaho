@@ -102,6 +102,10 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 - black- and whitelisting for charts when auto-sync for repository is enabled
 - loading charts from volume or git
 
+## Known Issues / Troubleshooting
+
+- charts with subfolders in templates are failing due to configmap rendering (slashes are not allowed as charactes in keys)
+
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
