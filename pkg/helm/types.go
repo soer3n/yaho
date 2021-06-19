@@ -2,6 +2,7 @@ package helm
 
 import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	client "github.com/soer3n/apps-operator/pkg/client"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
@@ -33,6 +34,7 @@ type HelmRelease struct {
 	Config         *action.Configuration
 	Settings       *cli.EnvSettings
 	Client         *action.Install
+	k8sClient      *client.Client
 }
 
 type HelmRepos struct {
@@ -47,6 +49,7 @@ type HelmRepo struct {
 	Auth      HelmAuth
 	Namespace Namespace
 	Settings  *cli.EnvSettings
+	k8sClient *client.Client
 }
 
 type HelmChart struct {

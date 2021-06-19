@@ -3,11 +3,11 @@ package helm
 import (
 	"github.com/pkg/errors"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	"github.com/soer3n/apps-operator/pkg/client"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
 	"helm.sh/helm/v3/pkg/helmpath"
 	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func NewHelmClient(instance interface{}, k8sClient *client.Client) *HelmClient {
@@ -38,7 +38,7 @@ func NewHelmClient(instance interface{}, k8sClient *client.Client) *HelmClient {
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
 	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(metaStruct, hc.Env)
 
-	if err := hc.manageEntries(instance); err != nil {
+	if err := hc.manageEntries(instance, k8sClient); err != nil {
 		return hc
 	}
 
@@ -108,18 +108,18 @@ func (hc *HelmClient) GetRelease(name, repo string) *HelmRelease {
 	return &HelmRelease{}
 }
 
-func (hc *HelmClient) manageEntries(instance interface{}) error {
+func (hc *HelmClient) manageEntries(instance interface{}, k8sclient *client.Client) error {
 
 	var releaseObj *helmv1alpha1.Release
 	repoObj, ok := instance.(*helmv1alpha1.Repo)
 	settings := hc.GetEnvSettings()
 
 	if ok {
-		hc.Repos.Entries = append(hc.Repos.Entries, NewHelmRepo(repoObj, settings))
+		hc.Repos.Entries = append(hc.Repos.Entries, NewHelmRepo(repoObj, settings, k8sclient))
 	}
 
 	if releaseObj, ok = instance.(*helmv1alpha1.Release); ok {
-		hc.Releases.Entries = append(hc.Releases.Entries, NewHelmRelease(releaseObj, settings))
+		hc.Releases.Entries = append(hc.Releases.Entries, NewHelmRelease(releaseObj, settings, k8sclient))
 	}
 
 	return nil

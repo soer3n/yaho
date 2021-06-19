@@ -22,17 +22,18 @@ import (
 	client "github.com/soer3n/apps-operator/pkg/client"
 )
 
-func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings) *HelmRelease {
+func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient *client.Client) *HelmRelease {
 
 	var helmRelease *HelmRelease
 
 	log.Debugf("Trying HelmRelease %v", instance.Spec.Name)
 
 	helmRelease = &HelmRelease{
-		Name:     instance.Spec.Name,
-		Repo:     instance.Spec.Repo,
-		Chart:    instance.Spec.Chart,
-		Settings: settings,
+		Name:      instance.Spec.Name,
+		Repo:      instance.Spec.Repo,
+		Chart:     instance.Spec.Chart,
+		Settings:  settings,
+		k8sClient: k8sclient,
 	}
 
 	helmRelease.Config, _ = initActionConfig(settings)
@@ -240,7 +241,7 @@ func (hc HelmRelease) getChart(chartName string, chartPathOptions *action.ChartP
 
 	log.Debugf("namespace: %v", hc.Namespace.Name)
 
-	if jsonbody, err = rc.GetResource(chartName, hc.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1"); err != nil {
+	if jsonbody, err = hc.k8sClient.SetOptions(metav1.GetOptions{}).GetResource(chartName, hc.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1"); err != nil {
 		return helmChart, err
 	}
 
@@ -294,7 +295,7 @@ func (hc HelmRelease) addDependencies(rc *client.Client, chart *chart.Chart, dep
 	var chartList helmv1alpha1.ChartList
 	var err error
 
-	jsonbody, err = rc.SetOptions(metav1.ListOptions{
+	jsonbody, err = hc.k8sClient.SetOptions(metav1.ListOptions{
 		LabelSelector: selector,
 	}).ListResources(hc.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1")
 
@@ -327,7 +328,7 @@ func (hc HelmRelease) appendFilesFromConfigMap(rc *client.Client, name string, l
 	configmap := &v1.ConfigMap{}
 	files := []*chart.File{}
 
-	jsonbody, err = rc.GetResource(name, hc.Namespace.Name, "configmaps", "", "v1")
+	jsonbody, err = hc.k8sClient.SetOptions(metav1.GetOptions{}).GetResource(name, hc.Namespace.Name, "configmaps", "", "v1")
 
 	if err = json.Unmarshal(jsonbody, &configmap); err != nil {
 		return files
@@ -355,7 +356,7 @@ func (hc HelmRelease) getDefaultValuesFromConfigMap(rc *client.Client, name stri
 	values := make(map[string]interface{})
 	configmap := &v1.ConfigMap{}
 
-	jsonbody, err = rc.GetResource(name, hc.Namespace.Name, "configmaps", "", "v1")
+	jsonbody, err = hc.k8sClient.SetOptions(metav1.GetOptions{}).GetResource(name, hc.Namespace.Name, "configmaps", "", "v1")
 
 	if err = json.Unmarshal(jsonbody, &configmap); err != nil {
 		return values
@@ -377,7 +378,7 @@ func (hc HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alph
 
 	repoObj := &helmv1alpha1.Repo{}
 
-	if jsonbody, err = rc.GetResource(repo, hc.Namespace.Name, "repos", "helm.soer3n.info", "v1alpha1"); err != nil {
+	if jsonbody, err = hc.k8sClient.SetOptions(metav1.GetOptions{}).GetResource(repo, hc.Namespace.Name, "repos", "helm.soer3n.info", "v1alpha1"); err != nil {
 		return err, *repoObj
 	}
 
@@ -405,10 +406,8 @@ func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 
 	log.Debugf("configinstall: %v", hc.Config)
 
-	rc := client.New()
-
-	_, repoObj := hc.getRepo(rc, hc.Repo)
-	chartURL, _ := GetChartURL(rc, hc.Chart, hc.Version, hc.Namespace.Name)
+	_, repoObj := hc.getRepo(hc.k8sClient, hc.Repo)
+	chartURL, _ := GetChartURL(hc.k8sClient, hc.Chart, hc.Version, hc.Namespace.Name)
 
 	releaseClient.ReleaseName = hc.Name
 	releaseClient.Version = hc.Version

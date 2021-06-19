@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	clientutils "github.com/soer3n/apps-operator/pkg/client"
 	helmutils "github.com/soer3n/apps-operator/pkg/helm"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
 	meta "k8s.io/apimachinery/pkg/api/meta"
@@ -89,7 +90,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	var hc *helmutils.HelmClient
 	var helmRelease *helmutils.HelmRelease
 
-	hc = helmutils.NewHelmClient(instance, &r.Client)
+	hc = helmutils.NewHelmClient(instance, clientutils.New())
 
 	if instance.GetDeletionTimestamp() != nil {
 

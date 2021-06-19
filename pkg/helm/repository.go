@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings) *HelmRepo {
+func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient *client.Client) *HelmRepo {
 
 	var helmRepo *HelmRepo
 
@@ -26,7 +26,8 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings) *HelmRe
 			Name:    instance.ObjectMeta.Namespace,
 			Install: false,
 		},
-		Settings: settings,
+		Settings:  settings,
+		k8sClient: k8sclient,
 	}
 
 	if instance.Spec.Auth != nil {
@@ -85,13 +86,7 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*Hel
 	var jsonbody []byte
 	var err error
 
-	rc := client.New()
-
-	if err = rc.SetClient(); err != nil {
-		return chartList, err
-	}
-
-	if jsonbody, err = rc.SetOptions(metav1.ListOptions{
+	if jsonbody, err = hr.k8sClient.SetOptions(metav1.ListOptions{
 		LabelSelector: selector,
 	}).ListResources(hr.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1"); err != nil {
 		return chartList, err
