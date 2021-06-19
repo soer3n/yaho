@@ -113,14 +113,13 @@ func (hc *HelmClient) manageEntries(instance interface{}) error {
 	var releaseObj *helmv1alpha1.Release
 	repoObj, ok := instance.(*helmv1alpha1.Repo)
 	settings := hc.GetEnvSettings()
-	actionConfig, _ := initActionConfig(settings)
 
 	if ok {
 		hc.Repos.Entries = append(hc.Repos.Entries, NewHelmRepo(repoObj, settings))
 	}
 
 	if releaseObj, ok = instance.(*helmv1alpha1.Release); ok {
-		hc.Releases.Entries = append(hc.Releases.Entries, NewHelmRelease(releaseObj, settings, actionConfig))
+		hc.Releases.Entries = append(hc.Releases.Entries, NewHelmRelease(releaseObj, settings))
 	}
 
 	return nil

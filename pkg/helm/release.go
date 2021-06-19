@@ -22,7 +22,7 @@ import (
 	client "github.com/soer3n/apps-operator/pkg/client"
 )
 
-func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, actionconfig *action.Configuration) *HelmRelease {
+func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings) *HelmRelease {
 
 	var helmRelease *HelmRelease
 
@@ -35,7 +35,7 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, a
 		Settings: settings,
 	}
 
-	helmRelease.Config = actionconfig
+	helmRelease.Config, _ = initActionConfig(settings)
 
 	log.Debugf("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
 
