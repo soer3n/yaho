@@ -80,21 +80,26 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	var helmRepo *helmutils.HelmRepo
 	var chartList []*helmutils.HelmChart
 
-	if instance.GetDeletionTimestamp() != nil && len(instance.GetFinalizers()) == 0 {
-		log.Infof("Exit after deletion of repo %v", instance.Spec.Name)
+	hc = helmutils.NewHelmClient(instance, clientutils.New())
+
+	if instance.GetDeletionTimestamp() != nil {
+		if err := r.handleFinalizer(reqLogger, hc, instance); err != nil {
+			log.Infof("Failed on handling finalizer for repo %v", instance.Spec.Name)
+			return ctrl.Result{}, err
+		}
+
 		return ctrl.Result{}, nil
 	}
 
-	hc = helmutils.NewHelmClient(instance, clientutils.New())
+	if !oputils.Contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
+		if err := r.addFinalizer(reqLogger, instance); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	if helmRepo, err = r.deployRepo(instance, hc); err != nil {
 		log.Infof("Error on deploying repo %v", instance.Spec.Name)
 		return ctrl.Result{}, nil
-	}
-
-	if err := r.handleFinalizer(reqLogger, helmRepo, hc, instance); err != nil {
-		log.Infof("Failed on handling finalizer for repo %v", instance.Spec.Name)
-		return ctrl.Result{}, err
 	}
 
 	label, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
@@ -144,13 +149,7 @@ func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Rep
 	return nil
 }
 
-func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, helmRepo *helmutils.HelmRepo, hc *helmutils.HelmClient, instance *helmv1alpha1.Repo) error {
-
-	if !oputils.Contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
-		if err := r.addFinalizer(reqLogger, instance); err != nil {
-			return err
-		}
-	}
+func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.HelmClient, instance *helmv1alpha1.Repo) error {
 
 	var del bool
 	var err error
