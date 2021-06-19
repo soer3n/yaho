@@ -33,3 +33,8 @@ type Factory interface {
 	// Returns a schema that can validate objects stored on disk.
 	Validator(validate bool) (validation.Schema, error)
 }
+
+type Resource interface {
+	GetAPIResources(apiGroup string, namespaced bool, verbs ...string) ([]byte, error)
+	ListResources(namespace, resource, group, version string) ([]byte, error)
+}

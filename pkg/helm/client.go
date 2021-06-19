@@ -95,7 +95,7 @@ func (hc *HelmClient) GetRepo(name string) *HelmRepo {
 		}
 	}
 
-	return &HelmRepo{}
+	return nil
 }
 
 func (hc *HelmClient) GetRelease(name, repo string) *HelmRelease {
@@ -105,7 +105,7 @@ func (hc *HelmClient) GetRelease(name, repo string) *HelmRelease {
 			return release
 		}
 	}
-	return &HelmRelease{}
+	return nil
 }
 
 func (hc *HelmClient) manageEntries(instance interface{}, k8sclient *client.Client) error {

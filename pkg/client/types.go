@@ -14,7 +14,7 @@ type Client struct {
 	opts      ClientOpts
 }
 
-type Resource struct {
+type ResourceKind struct {
 	APIGroup        string
 	APIGroupVersion string
 	APIResource     metav1.APIResource
