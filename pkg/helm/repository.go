@@ -133,18 +133,3 @@ func (hr HelmRepo) GetEntryObj() (error, *repo.Entry) {
 		URL:  hr.Url,
 	}
 }
-
-func (hr *HelmRepos) SetInstalledRepos() error {
-
-	var f *repo.File
-	var err error
-
-	if f, err = repo.LoadFile(hr.Settings.RepositoryConfig); err != nil {
-		if err = f.WriteFile(hr.Settings.RepositoryConfig, 0644); err != nil {
-			return err
-		}
-	}
-
-	hr.installed = f
-	return nil
-}
