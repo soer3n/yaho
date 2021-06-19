@@ -17,6 +17,35 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings) *HelmRepo {
+
+	var helmRepo *HelmRepo
+
+	log.Debugf("Trying HelmRepo %v", instance.Spec.Name)
+
+	helmRepo = &HelmRepo{
+		Name: instance.Spec.Name,
+		Url:  instance.Spec.Url,
+		Namespace: Namespace{
+			Name:    instance.ObjectMeta.Namespace,
+			Install: false,
+		},
+		Settings: settings,
+	}
+
+	if instance.Spec.Auth != nil {
+		helmRepo.Auth = HelmAuth{
+			User:     instance.Spec.Auth.User,
+			Password: instance.Spec.Auth.Password,
+			Cert:     instance.Spec.Auth.Cert,
+			Key:      instance.Spec.Auth.Key,
+			Ca:       instance.Spec.Auth.Ca,
+		}
+	}
+
+	return helmRepo
+}
+
 func (hr HelmRepo) Update() error {
 
 	var entry *repo.Entry

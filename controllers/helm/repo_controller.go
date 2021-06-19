@@ -84,7 +84,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	hc = helmutils.NewHelmClient(instance)
+	hc = helmutils.NewHelmClient(instance, &r.Client)
 
 	if helmRepo, err = r.deployRepo(instance, hc); err != nil {
 		log.Infof("Error on deploying repo %v", instance.Spec.Name)

@@ -3,6 +3,7 @@ package helm
 import (
 	"encoding/json"
 	"io"
+	actionlog "log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,7 +20,7 @@ import (
 func initActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) {
 
 	actionConfig := new(action.Configuration)
-	err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionConfig.Log)
+	err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionlog.Printf)
 
 	// You can pass an empty string instead of settings.Namespace() to list
 	// all namespaces

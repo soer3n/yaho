@@ -1,18 +1,13 @@
 package helm
 
 import (
-	actionlog "log"
-	"os"
-
-	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/cli"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func NewHelmClient(instance interface{}) *HelmClient {
+func NewHelmClient(instance interface{}, k8sClient *client.Client) *HelmClient {
 
 	hc := &HelmClient{
 		Repos:    &HelmRepos{},
@@ -48,21 +43,6 @@ func NewHelmClient(instance interface{}) *HelmClient {
 	return hc
 }
 
-func (hc HelmClient) getActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) {
-
-	actionConfig := new(action.Configuration)
-	err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionlog.Printf)
-
-	// You can pass an empty string instead of settings.Namespace() to list
-	// all namespaces
-	if err != nil {
-		log.Debugf("%+v", err)
-		return actionConfig, err
-	}
-
-	return actionConfig, nil
-}
-
 func (hc *HelmClient) GetRepo(name string) *HelmRepo {
 
 	for _, repo := range hc.Repos.Entries {
@@ -88,90 +68,16 @@ func (hc *HelmClient) manageEntries(instance interface{}) error {
 
 	var releaseObj *helmv1alpha1.Release
 	repoObj, ok := instance.(*helmv1alpha1.Repo)
+	settings := hc.GetEnvSettings()
+	actionConfig, _ := initActionConfig(settings)
 
 	if ok {
-		if err := hc.setRepo(repoObj); err != nil {
-			return err
-		}
+		hc.Repos.Entries = append(hc.Repos.Entries, NewHelmRepo(repoObj, settings))
 	}
 
 	if releaseObj, ok = instance.(*helmv1alpha1.Release); ok {
-		if err := hc.setRelease(releaseObj); err != nil {
-			return err
-		}
+		hc.Releases.Entries = append(hc.Releases.Entries, NewHelmRelease(releaseObj, settings, actionConfig))
 	}
 
-	return nil
-}
-
-func (hc *HelmClient) setRepo(instance *helmv1alpha1.Repo) error {
-
-	var repoList []*HelmRepo
-	var helmRepo *HelmRepo
-
-	log.Debugf("Trying HelmRepo %v", instance.Spec.Name)
-
-	helmRepo = &HelmRepo{
-		Name: instance.Spec.Name,
-		Url:  instance.Spec.Url,
-		Namespace: Namespace{
-			Name:    instance.ObjectMeta.Namespace,
-			Install: false,
-		},
-		Settings: hc.GetEnvSettings(),
-	}
-
-	if instance.Spec.Auth != nil {
-		helmRepo.Auth = HelmAuth{
-			User:     instance.Spec.Auth.User,
-			Password: instance.Spec.Auth.Password,
-			Cert:     instance.Spec.Auth.Cert,
-			Key:      instance.Spec.Auth.Key,
-			Ca:       instance.Spec.Auth.Ca,
-		}
-	}
-
-	repoList = append(repoList, helmRepo)
-
-	hc.Repos.Entries = repoList
-	return nil
-}
-
-func (hc *HelmClient) setRelease(instance *helmv1alpha1.Release) error {
-	var releaseList []*HelmRelease
-	var helmRelease *HelmRelease
-	var actionConfig *action.Configuration
-	var err error
-
-	log.Debugf("Trying HelmRelease %v", instance.Spec.Name)
-
-	helmRelease = &HelmRelease{
-		Name:     instance.Spec.Name,
-		Repo:     instance.Spec.Repo,
-		Chart:    instance.Spec.Chart,
-		Settings: hc.GetEnvSettings(),
-	}
-
-	if actionConfig, err = hc.getActionConfig(helmRelease.Settings); err != nil {
-		return err
-	}
-
-	helmRelease.Config = actionConfig
-
-	log.Debugf("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
-
-	if instance.Spec.ValuesTemplate != nil {
-		//if instance.Spec.ValuesTemplate.Values != nil {
-		//	helmRelease.ValuesTemplate.Values = instance.Spec.ValuesTemplate.Values
-		//}
-		if instance.Spec.ValuesTemplate.ValueRefs != nil {
-			helmRelease.ValuesTemplate = &HelmValueTemplate{
-				valuesRef: []*ValuesRef{},
-			}
-		}
-	}
-
-	releaseList = append(releaseList, helmRelease)
-	hc.Releases.Entries = releaseList
 	return nil
 }

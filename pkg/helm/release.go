@@ -10,6 +10,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
+	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
@@ -20,6 +21,34 @@ import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	client "github.com/soer3n/apps-operator/pkg/client"
 )
+
+func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, actionconfig *action.Configuration) *HelmRelease {
+
+	var helmRelease *HelmRelease
+
+	log.Debugf("Trying HelmRelease %v", instance.Spec.Name)
+
+	helmRelease = &HelmRelease{
+		Name:     instance.Spec.Name,
+		Repo:     instance.Spec.Repo,
+		Chart:    instance.Spec.Chart,
+		Settings: settings,
+	}
+
+	helmRelease.Config = actionconfig
+
+	log.Debugf("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
+
+	if instance.Spec.ValuesTemplate != nil {
+		if instance.Spec.ValuesTemplate.ValueRefs != nil {
+			helmRelease.ValuesTemplate = &HelmValueTemplate{
+				valuesRef: []*ValuesRef{},
+			}
+		}
+	}
+
+	return helmRelease
+}
 
 func (hc *HelmRelease) Update() error {
 
