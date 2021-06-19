@@ -2,8 +2,6 @@ package helm
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"os"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
@@ -11,10 +9,8 @@ import (
 	client "github.com/soer3n/apps-operator/pkg/client"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/helmpath"
 	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
 )
 
 func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings) *HelmRepo {
@@ -69,57 +65,6 @@ func (hr HelmRepo) Update() error {
 	return nil
 }
 
-func (hr HelmRepos) Remove() error {
-
-	if err := hr.SetInstalledRepos(); err != nil {
-		return err
-	}
-
-	for key, repository := range hr.installed.Repositories {
-
-		if ok := hr.shouldBeInstalled(repository.Name, repository.URL); ok == false {
-			log.Debugf("Removing repo: index: %v name: %v", key, repository.Name)
-			ok := hr.installed.Remove(repository.Name)
-
-			if !ok {
-				return errors.Errorf("Error removing repository %q.", repository.Name)
-			}
-
-			if err := hr.RemoveRepoCache(repository.Name); err != nil {
-				return errors.Errorf("Error removing repository cache for %q.", repository.Name)
-			}
-		}
-	}
-
-	return hr.installed.WriteFile(hr.Settings.RepositoryConfig, 0644)
-}
-
-func (hr HelmRepos) RemoveByName(name string) error {
-
-	if ok := hr.installed.Remove(name); !ok {
-		return errors.Errorf("Error removing repository %q.", name)
-	}
-
-	if err := hr.RemoveRepoCache(name); err != nil {
-		return errors.Errorf("Error removing repository cache for %q.", name)
-	}
-
-	return hr.installed.WriteFile(hr.Settings.RepositoryConfig, 0644)
-}
-
-func (hr HelmRepos) RemoveRepoCache(name string) error {
-
-	if err := removeFile(hr.Settings.RepositoryCache, helmpath.CacheIndexFile(name)); err != nil {
-		return err
-	}
-
-	if err := removeFile(hr.Settings.RepositoryCache, helmpath.CacheChartsFile(name)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (hr HelmRepos) shouldBeInstalled(name, url string) bool {
 
 	for key, repository := range hr.Entries {
@@ -130,11 +75,6 @@ func (hr HelmRepos) shouldBeInstalled(name, url string) bool {
 	}
 
 	return false
-}
-
-func (hr HelmRepos) Get(name string) (error, *repo.Entry) {
-
-	return nil, hr.installed.Get(name)
 }
 
 func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*HelmChart, error) {
@@ -206,99 +146,5 @@ func (hr *HelmRepos) SetInstalledRepos() error {
 	}
 
 	hr.installed = f
-	return nil
-}
-
-func (hr HelmRepos) UpdateRepoFile(entry *repo.Entry) error {
-
-	var f *repo.File
-	var err error
-
-	if f, err = hr.readRepoFile(); err != nil {
-		return err
-	}
-
-	log.Debugf("Repos before updating: %v", f)
-	f.Update(entry)
-	log.Debugf("Repos after updating: %v", f)
-
-	if err = f.WriteFile(hr.Settings.RepositoryConfig, 0644); err != nil {
-		return err
-	}
-
-	log.Debugf("%q has been added to your repositories", entry.Name)
-
-	return nil
-}
-
-func (hr HelmRepos) readRepoFile() (*repo.File, error) {
-
-	var b []byte
-	var f *repo.File
-	var err error
-
-	if b, err = ioutil.ReadFile(hr.Settings.RepositoryConfig); err != nil && !os.IsNotExist(err) {
-		return f, err
-	}
-
-	if err = yaml.Unmarshal(b, &f); err != nil {
-		return f, err
-	}
-
-	return f, nil
-}
-
-func (hr HelmRepo) readRepoIndexFile() (*repo.IndexFile, error) {
-
-	var b []byte
-	var f *repo.IndexFile
-	var err error
-
-	if b, err = ioutil.ReadFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml"); err != nil && !os.IsNotExist(err) {
-		return f, err
-	}
-
-	if err = yaml.Unmarshal(b, &f); err != nil {
-		return f, err
-	}
-
-	return f, nil
-}
-
-func (hr *HelmRepos) prepare() error {
-
-	if hr.installed == nil {
-		if err := hr.SetInstalledRepos(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (hr *HelmRepos) Validate() error {
-
-	hr.prepare()
-
-	for key, repository := range hr.Entries {
-
-		if err := hr.ValidateRepo(repository.Name, repository.Url); err != nil {
-			log.Errorf("Repo validation error: index: %v name: %v", key, repository.Name)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (hr *HelmRepos) ValidateRepo(name string, url string) error {
-
-	hr.prepare()
-
-	// Check if Name is already set for other Repo
-	if hr.installed.Has(name) && hr.installed.Get(name).URL != url {
-		return errors.Errorf("Other Repo with that name already exists: %s", name)
-	}
-
 	return nil
 }

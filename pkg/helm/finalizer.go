@@ -21,11 +21,11 @@ func removeRepo(hc *HelmClient) error {
 	helmRepo := hc.Repos.Entries[0]
 	name := helmRepo.Name
 
-	if err := hc.Repos.SetInstalledRepos(); err != nil {
+	if err := hc.setInstalledRepos(); err != nil {
 		return err
 	}
 
-	if err := hc.Repos.RemoveByName(name); err != nil {
+	if err := hc.RemoveByName(name); err != nil {
 		return err
 	}
 
