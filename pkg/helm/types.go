@@ -53,10 +53,11 @@ type HelmRepo struct {
 }
 
 type HelmChart struct {
-	Versions HelmChartVersions
-	Client   *action.Install
-	Settings *cli.EnvSettings
-	Repo     string
+	Versions  HelmChartVersions
+	Client    *action.Install
+	Settings  *cli.EnvSettings
+	Repo      string
+	k8sClient *client.Client
 }
 
 type HelmChartVersions []HelmChartVersion

@@ -97,7 +97,7 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*Hel
 	}
 
 	for _, v := range chartApiList.Items {
-		chartList = append(chartList, NewChart(v.ConvertChartVersions(), settings, hr.Name))
+		chartList = append(chartList, NewChart(v.ConvertChartVersions(), settings, hr.Name, hr.k8sClient))
 		log.Debugf("new: %v", v)
 	}
 
@@ -114,7 +114,7 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*Hel
 
 		for _, chartMetadata := range indexFile.Entries {
 			log.Debugf("ChartMetadata: %v", chartMetadata)
-			chartList = append(chartList, NewChart(chartMetadata, settings, hr.Name))
+			chartList = append(chartList, NewChart(chartMetadata, settings, hr.Name, hr.k8sClient))
 		}
 	}
 

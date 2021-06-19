@@ -12,7 +12,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string) *HelmChart {
+func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient *helmclient.Client) *HelmChart {
 
 	var chartVersions []HelmChartVersion
 	var config *action.Configuration
@@ -32,10 +32,11 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 	}
 
 	return &HelmChart{
-		Versions: chartVersions,
-		Client:   action.NewInstall(config),
-		Settings: settings,
-		Repo:     repo,
+		Versions:  chartVersions,
+		Client:    action.NewInstall(config),
+		Settings:  settings,
+		Repo:      repo,
+		k8sClient: k8sclient,
 	}
 }
 
@@ -47,6 +48,7 @@ func (chart *HelmChart) CreateTemplates() error {
 
 	repo := chart.Repo
 	client := chart.Client
+	k8sClient := chart.k8sClient
 	settings := chart.Settings
 
 	for _, chart := range chart.Versions {
@@ -60,14 +62,13 @@ func (chart *HelmChart) CreateTemplates() error {
 
 		client.ReleaseName = name
 		client.Version = chart.Version.Version
-		rc := helmclient.New()
 		options := &action.ChartPathOptions{
 			Version:               chart.Version.APIVersion,
 			InsecureSkipTLSverify: false,
 			Verify:                false,
 		}
 
-		if chartURL, err = GetChartURL(rc, chartname, chart.Version.Name, client.Namespace); err != nil {
+		if chartURL, err = GetChartURL(k8sClient, chartname, chart.Version.Name, client.Namespace); err != nil {
 			return err
 		}
 

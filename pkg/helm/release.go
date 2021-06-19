@@ -371,14 +371,14 @@ func (hc HelmRelease) getDefaultValuesFromConfigMap(rc *client.Client, name stri
 	return jsonMap
 }
 
-func (hc HelmRelease) getRepo(rc *client.Client, repo string) (error, helmv1alpha1.Repo) {
+func (hc HelmRelease) getRepo() (error, helmv1alpha1.Repo) {
 
 	var jsonbody []byte
 	var err error
 
 	repoObj := &helmv1alpha1.Repo{}
 
-	if jsonbody, err = hc.k8sClient.SetOptions(metav1.GetOptions{}).GetResource(repo, hc.Namespace.Name, "repos", "helm.soer3n.info", "v1alpha1"); err != nil {
+	if jsonbody, err = hc.k8sClient.SetOptions(metav1.GetOptions{}).GetResource(hc.Repo, hc.Namespace.Name, "repos", "helm.soer3n.info", "v1alpha1"); err != nil {
 		return err, *repoObj
 	}
 
@@ -406,7 +406,7 @@ func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 
 	log.Debugf("configinstall: %v", hc.Config)
 
-	_, repoObj := hc.getRepo(hc.k8sClient, hc.Repo)
+	_, repoObj := hc.getRepo()
 	chartURL, _ := GetChartURL(hc.k8sClient, hc.Chart, hc.Version, hc.Namespace.Name)
 
 	releaseClient.ReleaseName = hc.Name
