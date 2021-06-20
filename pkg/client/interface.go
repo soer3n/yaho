@@ -2,6 +2,7 @@ package client
 
 import (
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/dynamic"
@@ -34,7 +35,7 @@ type Factory interface {
 	Validator(validate bool) (validation.Schema, error)
 }
 
-type Resource interface {
-	GetAPIResources(apiGroup string, namespaced bool, verbs ...string) ([]byte, error)
-	ListResources(namespace, resource, group, version string) ([]byte, error)
+type ClientInterface interface {
+	GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error)
+	ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error)
 }

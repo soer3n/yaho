@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/prometheus/common/log"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/pkg/errors"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -77,14 +78,14 @@ func DownloadTo(url, version, repo string, settings *cli.EnvSettings, options *a
 	return fileName, nil
 }
 
-func GetChartURL(rc *client.Client, chart, version, namespace string) (string, error) {
+func GetChartURL(rc client.ClientInterface, chart, version, namespace string) (string, error) {
 
 	var jsonbody []byte
 	var err error
 
 	chartObj := &helmv1alpha1.Chart{}
 
-	if jsonbody, err = rc.GetResource(chart, namespace, "charts", "helm.soer3n.info", "v1alpha1"); err != nil {
+	if jsonbody, err = rc.GetResource(chart, namespace, "charts", "helm.soer3n.info", "v1alpha1", metav1.GetOptions{}); err != nil {
 		return "", err
 	}
 

@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/soer3n/apps-operator/pkg/client"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func NewHandler(version string) *Handler {
@@ -81,7 +82,7 @@ func (h *Handler) K8sApiGroupResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	objs, err := rc.ListResources("", resource, group, version)
+	objs, err := rc.ListResources("", resource, group, version, metav1.ListOptions{})
 
 	if err := json.Unmarshal(objs, &data); err != nil {
 		fmt.Println(err.Error())

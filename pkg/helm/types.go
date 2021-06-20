@@ -34,7 +34,7 @@ type HelmRelease struct {
 	Config         *action.Configuration
 	Settings       *cli.EnvSettings
 	Client         *action.Install
-	k8sClient      *client.Client
+	k8sClient      client.ClientInterface
 }
 
 type HelmRepos struct {
@@ -49,7 +49,7 @@ type HelmRepo struct {
 	Auth      HelmAuth
 	Namespace Namespace
 	Settings  *cli.EnvSettings
-	k8sClient *client.Client
+	k8sClient client.ClientInterface
 }
 
 type HelmChart struct {
@@ -57,7 +57,7 @@ type HelmChart struct {
 	Client    *action.Install
 	Settings  *cli.EnvSettings
 	Repo      string
-	k8sClient *client.Client
+	k8sClient client.ClientInterface
 }
 
 type HelmChartVersions []HelmChartVersion

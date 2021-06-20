@@ -12,7 +12,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient *helmclient.Client) *HelmChart {
+func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient helmclient.ClientInterface) *HelmChart {
 
 	var chartVersions []HelmChartVersion
 	var config *action.Configuration

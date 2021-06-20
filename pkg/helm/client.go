@@ -108,7 +108,7 @@ func (hc *HelmClient) GetRelease(name, repo string) *HelmRelease {
 	return nil
 }
 
-func (hc *HelmClient) manageEntries(instance interface{}, k8sclient *client.Client) error {
+func (hc *HelmClient) manageEntries(instance interface{}, k8sclient client.ClientInterface) error {
 
 	var releaseObj *helmv1alpha1.Release
 	repoObj, ok := instance.(*helmv1alpha1.Repo)

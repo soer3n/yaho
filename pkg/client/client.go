@@ -35,38 +35,23 @@ func New() *Client {
 		}
 	})
 
-	return &Client{
-		Factory: cmdutil.NewFactory(getter),
+	value, err := cmdutil.NewFactory(getter).DynamicClient()
+
+	if err != nil {
+		panic(err)
 	}
+
+	rc := &Client{}
+
+	rc.DynamicClient = value
+
+	return rc
 }
 
-func (c *Client) SetClient() error {
-	var err error
-	c.client, err = c.Factory.DynamicClient()
-	return err
-}
-
-func (c *Client) SetOptions(opts ClientOpts) *Client {
-	c.opts = opts
-	return c
-}
-
-func (c Client) GetResource(name, namespace, resource, group, version string) ([]byte, error) {
+func (c Client) GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error) {
 
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
-	opts := metav1.GetOptions{}
-
-	if c.client == nil {
-		if err := c.SetClient(); err != nil {
-			return nil, err
-		}
-	}
-
-	if c.opts != nil {
-		opts = c.opts.(metav1.GetOptions)
-	}
-
-	obj, err := c.client.Resource(deploymentRes).Namespace(namespace).Get(context.TODO(), name, opts)
+	obj, err := c.DynamicClient.Resource(deploymentRes).Namespace(namespace).Get(context.TODO(), name, opts)
 
 	if err != nil {
 		return nil, err
@@ -75,21 +60,10 @@ func (c Client) GetResource(name, namespace, resource, group, version string) ([
 	return json.Marshal(obj.UnstructuredContent())
 }
 
-func (c Client) ListResources(namespace, resource, group, version string) ([]byte, error) {
+func (c Client) ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error) {
+
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
-	opts := metav1.ListOptions{}
-
-	if c.client == nil {
-		if err := c.SetClient(); err != nil {
-			return nil, err
-		}
-	}
-
-	if c.opts != nil {
-		opts = c.opts.(metav1.ListOptions)
-	}
-
-	obj, err := c.client.Resource(deploymentRes).Namespace(namespace).List(context.TODO(), opts)
+	obj, err := c.DynamicClient.Resource(deploymentRes).Namespace(namespace).List(context.TODO(), opts)
 
 	if err != nil {
 		return nil, err
@@ -102,7 +76,21 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 
 	var resources []ResourceKind
 
-	discoveryclient, err := c.Factory.ToDiscoveryClient()
+	env := cli.New()
+	getter := env.RESTClientGetter()
+
+	// Add CRDs to the scheme. They are missing by default.
+	addToScheme.Do(func() {
+		if err := apiextv1.AddToScheme(scheme.Scheme); err != nil {
+			// This should never happen.
+			panic(err)
+		}
+		if err := apiextv1beta1.AddToScheme(scheme.Scheme); err != nil {
+			panic(err)
+		}
+	})
+
+	discoveryclient, err := cmdutil.NewFactory(getter).ToDiscoveryClient()
 
 	if err != nil {
 		return []byte{}, err
