@@ -35,7 +35,7 @@ func New() *Client {
 		}
 	})
 
-	value, err := cmdutil.NewFactory(getter).DynamicClient()
+	foo, err := cmdutil.NewFactory(getter).DynamicClient()
 
 	if err != nil {
 		panic(err)
@@ -43,12 +43,15 @@ func New() *Client {
 
 	rc := &Client{}
 
-	rc.DynamicClient = value
+	rc.DynamicClient = foo
 
 	return rc
 }
 
-func (c Client) GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error) {
+func (c *Client) GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error) {
+
+	c.mu.Lock()
+	defer c.mu.Lock()
 
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
 	obj, err := c.DynamicClient.Resource(deploymentRes).Namespace(namespace).Get(context.TODO(), name, opts)
@@ -60,7 +63,10 @@ func (c Client) GetResource(name, namespace, resource, group, version string, op
 	return json.Marshal(obj.UnstructuredContent())
 }
 
-func (c Client) ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error) {
+func (c *Client) ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error) {
+
+	c.mu.Lock()
+	defer c.mu.Lock()
 
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
 	obj, err := c.DynamicClient.Resource(deploymentRes).Namespace(namespace).List(context.TODO(), opts)

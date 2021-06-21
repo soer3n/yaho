@@ -3,6 +3,7 @@ package helm
 import (
 	"encoding/json"
 	"log"
+	"sync"
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -17,16 +18,35 @@ import (
 type K8SClientMock struct {
 	mock.Mock
 	client.ClientInterface
+	mu  sync.Mutex
+	wg  sync.WaitGroup
+	err error
 }
 
-func (client K8SClientMock) ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error) {
+func (client *K8SClientMock) ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error) {
+	defer client.mu.Lock()
+	if client.err != nil {
+		return nil, client.err
+	}
+	client.mu.Lock()
 	args := client.Called(namespace, resource, group, version, opts)
-	return args.Get(0).([]byte), args.Error(1)
+	values := args.Get(0).([]byte)
+	err := args.Error(1)
+	client.mu.Unlock()
+	return values, err
 }
 
-func (client K8SClientMock) GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error) {
+func (client *K8SClientMock) GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error) {
+	defer client.wg.Done()
+	if client.err != nil {
+		return nil, client.err
+	}
+	client.mu.Lock()
 	args := client.Called(name, namespace, resource, group, version, opts)
-	return args.Get(0).([]byte), args.Error(1)
+	values := args.Get(0).([]byte)
+	err := args.Error(1)
+	client.mu.Unlock()
+	return values, err
 }
 
 func TestGetEntryObject(t *testing.T) {
@@ -78,8 +98,9 @@ func TestGetEntryObject(t *testing.T) {
 
 	apiObj := &helmv1alpha1.Repo{}
 	settings := &cli.EnvSettings{}
-	testObj := NewHelmRepo(apiObj, settings, clientMock)
-
+	clientMock.wg.Add(1)
+	testObj := NewHelmRepo(apiObj, settings, &clientMock)
+	clientMock.wg.Wait()
 	log.Printf("%v", testObj)
 
 	assert := assert.New(t)
