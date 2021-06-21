@@ -2,7 +2,6 @@ package helm
 
 import (
 	"encoding/json"
-	"log"
 	"sync"
 	"testing"
 
@@ -24,28 +23,16 @@ type K8SClientMock struct {
 }
 
 func (client *K8SClientMock) ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error) {
-	defer client.mu.Lock()
-	if client.err != nil {
-		return nil, client.err
-	}
-	client.mu.Lock()
 	args := client.Called(namespace, resource, group, version, opts)
 	values := args.Get(0).([]byte)
 	err := args.Error(1)
-	client.mu.Unlock()
 	return values, err
 }
 
 func (client *K8SClientMock) GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error) {
-	defer client.wg.Done()
-	if client.err != nil {
-		return nil, client.err
-	}
-	client.mu.Lock()
 	args := client.Called(name, namespace, resource, group, version, opts)
 	values := args.Get(0).([]byte)
 	err := args.Error(1)
-	client.mu.Unlock()
 	return values, err
 }
 
@@ -94,15 +81,17 @@ func TestGetEntryObject(t *testing.T) {
 	// selector := "foo"
 	rawObjectSpec, _ := json.Marshal(ObjectSpec)
 
-	clientMock.On("ListResources", "foo", "repo", "helm.soer3n.info", "v1alpha1").Return(rawObjectSpec, nil)
+	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", &metav1.ListOptions{
+		LabelSelector: "label=selector",
+	}).Return(rawObjectSpec, nil)
 
 	apiObj := &helmv1alpha1.Repo{}
 	settings := &cli.EnvSettings{}
-	clientMock.wg.Add(1)
+
 	testObj := NewHelmRepo(apiObj, settings, &clientMock)
-	clientMock.wg.Wait()
-	log.Printf("%v", testObj)
+	charts, err := testObj.GetCharts(settings, "label=selector")
 
 	assert := assert.New(t)
-	assert.Equal("foo", "foo", "Structs should be equal.")
+	assert.Equal(ObjectSpec.Items, charts, "Structs should be equal.")
+	assert.Nil(err)
 }

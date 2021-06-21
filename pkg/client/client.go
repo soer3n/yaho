@@ -50,9 +50,6 @@ func New() *Client {
 
 func (c *Client) GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error) {
 
-	c.mu.Lock()
-	defer c.mu.Lock()
-
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
 	obj, err := c.DynamicClient.Resource(deploymentRes).Namespace(namespace).Get(context.TODO(), name, opts)
 
@@ -64,9 +61,6 @@ func (c *Client) GetResource(name, namespace, resource, group, version string, o
 }
 
 func (c *Client) ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error) {
-
-	c.mu.Lock()
-	defer c.mu.Lock()
 
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
 	obj, err := c.DynamicClient.Resource(deploymentRes).Namespace(namespace).List(context.TODO(), opts)
