@@ -82,7 +82,7 @@ func DownloadTo(url, version, repo string, settings *cli.EnvSettings, options *a
 	return fileName, nil
 }
 
-func getChartByURL(url string) *chart.Chart {
+func getChartByURL(url string) (*chart.Chart, error) {
 
 	var resp *http.Response
 	var err error
@@ -103,11 +103,7 @@ func getChartByURL(url string) *chart.Chart {
 
 	log.Infof("%v", url)
 
-	c, err := loader.LoadArchive(resp.Body)
-
-	log.Infof("Chart: %v", c.Metadata.Name)
-
-	return c
+	return loader.LoadArchive(resp.Body)
 }
 
 func GetChartURL(rc client.ClientInterface, chart, version, namespace string) (string, error) {

@@ -2,13 +2,11 @@ package helm
 
 import (
 	"encoding/json"
-	actionlog "log"
 	"reflect"
 
 	"github.com/prometheus/common/log"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/cli/values"
@@ -413,12 +411,7 @@ func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	releaseClient.Version = hc.Version
 	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.Url
 
-	if cp, err = DownloadTo(chartURL, hc.Version, hc.Repo, hc.Settings, &releaseClient.ChartPathOptions); err != nil {
-		actionlog.Printf("err: %v", err)
-		return configmapList
-	}
-
-	if chartRequested, err = loader.Load(cp); err != nil {
+	if chartRequested, err = getChartByURL(chartURL); err != nil {
 		return configmapList
 	}
 
