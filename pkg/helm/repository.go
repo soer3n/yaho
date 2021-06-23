@@ -2,6 +2,9 @@ package helm
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"net/url"
+	"path"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
@@ -11,6 +14,7 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.ClientInterface) *HelmRepo {
@@ -55,6 +59,30 @@ func (hr HelmRepo) Update() error {
 
 	if cr, err = repo.NewChartRepository(entry, getter.All(hr.Settings)); err != nil {
 		return errors.Wrapf(err, "error on initializing repo %q ", hr.Url)
+	}
+
+	parsedURL, err := url.Parse(cr.Config.URL)
+	if err != nil {
+		log.Infof("%v", err)
+	}
+	parsedURL.RawPath = path.Join(parsedURL.RawPath, "index.yaml")
+	parsedURL.Path = path.Join(parsedURL.Path, "index.yaml")
+
+	b, _ := cr.Client.Get(parsedURL.String(),
+		getter.WithURL(cr.Config.URL),
+		getter.WithInsecureSkipVerifyTLS(cr.Config.InsecureSkipTLSverify),
+		getter.WithTLSClientConfig(cr.Config.CertFile, cr.Config.KeyFile, cr.Config.CAFile),
+		getter.WithBasicAuth(cr.Config.Username, cr.Config.Password),
+	)
+
+	obj := &repo.IndexFile{}
+
+	log.Infof("URL: %v", parsedURL.String())
+
+	foo, err := ioutil.ReadAll(b)
+
+	if err := yaml.UnmarshalStrict(foo, &obj); err != nil {
+		log.Infof("%v", err)
 	}
 
 	cr.CachePath = hr.Settings.RepositoryCache

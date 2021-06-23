@@ -15,6 +15,8 @@ import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	client "github.com/soer3n/apps-operator/pkg/client"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 )
 
@@ -67,6 +69,8 @@ func DownloadTo(url, version, repo string, settings *cli.EnvSettings, options *a
 	}
 	defer resp.Body.Close()
 
+	log.Infof("%v", url)
+
 	if size, err = io.Copy(file, resp.Body); err != nil {
 		return fileName, err
 	}
@@ -76,6 +80,34 @@ func DownloadTo(url, version, repo string, settings *cli.EnvSettings, options *a
 	log.Debugf("Downloaded a file %s with size %d", fileName, size)
 
 	return fileName, nil
+}
+
+func getChartByURL(url string) *chart.Chart {
+
+	var resp *http.Response
+	var err error
+
+	client := http.Client{
+		CheckRedirect: func(r *http.Request, via []*http.Request) error {
+			r.URL.Opaque = r.URL.Path
+			return nil
+		},
+	}
+
+	// Put content to buffer
+	log.Infof("url: %v", url)
+	if resp, err = client.Get(url); err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	log.Infof("%v", url)
+
+	c, err := loader.LoadArchive(resp.Body)
+
+	log.Infof("Chart: %v", c.Metadata.Name)
+
+	return c
 }
 
 func GetChartURL(rc client.ClientInterface, chart, version, namespace string) (string, error) {
