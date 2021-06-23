@@ -47,18 +47,20 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 	return helmRepo
 }
 
-func (hr HelmRepo) Update() error {
+func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 
 	var entry *repo.Entry
 	var cr *repo.ChartRepository
 	var err error
 
+	obj := &repo.IndexFile{}
+
 	if err, entry = hr.GetEntryObj(); err != nil {
-		return errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
+		return obj, errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
 	}
 
 	if cr, err = repo.NewChartRepository(entry, getter.All(hr.Settings)); err != nil {
-		return errors.Wrapf(err, "error on initializing repo %q ", hr.Url)
+		return obj, errors.Wrapf(err, "error on initializing repo %q ", hr.Url)
 	}
 
 	parsedURL, err := url.Parse(cr.Config.URL)
@@ -75,8 +77,6 @@ func (hr HelmRepo) Update() error {
 		getter.WithBasicAuth(cr.Config.Username, cr.Config.Password),
 	)
 
-	obj := &repo.IndexFile{}
-
 	log.Infof("URL: %v", parsedURL.String())
 
 	foo, err := ioutil.ReadAll(b)
@@ -85,13 +85,7 @@ func (hr HelmRepo) Update() error {
 		log.Infof("%v", err)
 	}
 
-	cr.CachePath = hr.Settings.RepositoryCache
-
-	if _, err = cr.DownloadIndexFile(); err != nil {
-		return errors.Wrapf(err, "looks like %q is not a valid chart repository or cannot be reached", hr.Url)
-	}
-
-	return nil
+	return obj, nil
 }
 
 func (hr HelmRepos) shouldBeInstalled(name, url string) bool {
@@ -131,11 +125,8 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*Hel
 
 	if chartList == nil {
 
-		if indexFile, err = repo.LoadIndexFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml"); err != nil {
-			if err = hr.Update(); err != nil {
-				return chartList, err
-			}
-			indexFile, err = repo.LoadIndexFile(hr.Settings.RepositoryCache + "/" + hr.Name + "-index.yaml")
+		if indexFile, err = hr.getIndexByUrl(); err != nil {
+			return chartList, err
 		}
 
 		log.Debugf("IndexFileErr: %v", err)
