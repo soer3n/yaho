@@ -97,11 +97,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	}
 
-	if helmRepo, err = r.deployRepo(instance, hc); err != nil {
-		log.Infof("Error on deploying repo %v", instance.Spec.Name)
-		return ctrl.Result{}, nil
-	}
-
 	label, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
 	selector := "repo=" + helmRepo.Name
 
@@ -170,21 +165,6 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.He
 	}
 
 	return nil
-}
-
-func (r *RepoReconciler) deployRepo(instance *helmv1alpha1.Repo, hc *helmutils.HelmClient) (*helmutils.HelmRepo, error) {
-
-	var err error
-
-	helmRepo := hc.GetRepo(instance.Spec.Name)
-
-	log.Infof("Get: %v.\n", helmRepo.Settings)
-
-	if err = helmRepo.Update(); err != nil {
-		return &helmutils.HelmRepo{}, err
-	}
-
-	return helmRepo, nil
 }
 
 func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo) error {
