@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/url"
@@ -49,8 +50,11 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 
 func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 
+	var parsedURL *url.URL
 	var entry *repo.Entry
 	var cr *repo.ChartRepository
+	var res *bytes.Buffer
+	var raw []byte
 	var err error
 
 	obj := &repo.IndexFile{}
@@ -63,25 +67,29 @@ func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 		return obj, errors.Wrapf(err, "error on initializing repo %q ", hr.Url)
 	}
 
-	parsedURL, err := url.Parse(cr.Config.URL)
-	if err != nil {
+	if parsedURL, err = url.Parse(cr.Config.URL); err != nil {
 		log.Infof("%v", err)
 	}
+
 	parsedURL.RawPath = path.Join(parsedURL.RawPath, "index.yaml")
 	parsedURL.Path = path.Join(parsedURL.Path, "index.yaml")
 
-	b, _ := cr.Client.Get(parsedURL.String(),
+	if res, err = cr.Client.Get(parsedURL.String(),
 		getter.WithURL(cr.Config.URL),
 		getter.WithInsecureSkipVerifyTLS(cr.Config.InsecureSkipTLSverify),
 		getter.WithTLSClientConfig(cr.Config.CertFile, cr.Config.KeyFile, cr.Config.CAFile),
 		getter.WithBasicAuth(cr.Config.Username, cr.Config.Password),
-	)
+	); err != nil {
+		return obj, err
+	}
 
 	log.Infof("URL: %v", parsedURL.String())
 
-	foo, err := ioutil.ReadAll(b)
+	if raw, err = ioutil.ReadAll(res); err != nil {
+		return obj, err
+	}
 
-	if err := yaml.UnmarshalStrict(foo, &obj); err != nil {
+	if err := yaml.UnmarshalStrict(raw, &obj); err != nil {
 		log.Infof("%v", err)
 	}
 
@@ -104,7 +112,7 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*Hel
 
 	var chartList []*HelmChart
 	var indexFile *repo.IndexFile
-	var chartApiList helmv1alpha1.ChartList
+	var chartAPIList helmv1alpha1.ChartList
 	var jsonbody []byte
 	var err error
 
@@ -114,11 +122,11 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*Hel
 		return chartList, err
 	}
 
-	if err = json.Unmarshal(jsonbody, &chartApiList); err != nil {
+	if err = json.Unmarshal(jsonbody, &chartAPIList); err != nil {
 		return chartList, err
 	}
 
-	for _, v := range chartApiList.Items {
+	for _, v := range chartAPIList.Items {
 		chartList = append(chartList, NewChart(v.ConvertChartVersions(), settings, hr.Name, hr.k8sClient))
 		log.Debugf("new: %v", v)
 	}
