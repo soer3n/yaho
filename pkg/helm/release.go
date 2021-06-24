@@ -405,7 +405,7 @@ func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	log.Debugf("configinstall: %v", hc.Config)
 
 	_, repoObj := hc.getRepo()
-	chartURL, _ := GetChartURL(hc.k8sClient, hc.Chart, hc.Version, hc.Namespace.Name)
+	chartURL, _ := getChartURL(hc.k8sClient, hc.Chart, hc.Version, hc.Namespace.Name)
 
 	releaseClient.ReleaseName = hc.Name
 	releaseClient.Version = hc.Version

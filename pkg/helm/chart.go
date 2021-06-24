@@ -68,7 +68,7 @@ func (chart *HelmChart) CreateTemplates() error {
 			Verify:                false,
 		}
 
-		if chartURL, err = GetChartURL(k8sClient, chartname, chart.Version.Name, client.Namespace); err != nil {
+		if chartURL, err = getChartURL(k8sClient, chartname, chart.Version.Name, client.Namespace); err != nil {
 			return err
 		}
 

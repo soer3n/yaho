@@ -106,7 +106,7 @@ func getChartByURL(url string) (*chart.Chart, error) {
 	return loader.LoadArchive(resp.Body)
 }
 
-func GetChartURL(rc client.ClientInterface, chart, version, namespace string) (string, error) {
+func getChartURL(rc client.ClientInterface, chart, version, namespace string) (string, error) {
 
 	var jsonbody []byte
 	var err error
