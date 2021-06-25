@@ -90,8 +90,13 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	var hc *helmutils.HelmClient
 	var helmRelease *helmutils.HelmRelease
+	var g getter.Getter
 
-	hc = helmutils.NewHelmClient(instance, clientutils.New(), &getter.HTTPGetter{})
+	if g, err = getter.NewHTTPGetter(); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	hc = helmutils.NewHelmClient(instance, clientutils.New(), g)
 
 	if instance.GetDeletionTimestamp() != nil {
 
