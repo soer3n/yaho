@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/getter"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -95,7 +96,7 @@ func TestGetCharts(t *testing.T) {
 	apiObj := &helmv1alpha1.Repo{}
 	settings := cli.New()
 
-	testObj := NewHelmRepo(apiObj, settings, &clientMock)
+	testObj := NewHelmRepo(apiObj, settings, &clientMock, &getter.HTTPGetter{})
 	_, err := testObj.GetCharts(settings, "label=selector")
 
 	assert := assert.New(t)

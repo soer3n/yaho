@@ -25,6 +25,7 @@ import (
 	clientutils "github.com/soer3n/apps-operator/pkg/client"
 	helmutils "github.com/soer3n/apps-operator/pkg/helm"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
+	"helm.sh/helm/v3/pkg/getter"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -79,8 +80,14 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	var hc *helmutils.HelmClient
 	var helmRepo *helmutils.HelmRepo
 	var chartList []*helmutils.HelmChart
+	var g getter.Getter
 
-	hc = helmutils.NewHelmClient(instance, clientutils.New())
+	if g, err = getter.NewHTTPGetter(); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	hc = helmutils.NewHelmClient(instance, clientutils.New(), g)
+	helmRepo = hc.GetRepo(instance.Spec.Name)
 
 	if instance.GetDeletionTimestamp() != nil {
 		if err := r.handleFinalizer(reqLogger, hc, instance); err != nil {

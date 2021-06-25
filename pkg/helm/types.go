@@ -6,6 +6,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/repo"
 )
 
@@ -35,6 +36,7 @@ type HelmRelease struct {
 	Settings       *cli.EnvSettings
 	Client         *action.Install
 	k8sClient      client.ClientInterface
+	getter         getter.Getter
 }
 
 type HelmRepos struct {
@@ -46,10 +48,11 @@ type HelmRepos struct {
 type HelmRepo struct {
 	Name      string
 	Url       string
-	Auth      HelmAuth
+	Auth      *HelmAuth
 	Namespace Namespace
 	Settings  *cli.EnvSettings
 	k8sClient client.ClientInterface
+	getter    getter.Getter
 }
 
 type HelmChart struct {

@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
+	"helm.sh/helm/v3/pkg/getter"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,7 +91,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	var hc *helmutils.HelmClient
 	var helmRelease *helmutils.HelmRelease
 
-	hc = helmutils.NewHelmClient(instance, clientutils.New())
+	hc = helmutils.NewHelmClient(instance, clientutils.New(), &getter.HTTPGetter{})
 
 	if instance.GetDeletionTimestamp() != nil {
 

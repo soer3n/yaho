@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	actionlog "log"
@@ -18,6 +19,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/getter"
 )
 
 func initActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) {
@@ -82,28 +84,20 @@ func DownloadTo(url, version, repo string, settings *cli.EnvSettings, options *a
 	return fileName, nil
 }
 
-func getChartByURL(url string) (*chart.Chart, error) {
+func getChartByURL(url string, g getter.Getter) (*chart.Chart, error) {
 
-	var resp *http.Response
+	var resp *bytes.Buffer
 	var err error
-
-	client := http.Client{
-		CheckRedirect: func(r *http.Request, via []*http.Request) error {
-			r.URL.Opaque = r.URL.Path
-			return nil
-		},
-	}
 
 	// Put content to buffer
 	log.Infof("url: %v", url)
-	if resp, err = client.Get(url); err != nil {
+	if resp, err = g.Get(url); err != nil {
 		log.Fatal(err)
 	}
-	defer resp.Body.Close()
 
 	log.Infof("%v", url)
 
-	return loader.LoadArchive(resp.Body)
+	return loader.LoadArchive(resp)
 }
 
 func getChartURL(rc client.ClientInterface, chart, version, namespace string) (string, error) {

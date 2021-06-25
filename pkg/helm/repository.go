@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.ClientInterface) *HelmRepo {
+func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.ClientInterface, g getter.Getter) *HelmRepo {
 
 	var helmRepo *HelmRepo
 
@@ -33,10 +33,11 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 		},
 		Settings:  settings,
 		k8sClient: k8sclient,
+		getter:    g,
 	}
 
 	if instance.Spec.Auth != nil {
-		helmRepo.Auth = HelmAuth{
+		helmRepo.Auth = &HelmAuth{
 			User:     instance.Spec.Auth.User,
 			Password: instance.Spec.Auth.Password,
 			Cert:     instance.Spec.Auth.Cert,
@@ -63,8 +64,9 @@ func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 		return obj, errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
 	}
 
-	if cr, err = repo.NewChartRepository(entry, getter.All(hr.Settings)); err != nil {
-		return obj, errors.Wrapf(err, "error on initializing repo %q ", hr.Url)
+	cr = &repo.ChartRepository{
+		Config: entry,
+		Client: hr.getter,
 	}
 
 	if parsedURL, err = url.Parse(cr.Config.URL); err != nil {
@@ -150,8 +152,18 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*Hel
 
 func (hr HelmRepo) GetEntryObj() (error, *repo.Entry) {
 
-	return nil, &repo.Entry{
+	obj := &repo.Entry{
 		Name: hr.Name,
 		URL:  hr.Url,
 	}
+
+	if hr.Auth != nil {
+		obj.CAFile = hr.Auth.Ca
+		obj.CertFile = hr.Auth.Cert
+		obj.KeyFile = hr.Auth.Key
+		obj.Username = hr.Auth.User
+		obj.Password = hr.Auth.Password
+	}
+
+	return nil, obj
 }
