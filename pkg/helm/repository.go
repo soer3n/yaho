@@ -76,6 +76,13 @@ func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 	parsedURL.RawPath = path.Join(parsedURL.RawPath, "index.yaml")
 	parsedURL.Path = path.Join(parsedURL.Path, "index.yaml")
 
+	foo := getter.WithURL(cr.Config.URL)
+	foo = getter.WithInsecureSkipVerifyTLS(cr.Config.InsecureSkipTLSverify)
+	foo = getter.WithTLSClientConfig(cr.Config.CertFile, cr.Config.KeyFile, cr.Config.CAFile)
+	foo = getter.WithBasicAuth(cr.Config.Username, cr.Config.Password)
+
+	log.Infof("%v", foo)
+
 	if res, err = cr.Client.Get(parsedURL.String(),
 		getter.WithURL(cr.Config.URL),
 		getter.WithInsecureSkipVerifyTLS(cr.Config.InsecureSkipTLSverify),

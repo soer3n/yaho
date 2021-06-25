@@ -12,6 +12,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -49,6 +50,37 @@ func (getter *HTTPClientMock) Get(url string, opts ...getter.Option) (*bytes.Buf
 func TestGetCharts(t *testing.T) {
 
 	clientMock := K8SClientMock{}
+	httpMock := HTTPClientMock{}
+	settings := cli.New()
+	ObjectSpec := getTestChartListSpec()
+	apiObj := getTestRepoSpec()
+	rawObjectSpec, _ := json.Marshal(ObjectSpec)
+
+	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
+		LabelSelector: "label=selector",
+	}).Return(rawObjectSpec, nil)
+
+	/*expected :=  getExpectedTestCharts(clientMock)*/
+
+	indexFile := getTestIndexFile()
+	rawIndexFile, _ := json.Marshal(indexFile)
+
+	httpMock.On("Get",
+		getter.WithURL(apiObj.Spec.Url),
+		getter.WithInsecureSkipVerifyTLS(false),
+		getter.WithTLSClientConfig("", "", ""),
+		getter.WithBasicAuth("", "")).Return(bytes.NewBuffer(rawIndexFile), nil)
+
+	testObj := NewHelmRepo(apiObj, settings, &clientMock, &httpMock)
+	_, err := testObj.GetCharts(settings, "label=selector")
+
+	assert := assert.New(t)
+	// assert.Equal(expected, charts, "Structs should be equal.")
+	assert.Nil(err)
+}
+
+func getTestChartListSpec() *helmv1alpha1.ChartList {
+
 	chartSpec := helmv1alpha1.ChartSpec{
 		Name:        "chart.Name",
 		Home:        "chart.Spec.Home",
@@ -77,7 +109,7 @@ func TestGetCharts(t *testing.T) {
 		Type:        "chart.Spec.Type",
 	}
 
-	ObjectSpec := &helmv1alpha1.ChartList{
+	return &helmv1alpha1.ChartList{
 		Items: []helmv1alpha1.Chart{
 			{
 				ObjectMeta: metav1.ObjectMeta{
@@ -88,31 +120,34 @@ func TestGetCharts(t *testing.T) {
 			},
 		},
 	}
+}
 
-	/*expected := []*HelmChart{
+func getTestRepoSpec() *helmv1alpha1.Repo {
+	return &helmv1alpha1.Repo{
+		Spec: helmv1alpha1.RepoSpec{
+			Name: "test",
+			Url:  "https://foo.bar/charts",
+		},
+	}
+}
+
+func getTestIndexFile() *repo.IndexFile {
+	return &repo.IndexFile{
+		Entries: map[string]repo.ChartVersions{
+			"doo": []*repo.ChartVersion{},
+		},
+	}
+}
+
+func getExpectedTestCharts(c client.ClientInterface) []*HelmChart {
+	return []*HelmChart{
 		{
 			Repo:      "testrepo",
 			Settings:  cli.New(),
-			k8sClient: &clientMock,
+			k8sClient: c,
 			Versions: HelmChartVersions{
 				{},
 			},
 		},
-	}*/
-	// selector := "foo"
-	rawObjectSpec, _ := json.Marshal(ObjectSpec)
-
-	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
-		LabelSelector: "label=selector",
-	}).Return(rawObjectSpec, nil)
-
-	apiObj := &helmv1alpha1.Repo{}
-	settings := cli.New()
-
-	testObj := NewHelmRepo(apiObj, settings, &clientMock, &HTTPClientMock{})
-	_, err := testObj.GetCharts(settings, "label=selector")
-
-	assert := assert.New(t)
-	// assert.Equal(expected, charts, "Structs should be equal.")
-	assert.Nil(err)
+	}
 }
