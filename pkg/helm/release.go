@@ -20,7 +20,7 @@ import (
 	client "github.com/soer3n/apps-operator/pkg/client"
 )
 
-func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient client.ClientInterface) *HelmRelease {
+func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient client.ClientInterface, g getter.Getter) *HelmRelease {
 
 	var helmRelease *HelmRelease
 
@@ -32,6 +32,7 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k
 		Chart:     instance.Spec.Chart,
 		Settings:  settings,
 		k8sClient: k8sclient,
+		getter:    g,
 	}
 
 	helmRelease.Config, _ = initActionConfig(settings)
@@ -411,7 +412,7 @@ func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	releaseClient.Version = hc.Version
 	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.Url
 
-	if chartRequested, err = getChartByURL(chartURL); err != nil {
+	if chartRequested, err = getChartByURL(chartURL, hc.getter); err != nil {
 		return configmapList
 	}
 
