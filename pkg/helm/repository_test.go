@@ -53,7 +53,7 @@ func TestGetCharts(t *testing.T) {
 	httpMock := HTTPClientMock{}
 	settings := cli.New()
 	ObjectSpec := getTestChartListSpec()
-	apiObj := getTestRepoSpec()
+	apiObjList := getTestRepoSpecs()
 	rawObjectSpec, _ := json.Marshal(ObjectSpec)
 
 	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
@@ -66,17 +66,21 @@ func TestGetCharts(t *testing.T) {
 	rawIndexFile, _ := json.Marshal(indexFile)
 
 	httpMock.On("Get",
-		getter.WithURL(apiObj.Spec.Url),
+		getter.WithURL("https://foo.bar/charts"),
 		getter.WithInsecureSkipVerifyTLS(false),
 		getter.WithTLSClientConfig("", "", ""),
 		getter.WithBasicAuth("", "")).Return(bytes.NewBuffer(rawIndexFile), nil)
 
-	testObj := NewHelmRepo(apiObj, settings, &clientMock, &httpMock)
-	_, err := testObj.GetCharts(settings, "label=selector")
-
 	assert := assert.New(t)
-	// assert.Equal(expected, charts, "Structs should be equal.")
-	assert.Nil(err)
+
+	for _, apiObj := range apiObjList {
+
+		testObj := NewHelmRepo(apiObj, settings, &clientMock, &httpMock)
+		_, err := testObj.GetCharts(settings, "label=selector")
+
+		// assert.Equal(expected, charts, "Structs should be equal.")
+		assert.Nil(err)
+	}
 }
 
 func getTestChartListSpec() *helmv1alpha1.ChartList {
@@ -122,11 +126,19 @@ func getTestChartListSpec() *helmv1alpha1.ChartList {
 	}
 }
 
-func getTestRepoSpec() *helmv1alpha1.Repo {
-	return &helmv1alpha1.Repo{
-		Spec: helmv1alpha1.RepoSpec{
-			Name: "test",
-			Url:  "https://foo.bar/charts",
+func getTestRepoSpecs() []*helmv1alpha1.Repo {
+	return []*helmv1alpha1.Repo{
+		{
+			Spec: helmv1alpha1.RepoSpec{
+				Name: "test",
+				Url:  "https://foo.bar/charts",
+			},
+		},
+		{
+			Spec: helmv1alpha1.RepoSpec{
+				Name: "notpresent",
+				Url:  "https://foo.bar/charts",
+			},
 		},
 	}
 }
