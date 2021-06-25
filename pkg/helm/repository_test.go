@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"bytes"
 	"encoding/json"
 	"testing"
 
@@ -19,6 +20,11 @@ type K8SClientMock struct {
 	client.ClientInterface
 }
 
+type HTTPClientMock struct {
+	mock.Mock
+	getter.Getter
+}
+
 func (client *K8SClientMock) ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error) {
 	args := client.Called(namespace, resource, group, version, opts)
 	values := args.Get(0).([]byte)
@@ -29,6 +35,13 @@ func (client *K8SClientMock) ListResources(namespace, resource, group, version s
 func (client *K8SClientMock) GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error) {
 	args := client.Called(name, namespace, resource, group, version, opts)
 	values := args.Get(0).([]byte)
+	err := args.Error(1)
+	return values, err
+}
+
+func (getter *HTTPClientMock) Get(url string, opts ...getter.Option) (*bytes.Buffer, error) {
+	args := getter.Called(url)
+	values := args.Get(0).(*bytes.Buffer)
 	err := args.Error(1)
 	return values, err
 }
@@ -96,7 +109,7 @@ func TestGetCharts(t *testing.T) {
 	apiObj := &helmv1alpha1.Repo{}
 	settings := cli.New()
 
-	testObj := NewHelmRepo(apiObj, settings, &clientMock, &getter.HTTPGetter{})
+	testObj := NewHelmRepo(apiObj, settings, &clientMock, &HTTPClientMock{})
 	_, err := testObj.GetCharts(settings, "label=selector")
 
 	assert := assert.New(t)

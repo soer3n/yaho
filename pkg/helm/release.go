@@ -392,7 +392,6 @@ func (hc HelmRelease) getRepo() (error, helmv1alpha1.Repo) {
 
 func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 
-	var cp string
 	var chartRequested *chart.Chart
 	var err error
 
@@ -426,10 +425,6 @@ func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	chartVersion.Templates = chartRequested.Templates
 	chartVersion.CRDs = chartRequested.CRDs()
 	chartVersion.DefaultValues = chartRequested.Values
-
-	if err := removeFileByFulPath(cp); err != nil {
-		return configmapList
-	}
 
 	return chartVersion.createConfigMaps(hc.Namespace.Name)
 }

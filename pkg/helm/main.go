@@ -91,6 +91,7 @@ func getChartByURL(url string, g getter.Getter) (*chart.Chart, error) {
 
 	// Put content to buffer
 	log.Infof("url: %v", url)
+
 	if resp, err = g.Get(url); err != nil {
 		log.Fatal(err)
 	}
