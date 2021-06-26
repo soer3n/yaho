@@ -12,10 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestReleaseUpdate(t *testing.T) {
+func TestReleaseConfigMaps(t *testing.T) {
 
 	clientMock := K8SClientMock{}
 	httpMock := HTTPClientMock{}
@@ -59,6 +60,60 @@ func TestReleaseUpdate(t *testing.T) {
 
 		testObj.Version = apiObj.Spec.Version
 		configList := testObj.GetParsedConfigMaps()
+
+		// assert.Equal(expected, charts, "Structs should be equal.")
+		assert.NotNil(configList)
+	}
+}
+
+func TestReleaseUpdate(t *testing.T) {
+
+	clientMock := K8SClientMock{}
+	httpMock := HTTPClientMock{}
+	settings := cli.New()
+	ObjectSpec := getTestChartListSpec()
+	apiObjList := getTestReleaseSpecs()
+	rawObjectSpec, _ := json.Marshal(ObjectSpec)
+	chartRawObj, _ := json.Marshal(getTestChartSpec())
+	configmapRaw, _ := json.Marshal(v1.ConfigMap{})
+
+	clientMock.On("GetResource", "repo", "", "repos", "helm.soer3n.info", "v1alpha1", metav1.GetOptions{}).Return(rawObjectSpec, nil)
+	clientMock.On("GetResource", "chart", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.GetOptions{}).Return(chartRawObj, nil)
+	clientMock.On("GetResource", "helm-tmpl-chart-0.0.1", "", "configmaps", "", "v1", metav1.GetOptions{}).Return(configmapRaw, nil)
+	clientMock.On("GetResource", "helm-crds-chart-0.0.1", "", "configmaps", "", "v1", metav1.GetOptions{}).Return(configmapRaw, nil)
+	clientMock.On("GetResource", "helm-default-chart-0.0.1", "", "configmaps", "", "v1", metav1.GetOptions{}).Return(configmapRaw, nil)
+
+	/*expected :=  getExpectedTestCharts(clientMock)*/
+
+	var payload []byte
+
+	raw, _ := os.Open("../../testutils/busybox-0.1.0.tgz")
+	defer raw.Close()
+	payload, _ = ioutil.ReadAll(raw)
+	httpResponse := &http.Response{
+		Body: ioutil.NopCloser(bytes.NewReader(payload)),
+	}
+
+	httpMock.On("Get",
+		"https://foo.bar/charts/foo-0.0.1.tgz").Return(httpResponse, nil)
+
+	assert := assert.New(t)
+
+	for _, apiObj := range apiObjList {
+
+		testObj := NewHelmRelease(apiObj, settings, &clientMock, &httpMock)
+		selectors := ""
+
+		// parse selectors string from api object meta data
+		for k, v := range apiObj.ObjectMeta.Labels {
+			if selectors != "" {
+				selectors = selectors + ","
+			}
+			selectors = selectors + k + "=" + v
+		}
+
+		testObj.Version = apiObj.Spec.Version
+		configList := testObj.Update()
 
 		// assert.Equal(expected, charts, "Structs should be equal.")
 		assert.NotNil(configList)
