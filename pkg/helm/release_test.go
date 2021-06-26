@@ -9,6 +9,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -100,4 +101,8 @@ func getTestChartSpec() helmv1alpha1.Chart {
 			},
 		},
 	}
+}
+
+func getTestChartForCompressing() chart.Chart {
+	return chart.Chart{}
 }

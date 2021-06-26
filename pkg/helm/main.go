@@ -2,7 +2,6 @@ package helm
 
 import (
 	"encoding/json"
-	"io"
 	actionlog "log"
 	"net/http"
 	"os"
@@ -33,53 +32,6 @@ func initActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) 
 	}
 
 	return actionConfig, nil
-}
-
-func DownloadTo(url, version, repo string, settings *cli.EnvSettings, options *action.ChartPathOptions) (string, error) {
-	directory := settings.RepositoryCache + "/"
-	fileName := directory + repo + "-" + version + ".tgz"
-	var file *os.File
-	var resp *http.Response
-	var err error
-	var size int64
-
-	if _, err = os.Stat(directory); os.IsNotExist(err) {
-		if err = os.MkdirAll(directory, 0755); err != nil {
-			return fileName, err
-		}
-	}
-
-	log.Infof("Chart path: %v", fileName)
-
-	if file, err = os.Create(fileName); err != nil {
-		log.Fatal(err)
-	}
-
-	client := http.Client{
-		CheckRedirect: func(r *http.Request, via []*http.Request) error {
-			r.URL.Opaque = r.URL.Path
-			return nil
-		},
-	}
-
-	// Put content on file
-	log.Infof("url: %v", url)
-	if resp, err = client.Get(url); err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	log.Infof("%v", url)
-
-	if size, err = io.Copy(file, resp.Body); err != nil {
-		return fileName, err
-	}
-
-	defer file.Close()
-
-	log.Debugf("Downloaded a file %s with size %d", fileName, size)
-
-	return fileName, nil
 }
 
 func getChartByURL(url string, g client.HTTPClientInterface) (*chart.Chart, error) {
