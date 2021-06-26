@@ -20,7 +20,7 @@ import (
 	client "github.com/soer3n/apps-operator/pkg/client"
 )
 
-func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient client.ClientInterface, g getter.Getter) *HelmRelease {
+func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient client.ClientInterface, g client.HTTPClientInterface) *HelmRelease {
 
 	var helmRelease *HelmRelease
 

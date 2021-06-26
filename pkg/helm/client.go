@@ -5,13 +5,12 @@ import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/soer3n/apps-operator/pkg/client"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
-	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/helmpath"
 	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewHelmClient(instance interface{}, k8sClient *client.Client, g getter.Getter) *HelmClient {
+func NewHelmClient(instance interface{}, k8sClient *client.Client, g client.HTTPClientInterface) *HelmClient {
 
 	hc := &HelmClient{
 		Repos:    &HelmRepos{},
@@ -109,7 +108,7 @@ func (hc *HelmClient) GetRelease(name, repo string) *HelmRelease {
 	return nil
 }
 
-func (hc *HelmClient) manageEntries(instance interface{}, k8sclient client.ClientInterface, g getter.Getter) error {
+func (hc *HelmClient) manageEntries(instance interface{}, k8sclient client.ClientInterface, g client.HTTPClientInterface) error {
 
 	var releaseObj *helmv1alpha1.Release
 	repoObj, ok := instance.(*helmv1alpha1.Repo)

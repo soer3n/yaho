@@ -1,9 +1,9 @@
 package helm
 
 import (
-	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"path"
 
@@ -12,13 +12,12 @@ import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	client "github.com/soer3n/apps-operator/pkg/client"
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
-func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.ClientInterface, g getter.Getter) *HelmRepo {
+func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.ClientInterface, g client.HTTPClientInterface) *HelmRepo {
 
 	var helmRepo *HelmRepo
 
@@ -54,7 +53,7 @@ func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 	var parsedURL *url.URL
 	var entry *repo.Entry
 	var cr *repo.ChartRepository
-	var res *bytes.Buffer
+	var res *http.Response
 	var raw []byte
 	var err error
 
@@ -66,7 +65,6 @@ func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 
 	cr = &repo.ChartRepository{
 		Config: entry,
-		Client: hr.getter,
 	}
 
 	if parsedURL, err = url.Parse(cr.Config.URL); err != nil {
@@ -76,25 +74,13 @@ func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 	parsedURL.RawPath = path.Join(parsedURL.RawPath, "index.yaml")
 	parsedURL.Path = path.Join(parsedURL.Path, "index.yaml")
 
-	foo := getter.WithURL(cr.Config.URL)
-	foo = getter.WithInsecureSkipVerifyTLS(cr.Config.InsecureSkipTLSverify)
-	foo = getter.WithTLSClientConfig(cr.Config.CertFile, cr.Config.KeyFile, cr.Config.CAFile)
-	foo = getter.WithBasicAuth(cr.Config.Username, cr.Config.Password)
-
-	log.Infof("%v", foo)
-
-	if res, err = cr.Client.Get(parsedURL.String(),
-		getter.WithURL(cr.Config.URL),
-		getter.WithInsecureSkipVerifyTLS(cr.Config.InsecureSkipTLSverify),
-		getter.WithTLSClientConfig(cr.Config.CertFile, cr.Config.KeyFile, cr.Config.CAFile),
-		getter.WithBasicAuth(cr.Config.Username, cr.Config.Password),
-	); err != nil {
+	if res, err = hr.getter.Get(parsedURL.String()); err != nil {
 		return obj, err
 	}
 
 	log.Infof("URL: %v", parsedURL.String())
 
-	if raw, err = ioutil.ReadAll(res); err != nil {
+	if raw, err = ioutil.ReadAll(res.Body); err != nil {
 		return obj, err
 	}
 

@@ -3,6 +3,7 @@ package helm
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -40,9 +41,9 @@ func (client *K8SClientMock) GetResource(name, namespace, resource, group, versi
 	return values, err
 }
 
-func (getter *HTTPClientMock) Get(url string, opts ...getter.Option) (*bytes.Buffer, error) {
+func (getter *HTTPClientMock) Get(url string) (*http.Response, error) {
 	args := getter.Called(url)
-	values := args.Get(0).(*bytes.Buffer)
+	values := args.Get(0).(*http.Response)
 	err := args.Error(1)
 	return values, err
 }
@@ -66,10 +67,7 @@ func TestGetCharts(t *testing.T) {
 	rawIndexFile, _ := json.Marshal(indexFile)
 
 	httpMock.On("Get",
-		getter.WithURL("https://foo.bar/charts"),
-		getter.WithInsecureSkipVerifyTLS(false),
-		getter.WithTLSClientConfig("", "", ""),
-		getter.WithBasicAuth("", "")).Return(bytes.NewBuffer(rawIndexFile), nil)
+		"https://foo.bar/charts/index.yaml").Return(bytes.NewBuffer(rawIndexFile), nil)
 
 	assert := assert.New(t)
 

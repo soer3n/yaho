@@ -18,12 +18,12 @@ package helm
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
-	"helm.sh/helm/v3/pkg/getter"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,13 +90,16 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	var hc *helmutils.HelmClient
 	var helmRelease *helmutils.HelmRelease
-	var g getter.Getter
 
-	if g, err = getter.NewHTTPGetter(); err != nil {
-		return ctrl.Result{}, err
+	g := http.Client{
+		Timeout: time.Second * 10,
+		CheckRedirect: func(r *http.Request, via []*http.Request) error {
+			r.URL.Opaque = r.URL.Path
+			return nil
+		},
 	}
 
-	hc = helmutils.NewHelmClient(instance, clientutils.New(), g)
+	hc = helmutils.NewHelmClient(instance, clientutils.New(), &g)
 
 	if instance.GetDeletionTimestamp() != nil {
 
