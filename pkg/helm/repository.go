@@ -59,7 +59,7 @@ func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 
 	obj := &repo.IndexFile{}
 
-	if err, entry = hr.GetEntryObj(); err != nil {
+	if err, entry = hr.getEntryObj(); err != nil {
 		return obj, errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
 	}
 
@@ -131,7 +131,7 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*Hel
 	return chartList, nil
 }
 
-func (hr HelmRepo) GetEntryObj() (error, *repo.Entry) {
+func (hr HelmRepo) getEntryObj() (error, *repo.Entry) {
 
 	obj := &repo.Entry{
 		Name: hr.Name,

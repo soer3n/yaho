@@ -171,17 +171,19 @@ func (hv HelmValueTemplate) parseMap(key string, payload []byte) map[string]stri
 		log.Debugf("Error: %v", err)
 		valMap[key] = string(payload[:])
 		return valMap
-	} else {
-		for ix, entry := range subMap {
-			returnKey = returnKey + "." + ix
-			if err := yaml.Unmarshal([]byte(entry), &subMap); err != nil {
-				valMap[returnKey] = entry
-			} else {
-				return hv.parseMap(ix, []byte(entry))
-			}
-		}
-		return valMap
 	}
+
+	for ix, entry := range subMap {
+		returnKey = returnKey + "." + ix
+		if err := yaml.Unmarshal([]byte(entry), &subMap); err != nil {
+			valMap[returnKey] = entry
+		} else {
+			return hv.parseMap(ix, []byte(entry))
+		}
+	}
+
+	return valMap
+
 }
 
 func (hv HelmValueTemplate) parseFromUntypedMap(parentKey string, convertedMap map[string]interface{}) map[string]string {
