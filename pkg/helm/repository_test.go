@@ -57,10 +57,19 @@ func TestGetCharts(t *testing.T) {
 	ObjectSpec := getTestChartListSpec()
 	apiObjList := getTestRepoSpecs()
 	rawObjectSpec, _ := json.Marshal(ObjectSpec)
+	emptyRawObj, _ := json.Marshal(helmv1alpha1.ChartList{})
 
 	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
 		LabelSelector: "label=selector",
 	}).Return(rawObjectSpec, nil)
+
+	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
+		LabelSelector: "",
+	}).Return(emptyRawObj, nil)
+
+	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
+		LabelSelector: "label=notpresent",
+	}).Return(emptyRawObj, nil)
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 
@@ -152,11 +161,47 @@ func getTestRepoSpecs() []*helmv1alpha1.Repo {
 			},
 		},
 		{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"label": "selector",
+				},
+			},
+			Spec: helmv1alpha1.RepoSpec{
+				Name: "test",
+				Url:  "https://foo.bar/charts",
+				Auth: &helmv1alpha1.Auth{
+					User:     "foo",
+					Password: "encrypted",
+					Cert:     "certContent",
+					Key:      "keyContent",
+					Ca:       "certCa",
+				},
+			},
+		},
+		{
 			Spec: helmv1alpha1.RepoSpec{
 				Name: "notpresent",
 				Url:  "https://foo.bar/charts",
 			},
 		},
+		/*{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"label": "notpresent",
+				},
+			},
+			Spec: helmv1alpha1.RepoSpec{
+				Name: "notpresent",
+				Url:  "https://foo.bar/charts",
+				Auth: &helmv1alpha1.Auth{
+					User:     "foo",
+					Password: "encrypted",
+					Cert:     "certContent",
+					Key:      "keyContent",
+					Ca:       "certCa",
+				},
+			},
+		},*/
 	}
 }
 

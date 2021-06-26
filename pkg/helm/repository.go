@@ -91,18 +91,6 @@ func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 	return obj, nil
 }
 
-func (hr HelmRepos) shouldBeInstalled(name, url string) bool {
-
-	for key, repository := range hr.Entries {
-		if repository.Name == name && repository.Url == url {
-			log.Debugf("Repo validation failed: index: %v name: %v already exists", key, repository.Name)
-			return true
-		}
-	}
-
-	return false
-}
-
 func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*HelmChart, error) {
 
 	var chartList []*HelmChart
