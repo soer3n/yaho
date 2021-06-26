@@ -264,16 +264,14 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 
 		helmRef := &helmv1alpha1.Values{}
 
-		err := r.Client.Get(context.Background(), client.ObjectKey{
+		if err := r.Client.Get(context.Background(), client.ObjectKey{
 			Namespace: values.ObjectMeta.Namespace,
 			Name:      ref,
-		}, helmRef)
-
-		if err != nil {
+		}, helmRef); err != nil {
 			return list, err
 		}
 
-		if err = r.updateValuesAnnotations(helmRef, release); err != nil {
+		if err := r.updateValuesAnnotations(helmRef, release); err != nil {
 			log.Infof("annotations error: %v", err)
 			return list, err
 		}

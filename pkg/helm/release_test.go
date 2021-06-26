@@ -2,10 +2,10 @@ package helm
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -30,23 +30,13 @@ func TestReleaseUpdate(t *testing.T) {
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 
-	chartFile := getTestChartForCompressing()
-	rawIndexFile, _ := json.Marshal(chartFile)
+	var payload []byte
 
-	var buf bytes.Buffer
-	gw := gzip.NewWriter(&buf)
-	_, _ = gw.Write(rawIndexFile)
-
-	if err := gw.Flush(); err != nil {
-		return
-	}
-
-	if err := gw.Close(); err != nil {
-		return
-	}
-
+	raw, _ := os.Open("../../testutils/busybox-0.1.0.tgz")
+	defer raw.Close()
+	payload, _ = ioutil.ReadAll(raw)
 	httpResponse := &http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(buf.Bytes())),
+		Body: ioutil.NopCloser(bytes.NewReader(payload)),
 	}
 
 	httpMock.On("Get",
@@ -119,5 +109,12 @@ func getTestChartSpec() helmv1alpha1.Chart {
 }
 
 func getTestChartForCompressing() chart.Chart {
-	return chart.Chart{}
+	return chart.Chart{
+		Templates: []*chart.File{},
+		Values:    map[string]interface{}{},
+		Metadata: &chart.Metadata{
+			Name:    "meta",
+			Version: "0.0.1",
+		},
+	}
 }
