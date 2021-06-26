@@ -60,6 +60,7 @@ type HelmChart struct {
 	Settings  *cli.EnvSettings
 	Repo      string
 	k8sClient client.ClientInterface
+	getter    client.HTTPClientInterface
 }
 
 type HelmChartVersions []HelmChartVersion

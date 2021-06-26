@@ -19,21 +19,12 @@ func TestReleaseUpdate(t *testing.T) {
 	httpMock := HTTPClientMock{}
 	settings := cli.New()
 	ObjectSpec := getTestChartListSpec()
-	apiObjList := getTestRepoSpecs()
+	apiObjList := getTestReleaseSpecs()
 	rawObjectSpec, _ := json.Marshal(ObjectSpec)
-	emptyRawObj, _ := json.Marshal(helmv1alpha1.ChartList{})
+	chartRawObj, _ := json.Marshal(getTestChartSpec())
 
-	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
-		LabelSelector: "label=selector",
-	}).Return(rawObjectSpec, nil)
-
-	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
-		LabelSelector: "",
-	}).Return(emptyRawObj, nil)
-
-	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
-		LabelSelector: "label=notpresent",
-	}).Return(emptyRawObj, nil)
+	clientMock.On("GetResource", "repo", "", "repos", "helm.soer3n.info", "v1alpha1", metav1.GetOptions{}).Return(rawObjectSpec, nil)
+	clientMock.On("GetResource", "chart", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.GetOptions{}).Return(chartRawObj, nil)
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 
@@ -44,13 +35,13 @@ func TestReleaseUpdate(t *testing.T) {
 	}
 
 	httpMock.On("Get",
-		"https://foo.bar/charts/index.yaml").Return(httpResponse, nil)
+		"https://foo.bar/charts/foo-0.0.1.tgz").Return(httpResponse, nil)
 
 	assert := assert.New(t)
 
 	for _, apiObj := range apiObjList {
 
-		testObj := NewHelmRepo(apiObj, settings, &clientMock, &httpMock)
+		testObj := NewHelmRelease(apiObj, settings, &clientMock, &httpMock)
 		selectors := ""
 
 		// parse selectors string from api object meta data
@@ -61,9 +52,52 @@ func TestReleaseUpdate(t *testing.T) {
 			selectors = selectors + k + "=" + v
 		}
 
-		_, err := testObj.GetCharts(settings, selectors)
+		configList := testObj.GetParsedConfigMaps()
 
 		// assert.Equal(expected, charts, "Structs should be equal.")
-		assert.Nil(err)
+		assert.NotNil(configList)
+	}
+}
+
+func getTestReleaseSpecs() []*helmv1alpha1.Release {
+	return []*helmv1alpha1.Release{
+		{
+			Spec: helmv1alpha1.ReleaseSpec{
+				Name:    "test",
+				Chart:   "chart",
+				Repo:    "repo",
+				Version: "0.0.1",
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"label": "selector",
+				},
+			},
+			Spec: helmv1alpha1.ReleaseSpec{
+				Name:    "test",
+				Chart:   "chart",
+				Repo:    "repo",
+				Version: "0.0.1",
+			},
+		},
+	}
+}
+
+func getTestChartSpec() helmv1alpha1.Chart {
+	return helmv1alpha1.Chart{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "chart",
+		},
+		Spec: helmv1alpha1.ChartSpec{
+			Name: "chart",
+			Versions: []helmv1alpha1.ChartVersion{
+				{
+					Name: "0.0.1",
+					URL:  "https://foo.bar/charts/foo-0.0.1.tgz",
+				},
+			},
+		},
 	}
 }

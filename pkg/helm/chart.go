@@ -6,13 +6,12 @@ import (
 	helmclient "github.com/soer3n/apps-operator/pkg/client"
 	"helm.sh/helm/v3/pkg/action"
 	helmchart "helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
 )
 
-func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient helmclient.ClientInterface) *HelmChart {
+func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient helmclient.ClientInterface, g helmclient.HTTPClientInterface) *HelmChart {
 
 	var chartVersions []HelmChartVersion
 	var config *action.Configuration
@@ -37,6 +36,7 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 		Settings:  settings,
 		Repo:      repo,
 		k8sClient: k8sclient,
+		getter:    g,
 	}
 }
 
@@ -49,7 +49,7 @@ func (chart *HelmChart) CreateTemplates() error {
 	repo := chart.Repo
 	client := chart.Client
 	k8sClient := chart.k8sClient
-	settings := chart.Settings
+	g := chart.getter
 
 	for _, chart := range chart.Versions {
 		argsList = make([]string, 0)
@@ -62,21 +62,12 @@ func (chart *HelmChart) CreateTemplates() error {
 
 		client.ReleaseName = name
 		client.Version = chart.Version.Version
-		options := &action.ChartPathOptions{
-			Version:               chart.Version.APIVersion,
-			InsecureSkipTLSverify: false,
-			Verify:                false,
-		}
 
 		if chartURL, err = getChartURL(k8sClient, chartname, chart.Version.Name, client.Namespace); err != nil {
 			return err
 		}
 
-		if cp, err = DownloadTo(chartURL, chart.Version.APIVersion, repo, settings, options); err != nil {
-			return err
-		}
-
-		if chartRequested, err = loader.Load(cp); err != nil {
+		if chartRequested, err = getChartByURL(chartURL, g); err != nil {
 			return err
 		}
 
