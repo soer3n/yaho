@@ -3,6 +3,7 @@ package helm
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -65,16 +66,29 @@ func TestGetCharts(t *testing.T) {
 
 	indexFile := getTestIndexFile()
 	rawIndexFile, _ := json.Marshal(indexFile)
+	httpResponse := &http.Response{
+		Body: ioutil.NopCloser(bytes.NewReader(rawIndexFile)),
+	}
 
 	httpMock.On("Get",
-		"https://foo.bar/charts/index.yaml").Return(bytes.NewBuffer(rawIndexFile), nil)
+		"https://foo.bar/charts/index.yaml").Return(httpResponse, nil)
 
 	assert := assert.New(t)
 
 	for _, apiObj := range apiObjList {
 
 		testObj := NewHelmRepo(apiObj, settings, &clientMock, &httpMock)
-		_, err := testObj.GetCharts(settings, "label=selector")
+		selectors := ""
+
+		// parse selectors string from api object meta data
+		for k, v := range apiObj.ObjectMeta.Labels {
+			if selectors != "" {
+				selectors = selectors + ","
+			}
+			selectors = selectors + k + "=" + v
+		}
+
+		_, err := testObj.GetCharts(settings, selectors)
 
 		// assert.Equal(expected, charts, "Structs should be equal.")
 		assert.Nil(err)
@@ -127,6 +141,11 @@ func getTestChartListSpec() *helmv1alpha1.ChartList {
 func getTestRepoSpecs() []*helmv1alpha1.Repo {
 	return []*helmv1alpha1.Repo{
 		{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"label": "selector",
+				},
+			},
 			Spec: helmv1alpha1.RepoSpec{
 				Name: "test",
 				Url:  "https://foo.bar/charts",
