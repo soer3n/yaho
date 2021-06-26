@@ -119,7 +119,7 @@ var _ = BeforeSuite(func(done Done) {
 	err = (&RepoReconciler{
 		Client:   mgr.GetClient(),
 		Log:      logf.Log,
-		Recorder: mgr.GetEventRecorderFor("charts-controller"),
+		Recorder: mgr.GetEventRecorderFor("repo-controller"),
 		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
@@ -130,15 +130,16 @@ var _ = BeforeSuite(func(done Done) {
 	err = (&RepoGroupReconciler{
 		Client:   mgr.GetClient(),
 		Log:      logf.Log,
-		Recorder: mgr.GetEventRecorderFor("repo-controller"),
+		Recorder: mgr.GetEventRecorderFor("repogroup-controller"),
 		Scheme:   mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
 
 	err = (&ChartReconciler{
-		Client: mgr.GetClient(),
-		Log:    logf.Log,
-		Scheme: mgr.GetScheme(),
+		Client:   mgr.GetClient(),
+		Log:      logf.Log,
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("charts-controller"),
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
 
@@ -146,7 +147,7 @@ var _ = BeforeSuite(func(done Done) {
 		Client:   mgr.GetClient(),
 		Log:      logf.Log,
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("release-controller"),
+		Recorder: mgr.GetEventRecorderFor("releasegroup-controller"),
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred(), "failed to setup release group controller")
 
@@ -154,15 +155,15 @@ var _ = BeforeSuite(func(done Done) {
 		Client:   mgr.GetClient(),
 		Log:      logf.Log,
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("values-controller"),
+		Recorder: mgr.GetEventRecorderFor("release-controller"),
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred(), "failed to setup release controller")
 
 	err = (&ValuesReconciler{
-		Client: mgr.GetClient(),
-		Log:    logf.Log,
-		Scheme: mgr.GetScheme(),
-		// Recorder: mgr.GetEventRecorderFor("values-controller"),
+		Client:   mgr.GetClient(),
+		Log:      logf.Log,
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("values-controller"),
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred(), "failed to setup values controller")
 
