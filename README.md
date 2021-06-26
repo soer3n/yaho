@@ -105,6 +105,7 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 ## Known Issues / Troubleshooting
 
 - charts with subfolders in templates are failing due to configmap rendering (slashes are not allowed as charactes in keys)
+- non public repositories cannot be downloaded currently due to a replacement if integrated http client with the client delivered by "net/http" package
 
 ## Contributing
 
