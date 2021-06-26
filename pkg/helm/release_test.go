@@ -2,6 +2,7 @@ package helm
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -29,10 +30,23 @@ func TestReleaseUpdate(t *testing.T) {
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 
-	indexFile := getTestIndexFile()
-	rawIndexFile, _ := json.Marshal(indexFile)
+	chartFile := getTestChartForCompressing()
+	rawIndexFile, _ := json.Marshal(chartFile)
+
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	_, _ = gw.Write(rawIndexFile)
+
+	if err := gw.Flush(); err != nil {
+		return
+	}
+
+	if err := gw.Close(); err != nil {
+		return
+	}
+
 	httpResponse := &http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(rawIndexFile)),
+		Body: ioutil.NopCloser(bytes.NewReader(buf.Bytes())),
 	}
 
 	httpMock.On("Get",
@@ -53,6 +67,7 @@ func TestReleaseUpdate(t *testing.T) {
 			selectors = selectors + k + "=" + v
 		}
 
+		testObj.Version = apiObj.Spec.Version
 		configList := testObj.GetParsedConfigMaps()
 
 		// assert.Equal(expected, charts, "Structs should be equal.")
