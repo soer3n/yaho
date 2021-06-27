@@ -16,7 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestGetCharts(t *testing.T) {
+func TestRepoGetCharts(t *testing.T) {
 
 	clientMock := K8SClientMock{}
 	httpMock := HTTPClientMock{}

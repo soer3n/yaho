@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetFilterSpec(t *testing.T) {
+func TestFilterGetSpec(t *testing.T) {
 	options := make(map[string]string)
 	fitlerOptions := NewOptions(options)
 

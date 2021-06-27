@@ -75,9 +75,29 @@ func TestReleaseUpdate(t *testing.T) {
 	apiObjList := getTestReleaseSpecs()
 	rawObjectSpec, _ := json.Marshal(ObjectSpec)
 	chartRawObj, _ := json.Marshal(getTestChartSpec())
-	configmapRaw, _ := json.Marshal(v1.ConfigMap{})
+	values := map[string]string{
+		"foo": "bar",
+		"bar": "foo",
+	}
+	castedValues, _ := json.Marshal(values)
+	configmapRaw, _ := json.Marshal(v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "",
+		},
+		Data: map[string]string{
+			"values": string(castedValues),
+		},
+	})
+
+	chartList := helmv1alpha1.ChartList{
+		Items: []helmv1alpha1.Chart{},
+	}
+	chartListRawObj, _ := json.Marshal(chartList)
 
 	clientMock.On("GetResource", "repo", "", "repos", "helm.soer3n.info", "v1alpha1", metav1.GetOptions{}).Return(rawObjectSpec, nil)
+	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
+		LabelSelector: "repo=repo",
+	}).Return(chartListRawObj, nil)
 	clientMock.On("GetResource", "chart", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.GetOptions{}).Return(chartRawObj, nil)
 	clientMock.On("GetResource", "helm-tmpl-chart-0.0.1", "", "configmaps", "", "v1", metav1.GetOptions{}).Return(configmapRaw, nil)
 	clientMock.On("GetResource", "helm-crds-chart-0.0.1", "", "configmaps", "", "v1", metav1.GetOptions{}).Return(configmapRaw, nil)

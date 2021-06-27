@@ -6,7 +6,6 @@ import (
 	"github.com/soer3n/apps-operator/pkg/client"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
 	"helm.sh/helm/v3/pkg/helmpath"
-	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -69,21 +68,6 @@ func (hc *HelmClient) RemoveRepoCache(name string) error {
 		return err
 	}
 
-	return nil
-}
-
-func (hc *HelmClient) setInstalledRepos() error {
-
-	var f *repo.File
-	var err error
-
-	if f, err = repo.LoadFile(hc.GetEnvSettings().RepositoryConfig); err != nil {
-		if err = f.WriteFile(hc.GetEnvSettings().RepositoryConfig, 0644); err != nil {
-			return err
-		}
-	}
-
-	hc.Repos.installed = f
 	return nil
 }
 
