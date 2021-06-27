@@ -10,8 +10,13 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
+	kubefake "helm.sh/helm/v3/pkg/kube/fake"
+	"helm.sh/helm/v3/pkg/storage"
+	"helm.sh/helm/v3/pkg/storage/driver"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -133,6 +138,7 @@ func TestReleaseUpdate(t *testing.T) {
 		}
 
 		testObj.Version = apiObj.Spec.Version
+		testObj.Config = getFakeActionConfig()
 		configList := testObj.Update()
 
 		// assert.Equal(expected, charts, "Structs should be equal.")
@@ -191,5 +197,13 @@ func getTestChartForCompressing() chart.Chart {
 			Name:    "meta",
 			Version: "0.0.1",
 		},
+	}
+}
+
+func getFakeActionConfig() *action.Configuration {
+	return &action.Configuration{
+		Releases:     storage.Init(driver.NewMemory()),
+		KubeClient:   &kubefake.FailingKubeClient{PrintingKubeClient: kubefake.PrintingKubeClient{Out: ioutil.Discard}},
+		Capabilities: chartutil.DefaultCapabilities,
 	}
 }
