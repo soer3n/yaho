@@ -2,7 +2,7 @@ package helm
 
 import (
 	"bytes"
-	"encoding/json"
+	"context"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,8 +19,9 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestReleaseConfigMaps(t *testing.T) {
@@ -28,13 +29,11 @@ func TestReleaseConfigMaps(t *testing.T) {
 	clientMock := K8SClientMock{}
 	httpMock := HTTPClientMock{}
 	settings := cli.New()
-	ObjectSpec := getTestChartListSpec()
 	apiObjList := getTestReleaseSpecs()
-	rawObjectSpec, _ := json.Marshal(ObjectSpec)
-	chartRawObj, _ := json.Marshal(getTestChartSpec())
+	ctx := context.TODO()
 
-	clientMock.On("GetResource", "repo", "", "repos", "helm.soer3n.info", "v1alpha1", metav1.GetOptions{}).Return(rawObjectSpec, nil)
-	clientMock.On("GetResource", "chart", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.GetOptions{}).Return(chartRawObj, nil)
+	clientMock.On("Get", ctx, types.NamespacedName{Name: "repo", Namespace: ""}, &helmv1alpha1.Repo{}).Return(nil)
+	clientMock.On("Get", ctx, types.NamespacedName{Name: "chart", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil)
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 
@@ -78,11 +77,8 @@ func TestReleaseUpdate(t *testing.T) {
 	clientMock := K8SClientMock{}
 	httpMock := HTTPClientMock{}
 	settings := cli.New()
-	ObjectSpec := getTestChartListSpec()
 	apiObjList := getTestReleaseSpecs()
-	rawObjectSpec, _ := json.Marshal(ObjectSpec)
-	chartRawObj, _ := json.Marshal(getTestChartSpec())
-	values := map[string]string{
+	/*values := map[string]string{
 		"foo": "bar",
 		"bar": "foo",
 	}
@@ -100,15 +96,17 @@ func TestReleaseUpdate(t *testing.T) {
 		Items: []helmv1alpha1.Chart{},
 	}
 	chartListRawObj, _ := json.Marshal(chartList)
+	*/
+	ctx := context.TODO()
 
-	clientMock.On("GetResource", "repo", "", "repos", "helm.soer3n.info", "v1alpha1", metav1.GetOptions{}).Return(rawObjectSpec, nil)
-	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
-		LabelSelector: "repo=repo",
-	}).Return(chartListRawObj, nil)
-	clientMock.On("GetResource", "chart", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.GetOptions{}).Return(chartRawObj, nil)
-	clientMock.On("GetResource", "helm-tmpl-chart-0.0.1", "", "configmaps", "", "v1", metav1.GetOptions{}).Return(configmapRaw, nil)
-	clientMock.On("GetResource", "helm-crds-chart-0.0.1", "", "configmaps", "", "v1", metav1.GetOptions{}).Return(configmapRaw, nil)
-	clientMock.On("GetResource", "helm-default-chart-0.0.1", "", "configmaps", "", "v1", metav1.GetOptions{}).Return(configmapRaw, nil)
+	clientMock.On("Get", ctx, types.NamespacedName{Name: "repo", Namespace: ""}, &helmv1alpha1.Repo{}).Return(nil)
+	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace(""), client.MatchingLabels{
+		"repo": "repo",
+	}).Return(nil)
+	clientMock.On("Get", ctx, types.NamespacedName{Name: "chart", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil)
+	clientMock.On("Get", ctx, types.NamespacedName{Name: "helm-tmpl-chart-0.0.1", Namespace: ""}).Return(nil)
+	clientMock.On("Get", ctx, types.NamespacedName{Name: "helm-crds-chart-0.0.1", Namespace: ""}).Return(nil)
+	clientMock.On("Get", ctx, types.NamespacedName{Name: "helm-default-chart-0.0.1", Namespace: ""}).Return(nil)
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 

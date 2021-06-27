@@ -2,6 +2,7 @@ package helm
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -21,23 +22,17 @@ func TestRepoGetCharts(t *testing.T) {
 	clientMock := K8SClientMock{}
 	httpMock := HTTPClientMock{}
 	settings := cli.New()
-	ObjectSpec := getTestChartListSpec()
 	apiObjList := getTestRepoSpecs()
-	rawObjectSpec, _ := json.Marshal(ObjectSpec)
-	emptyRawObj, _ := json.Marshal(helmv1alpha1.ChartList{})
+	ctx := context.TODO()
+	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace(""), client.MatchingLabels{
+		"label": "selector",
+	}).Return(nil)
 
-	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
-		LabelSelector: "label=selector",
-	}).Return(rawObjectSpec, nil)
+	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace("")).Return(nil)
 
-	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
-		LabelSelector: "",
-	}).Return(emptyRawObj, nil)
-
-	clientMock.On("ListResources", "", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
-		LabelSelector: "label=notpresent",
-	}).Return(emptyRawObj, nil)
-
+	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace(""), client.MatchingLabels{
+		"label": "notpresent",
+	}).Return(nil)
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 
 	indexFile := getTestIndexFile()

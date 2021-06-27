@@ -114,6 +114,9 @@ var _ = Context("Install a repository group", func() {
 			err = k8sClient.Update(ctx, repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
+			foo := helmv1alpha1.ChartList{}
+			err = k8sClient.List(ctx, &foo)
+
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())

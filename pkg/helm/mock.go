@@ -1,11 +1,12 @@
 package helm
 
 import (
+	"context"
 	"net/http"
 
 	clientutils "github.com/soer3n/apps-operator/pkg/client"
 	"github.com/stretchr/testify/mock"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -19,18 +20,16 @@ type HTTPClientMock struct {
 	clientutils.HTTPClientInterface
 }
 
-func (client *K8SClientMock) ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error) {
-	args := client.Called(namespace, resource, group, version, opts)
-	values := args.Get(0).([]byte)
-	err := args.Error(1)
-	return values, err
+func (client *K8SClientMock) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	args := client.Called(ctx, list, opts)
+	err := args.Error(0)
+	return err
 }
 
-func (client *K8SClientMock) GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error) {
-	args := client.Called(name, namespace, resource, group, version, opts)
-	values := args.Get(0).([]byte)
-	err := args.Error(1)
-	return values, err
+func (client *K8SClientMock) Get(ctx context.Context, key types.NamespacedName, obj client.Object) error {
+	args := client.Called(ctx, key, obj)
+	err := args.Error(0)
+	return err
 }
 
 func (getter *HTTPClientMock) Get(url string) (*http.Response, error) {
