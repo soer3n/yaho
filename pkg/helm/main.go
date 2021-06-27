@@ -57,6 +57,35 @@ func getChartURL(rc client.ClientInterface, chart, version, namespace string) (s
 	var err error
 
 	chartObj := &helmv1alpha1.Chart{}
+	foo := &helmv1alpha1.ChartList{}
+
+	if jsonbody, err = rc.ListResources("", "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{}); err != nil {
+		return "", err
+	}
+
+	if err = json.Unmarshal(jsonbody, &foo); err != nil {
+		return "", err
+	}
+
+	log.Info("Charts....")
+
+	for _, bar := range foo.Items {
+		log.Info(bar)
+	}
+
+	if jsonbody, err = rc.ListResources(namespace, "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{}); err != nil {
+		return "", err
+	}
+
+	if err = json.Unmarshal(jsonbody, &foo); err != nil {
+		return "", err
+	}
+
+	log.Info("Charts....")
+
+	for _, bar := range foo.Items {
+		log.Info(bar)
+	}
 
 	if jsonbody, err = rc.GetResource(chart, namespace, "charts", "helm.soer3n.info", "v1alpha1", metav1.GetOptions{}); err != nil {
 		return "", err

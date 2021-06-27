@@ -73,6 +73,8 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
+	log.Infof("Chart %v installed", instance.ObjectMeta.Name)
+
 	return ctrl.Result{}, nil
 }
 

@@ -53,7 +53,7 @@ var _ = Context("Install a repository group", func() {
 			err = k8sClient.Create(ctx, repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
-			time.Sleep(1 * time.Second)
+			time.Sleep(3 * time.Second)
 
 			repoGroup = &helmv1alpha1.RepoGroup{}
 			chart = &helmv1alpha1.Chart{}

@@ -35,6 +35,8 @@ var _ = Context("Install a releasegroup", func() {
 			err = k8sClient.Create(ctx, releaseNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
+			time.Sleep(2 * time.Second)
+
 			By("should create a new Repository resource with the specified name and specified url")
 			releaseGroupRepo = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{

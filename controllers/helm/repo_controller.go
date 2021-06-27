@@ -129,8 +129,10 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	for _, chartObj := range chartObjMap {
-		if err = r.deployChart(chartObj, instance); err != nil {
-			log.Infof("Error on deploying chart: %v", chartObj.Spec.Name)
+		c := make(chan string, 10)
+		go r.deployChart(chartObj, instance, c)
+		for i := range c {
+			log.Info(i)
 		}
 	}
 
@@ -178,10 +180,10 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.He
 	return nil
 }
 
-func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo) error {
+func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo, c chan string) {
 
 	if err := controllerutil.SetControllerReference(instance, helmChart, r.Scheme); err != nil {
-		return err
+		c <- err.Error()
 	}
 
 	installedChart := &helmv1alpha1.Chart{}
@@ -192,18 +194,21 @@ func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *he
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.Infof("Trying to install HelmChart %v", helmChart.Name)
+			c <- "Trying to install HelmChart " + helmChart.Name
 
 			if err = r.Client.Create(context.TODO(), helmChart); err != nil {
-				return err
+				c <- err.Error()
 			}
 		}
-
-		return err
 	}
 
 	installedChart.Spec = helmChart.Spec
-	return r.Client.Update(context.TODO(), installedChart)
+
+	if err = r.Client.Update(context.TODO(), installedChart); err != nil {
+		c <- err.Error()
+	}
+
+	close(c)
 }
 
 // SetupWithManager sets up the controller with the Manager.

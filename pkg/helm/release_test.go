@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
+	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
 	v1 "k8s.io/api/core/v1"
@@ -139,10 +141,15 @@ func TestReleaseUpdate(t *testing.T) {
 
 		testObj.Version = apiObj.Spec.Version
 		testObj.Config = getFakeActionConfig()
+
+		if err := testObj.Config.Releases.Create(getTestDeployedReleaseObj()); err != nil {
+			log.Print(err)
+		}
+
 		configList := testObj.Update()
 
 		// assert.Equal(expected, charts, "Structs should be equal.")
-		assert.NotNil(configList)
+		assert.Nil(configList)
 	}
 }
 
@@ -154,6 +161,9 @@ func getTestReleaseSpecs() []*helmv1alpha1.Release {
 				Chart:   "chart",
 				Repo:    "repo",
 				Version: "0.0.1",
+				ValuesTemplate: &helmv1alpha1.ValueTemplate{
+					ValueRefs: []string{"notpresent"},
+				},
 			},
 		},
 		{
@@ -163,10 +173,13 @@ func getTestReleaseSpecs() []*helmv1alpha1.Release {
 				},
 			},
 			Spec: helmv1alpha1.ReleaseSpec{
-				Name:    "test",
+				Name:    "release",
 				Chart:   "chart",
 				Repo:    "repo",
 				Version: "0.0.1",
+				ValuesTemplate: &helmv1alpha1.ValueTemplate{
+					ValueRefs: []string{"notpresent"},
+				},
 			},
 		},
 	}
@@ -178,7 +191,8 @@ func getTestChartSpec() helmv1alpha1.Chart {
 			Name: "chart",
 		},
 		Spec: helmv1alpha1.ChartSpec{
-			Name: "chart",
+			Name:       "chart",
+			APIVersion: "0.0.1",
 			Versions: []helmv1alpha1.ChartVersion{
 				{
 					Name: "0.0.1",
@@ -189,13 +203,14 @@ func getTestChartSpec() helmv1alpha1.Chart {
 	}
 }
 
-func getTestChartForCompressing() chart.Chart {
-	return chart.Chart{
+func getTestHelmChart() *chart.Chart {
+	return &chart.Chart{
 		Templates: []*chart.File{},
 		Values:    map[string]interface{}{},
 		Metadata: &chart.Metadata{
-			Name:    "meta",
-			Version: "0.0.1",
+			Name:       "meta",
+			Version:    "0.0.1",
+			APIVersion: "0.0.1",
 		},
 	}
 }
@@ -205,5 +220,15 @@ func getFakeActionConfig() *action.Configuration {
 		Releases:     storage.Init(driver.NewMemory()),
 		KubeClient:   &kubefake.FailingKubeClient{PrintingKubeClient: kubefake.PrintingKubeClient{Out: ioutil.Discard}},
 		Capabilities: chartutil.DefaultCapabilities,
+	}
+}
+
+func getTestDeployedReleaseObj() *release.Release {
+	return &release.Release{
+		Name:  "release",
+		Chart: getTestHelmChart(),
+		Info: &release.Info{
+			Status: release.StatusDeployed,
+		},
 	}
 }

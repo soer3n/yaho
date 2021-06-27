@@ -50,7 +50,7 @@ var _ = Context("Install a release", func() {
 			err = k8sClient.Create(ctx, releaseRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
-			time.Sleep(1 * time.Second)
+			time.Sleep(3 * time.Second)
 
 			deployment = &helmv1alpha1.Repo{}
 			repoChart = &helmv1alpha1.Chart{}

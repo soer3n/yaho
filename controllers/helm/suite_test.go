@@ -110,14 +110,18 @@ var _ = BeforeSuite(func(done Done) {
 
 	// +kubebuilder:scaffold:scheme
 
-	// Expect(os.Setenv("WATCH_NAMESPACE", "")).To(Succeed())
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(k8sClient).NotTo(BeNil())
+
+	//Expect(os.Setenv("WATCH_NAMESPACE", "")).To(Succeed())
 	logf.Log.Info("namespace:", "namespace", "default")
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 	err = (&RepoReconciler{
-		Client:   mgr.GetClient(),
+		Client:   k8sClient,
 		Log:      logf.Log,
 		Recorder: mgr.GetEventRecorderFor("repo-controller"),
 		Scheme:   mgr.GetScheme(),
@@ -128,7 +132,7 @@ var _ = BeforeSuite(func(done Done) {
 	//Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 	err = (&RepoGroupReconciler{
-		Client:   mgr.GetClient(),
+		Client:   k8sClient,
 		Log:      logf.Log,
 		Recorder: mgr.GetEventRecorderFor("repogroup-controller"),
 		Scheme:   mgr.GetScheme(),
@@ -136,7 +140,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
 
 	err = (&ChartReconciler{
-		Client:   mgr.GetClient(),
+		Client:   k8sClient,
 		Log:      logf.Log,
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("charts-controller"),
@@ -144,7 +148,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
 
 	err = (&ReleaseGroupReconciler{
-		Client:   mgr.GetClient(),
+		Client:   k8sClient,
 		Log:      logf.Log,
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("releasegroup-controller"),
@@ -152,7 +156,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred(), "failed to setup release group controller")
 
 	err = (&ReleaseReconciler{
-		Client:   mgr.GetClient(),
+		Client:   k8sClient,
 		Log:      logf.Log,
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("release-controller"),
@@ -160,7 +164,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred(), "failed to setup release controller")
 
 	err = (&ValuesReconciler{
-		Client:   mgr.GetClient(),
+		Client:   k8sClient,
 		Log:      logf.Log,
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("values-controller"),
@@ -171,11 +175,6 @@ var _ = BeforeSuite(func(done Done) {
 		err := mgr.Start(ctrl.SetupSignalHandler())
 		Expect(err).NotTo(HaveOccurred(), "failed to start helm manager")
 	}()
-
-	//k8sClient = mgr.GetClient()
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
 
 	close(done)
 }, 60)
