@@ -3,19 +3,20 @@ package helm
 import (
 	"net/http"
 
-	"github.com/soer3n/apps-operator/pkg/client"
+	clientutils "github.com/soer3n/apps-operator/pkg/client"
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type K8SClientMock struct {
 	mock.Mock
-	client.ClientInterface
+	client.Client
 }
 
 type HTTPClientMock struct {
 	mock.Mock
-	client.HTTPClientInterface
+	clientutils.HTTPClientInterface
 }
 
 func (client *K8SClientMock) ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error) {

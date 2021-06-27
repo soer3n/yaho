@@ -24,7 +24,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	clientutils "github.com/soer3n/apps-operator/pkg/client"
 	helmutils "github.com/soer3n/apps-operator/pkg/helm"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -90,7 +89,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		},
 	}
 
-	hc = helmutils.NewHelmClient(instance, clientutils.New(), &g)
+	hc = helmutils.NewHelmClient(instance, r.Client, &g)
 	helmRepo = hc.GetRepo(instance.Spec.Name)
 
 	if instance.GetDeletionTimestamp() != nil {
@@ -109,10 +108,10 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	label, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
-	selector := "repo=" + helmRepo.Name
+	selector := map[string]string{"repo": helmRepo.Name}
 
 	if repoGroupLabelOk && label != "" {
-		selector = selector + ",repoGroup=" + instance.ObjectMeta.Labels["repoGroup"]
+		selector["repoGroup"] = instance.ObjectMeta.Labels["repoGroup"]
 	}
 
 	if chartList, err = helmRepo.GetCharts(hc.Repos.Settings, selector); err != nil {

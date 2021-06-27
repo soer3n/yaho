@@ -8,12 +8,12 @@ import (
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	"github.com/soer3n/apps-operator/pkg/client"
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestRepoGetCharts(t *testing.T) {
@@ -54,14 +54,11 @@ func TestRepoGetCharts(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		testObj := NewHelmRepo(apiObj, settings, &clientMock, &httpMock)
-		selectors := ""
+		selectors := make(map[string]string, 0)
 
 		// parse selectors string from api object meta data
 		for k, v := range apiObj.ObjectMeta.Labels {
-			if selectors != "" {
-				selectors = selectors + ","
-			}
-			selectors = selectors + k + "=" + v
+			selectors[k] = v
 		}
 
 		_, err := testObj.GetCharts(settings, selectors)
@@ -180,7 +177,7 @@ func getTestIndexFile() *repo.IndexFile {
 	}
 }
 
-func getExpectedTestCharts(c client.ClientInterface) []*HelmChart {
+func getExpectedTestCharts(c client.Client) []*HelmChart {
 	return []*HelmChart{
 		{
 			Repo:      "testrepo",

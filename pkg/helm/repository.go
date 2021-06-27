@@ -1,7 +1,7 @@
 package helm
 
 import (
-	"encoding/json"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -10,14 +10,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	client "github.com/soer3n/apps-operator/pkg/client"
+	clientutils "github.com/soer3n/apps-operator/pkg/client"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
-func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.ClientInterface, g client.HTTPClientInterface) *HelmRepo {
+func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.Client, g clientutils.HTTPClientInterface) *HelmRepo {
 
 	var helmRepo *HelmRepo
 
@@ -91,21 +91,20 @@ func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 	return obj, nil
 }
 
-func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selector string) ([]*HelmChart, error) {
+func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selectors map[string]string) ([]*HelmChart, error) {
 
 	var chartList []*HelmChart
 	var indexFile *repo.IndexFile
 	var chartAPIList helmv1alpha1.ChartList
-	var jsonbody []byte
 	var err error
 
-	if jsonbody, err = hr.k8sClient.ListResources(hr.Namespace.Name, "charts", "helm.soer3n.info", "v1alpha1", metav1.ListOptions{
-		LabelSelector: selector,
-	}); err != nil {
-		return chartList, err
+	selectorObj := client.MatchingLabels{}
+
+	for k, selector := range selectors {
+		selectorObj[k] = selector
 	}
 
-	if err = json.Unmarshal(jsonbody, &chartAPIList); err != nil {
+	if err = hr.k8sClient.List(context.Background(), &chartAPIList, client.InNamespace(hr.Namespace.Name), selectorObj); err != nil {
 		return chartList, err
 	}
 
