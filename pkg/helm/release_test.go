@@ -11,6 +11,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -99,14 +100,32 @@ func TestReleaseUpdate(t *testing.T) {
 	*/
 	ctx := context.TODO()
 
-	clientMock.On("Get", ctx, types.NamespacedName{Name: "repo", Namespace: ""}, &helmv1alpha1.Repo{}).Return(nil)
+	clientMock.On("Get", ctx, types.NamespacedName{Name: "repo", Namespace: ""}, &helmv1alpha1.Repo{}).Return(nil).Run(func(args mock.Arguments) {
+
+		_ = args.Get(0).(*map[string]interface{})
+	})
 	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace(""), client.MatchingLabels{
 		"repo": "repo",
-	}).Return(nil)
-	clientMock.On("Get", ctx, types.NamespacedName{Name: "chart", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil)
-	clientMock.On("Get", ctx, types.NamespacedName{Name: "helm-tmpl-chart-0.0.1", Namespace: ""}).Return(nil)
-	clientMock.On("Get", ctx, types.NamespacedName{Name: "helm-crds-chart-0.0.1", Namespace: ""}).Return(nil)
-	clientMock.On("Get", ctx, types.NamespacedName{Name: "helm-default-chart-0.0.1", Namespace: ""}).Return(nil)
+	}).Return(nil).Run(func(args mock.Arguments) {
+
+		_ = args.Get(1).(*helmv1alpha1.ChartList)
+	})
+	clientMock.On("Get", ctx, types.NamespacedName{Name: "chart", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
+
+		_ = args.Get(0).(*map[string]interface{})
+	})
+	clientMock.On("Get", ctx, types.NamespacedName{Name: "helm-tmpl-chart-0.0.1", Namespace: ""}).Return(nil).Run(func(args mock.Arguments) {
+
+		_ = args.Get(0).(*map[string]interface{})
+	})
+	clientMock.On("Get", ctx, types.NamespacedName{Name: "helm-crds-chart-0.0.1", Namespace: ""}).Return(nil).Run(func(args mock.Arguments) {
+
+		_ = args.Get(0).(*map[string]interface{})
+	})
+	clientMock.On("Get", ctx, types.NamespacedName{Name: "helm-default-chart-0.0.1", Namespace: ""}).Return(nil).Run(func(args mock.Arguments) {
+
+		_ = args.Get(0).(*map[string]interface{})
+	})
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 

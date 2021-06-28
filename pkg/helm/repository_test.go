@@ -10,6 +10,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
@@ -26,13 +27,23 @@ func TestRepoGetCharts(t *testing.T) {
 	ctx := context.TODO()
 	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace(""), client.MatchingLabels{
 		"label": "selector",
-	}).Return(nil)
+	}).Return(nil).Run(func(args mock.Arguments) {
 
-	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace("")).Return(nil)
+		_ = args.Get(0).(*map[string]interface{})
+	})
+
+	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace("")).Return(nil).Run(func(args mock.Arguments) {
+
+		_ = args.Get(0).(*map[string]interface{})
+	})
 
 	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace(""), client.MatchingLabels{
 		"label": "notpresent",
-	}).Return(nil)
+	}).Return(nil).Run(func(args mock.Arguments) {
+
+		_ = args.Get(0).(*map[string]interface{})
+	})
+
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 
 	indexFile := getTestIndexFile()
