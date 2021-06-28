@@ -121,6 +121,10 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selectors map[string]str
 
 		log.Debugf("IndexFileErr: %v", err)
 
+		if indexFile == nil {
+			return chartList, nil
+		}
+
 		for _, chartMetadata := range indexFile.Entries {
 			log.Debugf("ChartMetadata: %v", chartMetadata)
 			chartList = append(chartList, NewChart(chartMetadata, settings, hr.Name, hr.k8sClient, hr.getter))

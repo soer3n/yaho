@@ -3,6 +3,8 @@ package helm
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -20,6 +22,7 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,10 +34,14 @@ func TestReleaseConfigMaps(t *testing.T) {
 	httpMock := HTTPClientMock{}
 	settings := cli.New()
 	apiObjList := getTestReleaseSpecs()
-	ctx := context.TODO()
 
-	clientMock.On("Get", ctx, types.NamespacedName{Name: "repo", Namespace: ""}, &helmv1alpha1.Repo{}).Return(nil)
-	clientMock.On("Get", ctx, types.NamespacedName{Name: "chart", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil)
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "repo", Namespace: ""}, &helmv1alpha1.Repo{}).Return(nil)
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "chart", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Chart)
+		spec := getTestChartSpec()
+		c.Spec = spec.Spec
+		c.ObjectMeta = spec.ObjectMeta
+	})
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 
@@ -79,52 +86,37 @@ func TestReleaseUpdate(t *testing.T) {
 	httpMock := HTTPClientMock{}
 	settings := cli.New()
 	apiObjList := getTestReleaseSpecs()
-	/*values := map[string]string{
-		"foo": "bar",
-		"bar": "foo",
-	}
-	castedValues, _ := json.Marshal(values)
-	configmapRaw, _ := json.Marshal(v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "",
-		},
-		Data: map[string]string{
-			"values": string(castedValues),
-		},
-	})
 
-	chartList := helmv1alpha1.ChartList{
-		Items: []helmv1alpha1.Chart{},
-	}
-	chartListRawObj, _ := json.Marshal(chartList)
-	*/
-	ctx := context.TODO()
-
-	clientMock.On("Get", ctx, types.NamespacedName{Name: "repo", Namespace: ""}, &helmv1alpha1.Repo{}).Return(nil).Run(func(args mock.Arguments) {
-
-		_ = args.Get(0).(*map[string]interface{})
-	})
-	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace(""), client.MatchingLabels{
-		"repo": "repo",
-	}).Return(nil).Run(func(args mock.Arguments) {
+	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.MatchingLabels{"repo": "repo"}, client.InNamespace("")}).Return(nil).Run(func(args mock.Arguments) {
 
 		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
-	clientMock.On("Get", ctx, types.NamespacedName{Name: "chart", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
-
-		_ = args.Get(0).(*map[string]interface{})
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "test", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Chart)
+		spec := getTestChartSpec()
+		c.Spec = spec.Spec
+		c.ObjectMeta = spec.ObjectMeta
 	})
-	clientMock.On("Get", ctx, types.NamespacedName{Name: "helm-tmpl-chart-0.0.1", Namespace: ""}).Return(nil).Run(func(args mock.Arguments) {
-
-		_ = args.Get(0).(*map[string]interface{})
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "release", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Chart)
+		spec := getTestChartSpec()
+		c.Spec = spec.Spec
+		c.ObjectMeta = spec.ObjectMeta
 	})
-	clientMock.On("Get", ctx, types.NamespacedName{Name: "helm-crds-chart-0.0.1", Namespace: ""}).Return(nil).Run(func(args mock.Arguments) {
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-tmpl-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
 
-		_ = args.Get(0).(*map[string]interface{})
+		_ = args.Get(2).(*v1.ConfigMap)
 	})
-	clientMock.On("Get", ctx, types.NamespacedName{Name: "helm-default-chart-0.0.1", Namespace: ""}).Return(nil).Run(func(args mock.Arguments) {
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-crds-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
 
-		_ = args.Get(0).(*map[string]interface{})
+		_ = args.Get(2).(*v1.ConfigMap)
+	})
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-default-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
+
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := getTestDefaultValueConfigMap()
+		c.Data = spec.Data
+		c.ObjectMeta = spec.ObjectMeta
 	})
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
@@ -157,7 +149,7 @@ func TestReleaseUpdate(t *testing.T) {
 		}
 
 		testObj.Version = apiObj.Spec.Version
-		testObj.Config = getFakeActionConfig()
+		testObj.Config = getFakeActionConfig(t)
 
 		if err := testObj.Config.Releases.Create(getTestDeployedReleaseObj()); err != nil {
 			log.Print(err)
@@ -232,11 +224,19 @@ func getTestHelmChart() *chart.Chart {
 	}
 }
 
-func getFakeActionConfig() *action.Configuration {
+var verbose = flag.Bool("test.log", false, "enable test logging")
+
+func getFakeActionConfig(t *testing.T) *action.Configuration {
 	return &action.Configuration{
 		Releases:     storage.Init(driver.NewMemory()),
 		KubeClient:   &kubefake.FailingKubeClient{PrintingKubeClient: kubefake.PrintingKubeClient{Out: ioutil.Discard}},
 		Capabilities: chartutil.DefaultCapabilities,
+		Log: func(format string, v ...interface{}) {
+			t.Helper()
+			if *verbose {
+				t.Logf(format, v...)
+			}
+		},
 	}
 }
 
@@ -248,4 +248,28 @@ func getTestDeployedReleaseObj() *release.Release {
 			Status: release.StatusDeployed,
 		},
 	}
+}
+
+func getTestDefaultValueConfigMap() v1.ConfigMap {
+
+	immutable := new(bool)
+	*immutable = true
+	objectMeta := metav1.ObjectMeta{
+		Name:      "helm-default-chart-0.0.1",
+		Namespace: "",
+	}
+	configmap := v1.ConfigMap{
+		Immutable:  immutable,
+		ObjectMeta: objectMeta,
+		Data:       make(map[string]string),
+	}
+
+	values := map[string]interface{}{
+		"values": "foo",
+		"key":    "bar",
+	}
+	castedValues, _ := json.Marshal(values)
+	configmap.Data["values"] = string(castedValues)
+
+	return configmap
 }

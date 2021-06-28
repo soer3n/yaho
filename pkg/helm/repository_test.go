@@ -24,24 +24,24 @@ func TestRepoGetCharts(t *testing.T) {
 	httpMock := HTTPClientMock{}
 	settings := cli.New()
 	apiObjList := getTestRepoSpecs()
-	ctx := context.TODO()
-	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace(""), client.MatchingLabels{
+
+	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{
 		"label": "selector",
-	}).Return(nil).Run(func(args mock.Arguments) {
+	}}).Return(nil).Run(func(args mock.Arguments) {
 
-		_ = args.Get(0).(*map[string]interface{})
+		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
 
-	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace("")).Return(nil).Run(func(args mock.Arguments) {
+	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{}}).Return(nil).Run(func(args mock.Arguments) {
 
-		_ = args.Get(0).(*map[string]interface{})
+		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
 
-	clientMock.On("List", ctx, &helmv1alpha1.ChartList{}, client.InNamespace(""), client.MatchingLabels{
+	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{
 		"label": "notpresent",
-	}).Return(nil).Run(func(args mock.Arguments) {
+	}}).Return(nil).Run(func(args mock.Arguments) {
 
-		_ = args.Get(0).(*map[string]interface{})
+		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
