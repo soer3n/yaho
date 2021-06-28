@@ -149,6 +149,9 @@ func TestReleaseUpdate(t *testing.T) {
 		}
 
 		testObj.Version = apiObj.Spec.Version
+		testObj.ValuesTemplate.ValuesMap = map[string]string{
+			"bar": "foo",
+		}
 		testObj.Config = getFakeActionConfig(t)
 
 		if err := testObj.Config.Releases.Create(getTestDeployedReleaseObj()); err != nil {
