@@ -42,29 +42,21 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 }
 
 func (chart *HelmChart) CreateTemplates() error {
-	var argsList []string
-	var name, chartname, chartURL string
+
+	var name, chartURL string
 	var chartRequested *helmchart.Chart
 	var err error
 
-	repo := chart.Repo
 	client := chart.Client
 	k8sClient := chart.k8sClient
 	g := chart.getter
 
 	for _, chart := range chart.Versions {
-		argsList = make([]string, 0)
-		argsList = append(argsList, chart.Version.Metadata.Name)
-		argsList = append(argsList, repo+"/"+chart.Version.Metadata.Name)
-
-		if name, chartname, err = client.NameAndChart(argsList); err != nil {
-			return err
-		}
 
 		client.ReleaseName = name
 		client.Version = chart.Version.Version
 
-		if chartURL, err = getChartURL(k8sClient, chartname, chart.Version.Name, client.Namespace); err != nil {
+		if chartURL, err = getChartURL(k8sClient, chart.Version.Name, chart.Version.Version, client.Namespace); err != nil {
 			return err
 		}
 
