@@ -5,16 +5,18 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func TestClient(t *testing.T) {
+func TestFinalizerHandle(t *testing.T) {
 
 	clientMock := K8SClientMock{}
 	httpMock := HTTPClientMock{}
@@ -51,31 +53,48 @@ func TestClient(t *testing.T) {
 
 	assert := assert.New(t)
 
-	testObj := NewHelmClient(getTestClientRepo(), &clientMock, &httpMock)
-	repoObj := testObj.GetRepo("")
+	testObj := NewHelmClient(getTestFinalizerRelease(), &clientMock, &httpMock)
+
+	if err := testObj.Releases.Entries[0].Config.Releases.Create(getTestDeployedReleaseObj()); err != nil {
+		log.Print(err)
+	}
+
+	ok, _ := HandleFinalizer(testObj, getTestClientRelease())
+	testObj.Releases.Entries[0].Config = getFakeActionConfig(t)
+
+	//ok, _ := HandleFinalizer(testObj, getTestClientRepo())
 
 	// assert.Equal(expected, charts, "Structs should be equal.")
-	assert.Nil(repoObj)
-
-	testObj = NewHelmClient(getTestClientRelease(), &clientMock, &httpMock)
-	releaseObj := testObj.GetRelease("", "")
+	//assert.True(ok)
 
 	// assert.Equal(expected, charts, "Structs should be equal.")
-	assert.Nil(releaseObj)
+	assert.False(ok)
+
 }
 
-func getTestClientRepo() *HelmRepo {
-	return &HelmRepo{
-		Name: "boo",
-		Url:  "https://unknown.domain/charts",
+func getTestFinalizerRepo() *helmv1alpha1.Repo {
+	return &helmv1alpha1.Repo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: "",
+		},
+		Spec: helmv1alpha1.RepoSpec{
+			Name: "repo",
+			Url:  "https://foo.bar/charts",
+		},
 	}
 }
 
-func getTestClientRelease() *HelmRelease {
-	return &HelmRelease{
-		Name:    "far",
-		Repo:    "boo",
-		Chart:   "foo",
-		Version: "0.0.1",
+func getTestFinalizerRelease() *helmv1alpha1.Release {
+	return &helmv1alpha1.Release{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "release",
+			Namespace: "",
+		},
+		Spec: helmv1alpha1.ReleaseSpec{
+			Name:  "release",
+			Repo:  "repo",
+			Chart: "chart",
+		},
 	}
 }

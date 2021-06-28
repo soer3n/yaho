@@ -16,18 +16,6 @@ func HandleFinalizer(hc *HelmClient, instance interface{}) (bool, error) {
 	return false, nil
 }
 
-func removeRepo(hc *HelmClient) error {
-
-	helmRepo := hc.Repos.Entries[0]
-	name := helmRepo.Name
-
-	if err := hc.RemoveByName(name); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func removeRelease(helmRelease *HelmRelease) error {
 
 	if _, err := helmRelease.getRelease(); err != nil {
