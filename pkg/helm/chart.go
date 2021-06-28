@@ -43,7 +43,7 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 
 func (chart *HelmChart) CreateTemplates() error {
 	var argsList []string
-	var name, chartname, cp, chartURL string
+	var name, chartname, chartURL string
 	var chartRequested *helmchart.Chart
 	var err error
 
