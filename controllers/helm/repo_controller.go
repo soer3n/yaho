@@ -135,10 +135,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	}
 
-	if err := hc.RemoveRepoCache(instance.Spec.Name); err != nil {
-		return ctrl.Result{}, nil
-	}
-
 	log.Infof("Repo %v deployed in namespace %v", instance.Spec.Name, instance.ObjectMeta.Namespace)
 	log.Info("Don't reconcile repos.")
 	return ctrl.Result{}, nil

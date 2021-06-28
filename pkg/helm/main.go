@@ -5,12 +5,10 @@ import (
 	actionlog "log"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/prometheus/common/log"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/pkg/errors"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	clientutils "github.com/soer3n/apps-operator/pkg/client"
 	"helm.sh/helm/v3/pkg/action"
@@ -63,29 +61,6 @@ func getChartURL(rc client.Client, chart, version, namespace string) (string, er
 	}
 
 	return chartObj.GetChartVersion(version).URL, nil
-}
-
-func removeFile(path, name string) error {
-	idx := filepath.Join(path, name)
-	return removeFileByPath(idx)
-}
-
-func removeFileByFulPath(fullpath string) error {
-	return removeFileByPath(fullpath)
-}
-
-func removeFileByPath(idx string) error {
-	if _, err := os.Stat(idx); err == nil {
-		os.Remove(idx)
-	}
-
-	if _, err := os.Stat(idx); os.IsNotExist(err) {
-		return nil
-	} else if err != nil {
-		return errors.Wrapf(err, "can't remove file %s", idx)
-	}
-
-	return os.Remove(idx)
 }
 
 func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
