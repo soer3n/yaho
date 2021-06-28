@@ -80,10 +80,6 @@ func (chart *HelmChart) CreateTemplates() error {
 
 		log.Debugf("Default Values: %v", chartRequested.Values)
 		chart.DefaultValues = chartRequested.Values
-
-		if err := removeFileByFulPath(cp); err != nil {
-			return err
-		}
 	}
 
 	return nil
