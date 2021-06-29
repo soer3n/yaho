@@ -54,13 +54,13 @@ func TestFinalizerHandle(t *testing.T) {
 	assert := assert.New(t)
 
 	testObj := NewHelmClient(getTestFinalizerRelease(), &clientMock, &httpMock)
+	testObj.Releases.Entries[0].Config = getFakeActionConfig(t)
 
 	if err := testObj.Releases.Entries[0].Config.Releases.Create(getTestDeployedReleaseObj()); err != nil {
 		log.Print(err)
 	}
 
 	ok, _ := HandleFinalizer(testObj, getTestClientRelease())
-	testObj.Releases.Entries[0].Config = getFakeActionConfig(t)
 
 	//ok, _ := HandleFinalizer(testObj, getTestClientRepo())
 

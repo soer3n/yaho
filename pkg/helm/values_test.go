@@ -28,11 +28,19 @@ func getTestValueSpecs() []*ValuesRef {
 
 	firstVals := map[string]string{"foo": "bar"}
 	secVals := map[string]string{"foo": "bar"}
-	thirdVals := map[string]string{"foo": "bar"}
+	thirdVals := map[string]interface{}{"baf": "muh", "boo": map[string]string{
+		"fuz": "xyz",
+	}, "mah": map[string]interface{}{
+		"bah": map[string]string{
+			"aah": "wah",
+		},
+	}}
+	fourthVals := map[string]string{"foo": "bar"}
 
 	firstValsRaw, _ := json.Marshal(firstVals)
 	secValsRaw, _ := json.Marshal(secVals)
 	thirdValsRaw, _ := json.Marshal(thirdVals)
+	fourthValsRaw, _ := json.Marshal(fourthVals)
 
 	return []*ValuesRef{
 		{
@@ -63,6 +71,9 @@ func getTestValueSpecs() []*ValuesRef {
 					ValuesMap: &runtime.RawExtension{
 						Raw: secValsRaw,
 					},
+					Refs: map[string]string{
+						"boo": "fourth",
+					},
 				},
 			},
 			Parent: "foo",
@@ -80,6 +91,20 @@ func getTestValueSpecs() []*ValuesRef {
 				},
 			},
 			Parent: "foo",
+		},
+		{
+			Ref: &helmv1alpha1.Values{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "fourth",
+					Namespace: "",
+				},
+				Spec: helmv1alpha1.ValuesSpec{
+					ValuesMap: &runtime.RawExtension{
+						Raw: fourthValsRaw,
+					},
+				},
+			},
+			Parent: "second",
 		},
 	}
 }

@@ -269,7 +269,7 @@ func getTestDefaultValueConfigMap() v1.ConfigMap {
 
 	values := map[string]interface{}{
 		"values": "foo",
-		"key":    "bar",
+		"key":    map[string]string{"bar": "fuz"},
 	}
 	castedValues, _ := json.Marshal(values)
 	configmap.Data["values"] = string(castedValues)
