@@ -3,11 +3,13 @@ package client
 import (
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 )
 
 type Client struct {
-	DynamicClient dynamic.Interface
+	DynamicClient  dynamic.Interface
+	DiscoverClient discovery.CachedDiscoveryInterface
 	ClientOpts
 	ClientInterface
 }

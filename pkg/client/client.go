@@ -4,6 +4,7 @@ import (
 	// "helm.sh/helm/pkg/kube"
 	"context"
 	"encoding/json"
+	"log"
 	"reflect"
 	"sync"
 
@@ -42,8 +43,26 @@ func New() *Client {
 	}
 
 	rc := &Client{}
-
 	rc.DynamicClient = foo
+
+	// Add CRDs to the scheme. They are missing by default.
+	addToScheme.Do(func() {
+		if err := apiextv1.AddToScheme(scheme.Scheme); err != nil {
+			// This should never happen.
+			panic(err)
+		}
+		if err := apiextv1beta1.AddToScheme(scheme.Scheme); err != nil {
+			panic(err)
+		}
+	})
+
+	discoveryclient, err := cmdutil.NewFactory(getter).ToDiscoveryClient()
+
+	if err != nil {
+		log.Fatal("no client detected.")
+	}
+
+	rc.DiscoverClient = discoveryclient
 
 	return rc
 }
@@ -75,28 +94,7 @@ func (c *Client) ListResources(namespace, resource, group, version string, opts 
 func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...string) ([]byte, error) {
 
 	var resources []ResourceKind
-
-	env := cli.New()
-	getter := env.RESTClientGetter()
-
-	// Add CRDs to the scheme. They are missing by default.
-	addToScheme.Do(func() {
-		if err := apiextv1.AddToScheme(scheme.Scheme); err != nil {
-			// This should never happen.
-			panic(err)
-		}
-		if err := apiextv1beta1.AddToScheme(scheme.Scheme); err != nil {
-			panic(err)
-		}
-	})
-
-	discoveryclient, err := cmdutil.NewFactory(getter).ToDiscoveryClient()
-
-	if err != nil {
-		return []byte{}, err
-	}
-
-	lists, err := discoveryclient.ServerPreferredResources()
+	lists, err := c.DiscoverClient.ServerPreferredResources()
 
 	if err != nil {
 		return []byte{}, err

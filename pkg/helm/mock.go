@@ -4,21 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	clientutils "github.com/soer3n/apps-operator/pkg/client"
-	"github.com/stretchr/testify/mock"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-type K8SClientMock struct {
-	mock.Mock
-	client.Client
-}
-
-type HTTPClientMock struct {
-	mock.Mock
-	clientutils.HTTPClientInterface
-}
 
 func (client *K8SClientMock) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
 	args := client.Called(ctx, list, opts)

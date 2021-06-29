@@ -3,12 +3,23 @@ package helm
 import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	clientutils "github.com/soer3n/apps-operator/pkg/client"
+	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+type K8SClientMock struct {
+	mock.Mock
+	client.Client
+}
+
+type HTTPClientMock struct {
+	mock.Mock
+	clientutils.HTTPClientInterface
+}
 
 type HelmClient struct {
 	Repos    *HelmRepos
