@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	clientutils "github.com/soer3n/apps-operator/pkg/client"
+	"github.com/soer3n/apps-operator/internal/types"
 	"github.com/stretchr/testify/mock"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -15,7 +15,7 @@ type K8SClientMock struct {
 
 type HTTPClientMock struct {
 	mock.Mock
-	clientutils.HTTPClientInterface
+	types.HTTPClientInterface
 }
 
 type K8SResourceMock struct {

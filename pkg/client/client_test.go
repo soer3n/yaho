@@ -12,15 +12,28 @@ import (
 
 func TestGetAPIResources(t *testing.T) {
 
-	dcMock := &mocks.K8SDynamicClientMock{}
+	dcMock := &mocks.K8SDiscoveryMock{}
+	dcMock.On("GetAPIResources", "apiGroup", false).Return([]*metav1.APIResourceList{
+		{
+			GroupVersion: "v1",
+			APIResources: []metav1.APIResource{
+				{
+					Name:       "apiresource",
+					Group:      "apiGroup",
+					Namespaced: false,
+				},
+			},
+		},
+	}, nil)
+
 	client := New()
-	client.DynamicClient = dcMock
+	client.DiscoverClient = dcMock
 
-	//assert := assert.New(t)
+	assert := assert.New(t)
 
-	//_, _ = client.GetResource("", "", "", "", "", v1.GetOptions{})
+	_, err := client.GetAPIResources("apiGroup", false)
 
-	//assert.NotNil(nil)
+	assert.Nil(err)
 }
 
 func TestListResources(t *testing.T) {

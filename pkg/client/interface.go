@@ -1,10 +1,7 @@
 package client
 
 import (
-	"net/http"
-
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/dynamic"
@@ -35,13 +32,4 @@ type Factory interface {
 
 	// Returns a schema that can validate objects stored on disk.
 	Validator(validate bool) (validation.Schema, error)
-}
-
-type ClientInterface interface {
-	GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error)
-	ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error)
-}
-
-type HTTPClientInterface interface {
-	Get(url string) (*http.Response, error)
 }

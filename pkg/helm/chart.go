@@ -3,7 +3,7 @@ package helm
 import (
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	clientutils "github.com/soer3n/apps-operator/pkg/client"
+	"github.com/soer3n/apps-operator/internal/types"
 	"helm.sh/helm/v3/pkg/action"
 	helmchart "helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient client.Client, g clientutils.HTTPClientInterface) *HelmChart {
+func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient client.Client, g types.HTTPClientInterface) *HelmChart {
 
 	var chartVersions []HelmChartVersion
 	var config *action.Configuration

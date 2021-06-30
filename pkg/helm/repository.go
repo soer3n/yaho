@@ -10,14 +10,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	clientutils "github.com/soer3n/apps-operator/pkg/client"
+	"github.com/soer3n/apps-operator/internal/types"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
-func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.Client, g clientutils.HTTPClientInterface) *HelmRepo {
+func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.Client, g types.HTTPClientInterface) *HelmRepo {
 
 	var helmRepo *HelmRepo
 

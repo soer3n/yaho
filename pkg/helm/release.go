@@ -18,11 +18,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	clientutils "github.com/soer3n/apps-operator/pkg/client"
+	inttypes "github.com/soer3n/apps-operator/internal/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient client.Client, g clientutils.HTTPClientInterface) *HelmRelease {
+func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient client.Client, g inttypes.HTTPClientInterface) *HelmRelease {
 
 	var helmRelease *HelmRelease
 

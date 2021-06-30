@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	clientutils "github.com/soer3n/apps-operator/pkg/client"
+	inttypes "github.com/soer3n/apps-operator/internal/types"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -33,7 +33,7 @@ func initActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) 
 	return actionConfig, nil
 }
 
-func getChartByURL(url string, g clientutils.HTTPClientInterface) (*chart.Chart, error) {
+func getChartByURL(url string, g inttypes.HTTPClientInterface) (*chart.Chart, error) {
 
 	var resp *http.Response
 	var err error

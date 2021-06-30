@@ -3,13 +3,13 @@ package helm
 import (
 	"github.com/pkg/errors"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	clientutils "github.com/soer3n/apps-operator/pkg/client"
+	"github.com/soer3n/apps-operator/internal/types"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func NewHelmClient(instance interface{}, k8sClient client.Client, g clientutils.HTTPClientInterface) *HelmClient {
+func NewHelmClient(instance interface{}, k8sClient client.Client, g types.HTTPClientInterface) *HelmClient {
 
 	hc := &HelmClient{
 		Repos:    &HelmRepos{},
@@ -75,7 +75,7 @@ func (hc *HelmClient) GetRelease(name, repo string) *HelmRelease {
 	return nil
 }
 
-func (hc *HelmClient) manageEntries(instance interface{}, k8sclient client.Client, g clientutils.HTTPClientInterface) error {
+func (hc *HelmClient) manageEntries(instance interface{}, k8sclient client.Client, g types.HTTPClientInterface) error {
 
 	var releaseObj *helmv1alpha1.Release
 	repoObj, ok := instance.(*helmv1alpha1.Repo)

@@ -97,3 +97,39 @@ func (getter *K8SResourceMock) DeleteCollection(ctx context.Context, options met
 	err := args.Error(1)
 	return err
 }
+
+func (getter *K8SDiscoveryMock) ServerResourcesForGroupVersion(groupVersion string) (*metav1.APIResourceList, error) {
+	args := getter.Called(groupVersion)
+	v := args.Get(0).(*metav1.APIResourceList)
+	err := args.Error(1)
+	return v, err
+}
+
+func (getter *K8SDiscoveryMock) ServerResources() ([]*metav1.APIResourceList, error) {
+	args := getter.Called()
+	v := args.Get(0).([]*metav1.APIResourceList)
+	err := args.Error(1)
+	return v, err
+}
+
+func (getter *K8SDiscoveryMock) ServerGroupsAndResources() ([]*metav1.APIGroup, []*metav1.APIResourceList, error) {
+	args := getter.Called()
+	v := args.Get(0).([]*metav1.APIGroup)
+	y := args.Get(1).([]*metav1.APIResourceList)
+	err := args.Error(2)
+	return v, y, err
+}
+
+func (getter *K8SDiscoveryMock) ServerPreferredResources() ([]*metav1.APIResourceList, error) {
+	args := getter.Called()
+	v := args.Get(0).([]*metav1.APIResourceList)
+	err := args.Error(1)
+	return v, err
+}
+
+func (getter *K8SDiscoveryMock) ServerPreferredNamespacedResources() ([]*metav1.APIResourceList, error) {
+	args := getter.Called()
+	v := args.Get(0).([]*metav1.APIResourceList)
+	err := args.Error(1)
+	return v, err
+}
