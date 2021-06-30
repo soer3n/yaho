@@ -13,14 +13,17 @@ import (
 func TestGetAPIResources(t *testing.T) {
 
 	dcMock := &mocks.K8SDiscoveryMock{}
-	dcMock.On("GetAPIResources", "apiGroup", false).Return([]*metav1.APIResourceList{
+	dcMock.On("ServerPreferredResources").Return([]*metav1.APIResourceList{
 		{
-			GroupVersion: "v1",
+			GroupVersion: "apiGroup/v1",
 			APIResources: []metav1.APIResource{
 				{
 					Name:       "apiresource",
 					Group:      "apiGroup",
 					Namespaced: false,
+					Verbs: metav1.Verbs{
+						"foo", "bar",
+					},
 				},
 			},
 		},

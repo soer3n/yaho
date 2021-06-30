@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"reflect"
 	"sync"
 
 	"helm.sh/helm/v3/pkg/cli"
@@ -126,5 +125,5 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 		}
 	}
 
-	return json.Marshal(reflect.ValueOf(resources).Interface().([]map[string]interface{}))
+	return json.Marshal(resources)
 }
