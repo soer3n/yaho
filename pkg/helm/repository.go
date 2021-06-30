@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/soer3n/apps-operator/internal/types"
+	"github.com/soer3n/apps-operator/pkg/utils"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -109,7 +110,7 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selectors map[string]str
 	}
 
 	for _, v := range chartAPIList.Items {
-		chartList = append(chartList, NewChart(v.ConvertChartVersions(), settings, hr.Name, hr.k8sClient, hr.getter))
+		chartList = append(chartList, NewChart(utils.ConvertChartVersions(&v), settings, hr.Name, hr.k8sClient, hr.getter))
 		log.Debugf("new: %v", v)
 	}
 

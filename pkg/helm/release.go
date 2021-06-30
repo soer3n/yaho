@@ -19,6 +19,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	inttypes "github.com/soer3n/apps-operator/internal/types"
+	"github.com/soer3n/apps-operator/pkg/utils"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -265,7 +266,7 @@ func (hc HelmRelease) getChart(chartName string, chartPathOptions *action.ChartP
 	helmChart.Templates = hc.appendFilesFromConfigMap("helm-tmpl-"+hc.Chart+"-"+hc.Version, helmChart.Templates)
 	helmChart.Values = hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
 
-	versionObj := chartObj.GetChartVersion(chartPathOptions.Version)
+	versionObj := utils.GetChartVersion(chartPathOptions.Version, chartObj)
 
 	if err := hc.addDependencies(helmChart, versionObj.Dependencies, repoSelector); err != nil {
 		return helmChart, err

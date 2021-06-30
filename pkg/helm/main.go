@@ -11,6 +11,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	inttypes "github.com/soer3n/apps-operator/internal/types"
+	"github.com/soer3n/apps-operator/pkg/utils"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -60,7 +61,7 @@ func getChartURL(rc client.Client, chart, version, namespace string) (string, er
 		return "", err
 	}
 
-	return chartObj.GetChartVersion(version).URL, nil
+	return utils.GetChartVersion(version, chartObj).URL, nil
 }
 
 func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
