@@ -36,25 +36,14 @@ func New() *Client {
 		}
 	})
 
-	foo, err := cmdutil.NewFactory(getter).DynamicClient()
+	dc, err := cmdutil.NewFactory(getter).DynamicClient()
 
 	if err != nil {
 		panic(err)
 	}
 
 	rc := &Client{}
-	rc.DynamicClient = foo
-
-	// Add CRDs to the scheme. They are missing by default.
-	addToScheme.Do(func() {
-		if err := apiextv1.AddToScheme(scheme.Scheme); err != nil {
-			// This should never happen.
-			panic(err)
-		}
-		if err := apiextv1beta1.AddToScheme(scheme.Scheme); err != nil {
-			panic(err)
-		}
-	})
+	rc.DynamicClient = dc
 
 	discoveryclient, err := cmdutil.NewFactory(getter).ToDiscoveryClient()
 

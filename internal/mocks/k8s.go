@@ -1,4 +1,4 @@
-package client
+package mocks
 
 import (
 	"context"
@@ -6,12 +6,26 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (getter *K8SClientMock) Resource(resource schema.GroupVersionResource) dynamic.NamespaceableResourceInterface {
+func (client *K8SClientMock) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	args := client.Called(ctx, list, opts)
+	err := args.Error(0)
+	return err
+}
+
+func (client *K8SClientMock) Get(ctx context.Context, key types.NamespacedName, obj client.Object) error {
+	args := client.Called(ctx, key, obj)
+	err := args.Error(0)
+	return err
+}
+
+func (getter *K8SDynamicClientMock) Resource(resource schema.GroupVersionResource) dynamic.NamespaceableResourceInterface {
 	args := getter.Called(resource)
 	values := args.Get(0).(dynamic.NamespaceableResourceInterface)
 	return values
@@ -30,16 +44,16 @@ func (getter *K8SResourceMock) Get(ctx context.Context, name string, options met
 	return values, err
 }
 
-func (getter *K8SResourceMock) List(ctx context.Context, opts metav1.ListOptions) (*unstructured.Unstructured, error) {
+func (getter *K8SResourceMock) List(ctx context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
 	args := getter.Called(opts)
-	values := args.Get(0).(*unstructured.Unstructured)
+	values := args.Get(0).(*unstructured.UnstructuredList)
 	err := args.Error(1)
 	return values, err
 }
 
-func (getter *K8SResourceMock) Watch(ctx context.Context, opts metav1.ListOptions) (*unstructured.Unstructured, error) {
+func (getter *K8SResourceMock) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	args := getter.Called(opts)
-	values := args.Get(0).(*unstructured.Unstructured)
+	values := args.Get(0).(watch.Interface)
 	err := args.Error(1)
 	return values, err
 }
@@ -72,16 +86,14 @@ func (getter *K8SResourceMock) Update(ctx context.Context, obj *unstructured.Uns
 	return values, err
 }
 
-func (getter *K8SResourceMock) Delete(ctx context.Context, name string, options metav1.DeleteOptions, subresources ...string) (*unstructured.Unstructured, error) {
+func (getter *K8SResourceMock) Delete(ctx context.Context, name string, options metav1.DeleteOptions, subresources ...string) error {
 	args := getter.Called(name)
-	values := args.Get(0).(*unstructured.Unstructured)
 	err := args.Error(1)
-	return values, err
+	return err
 }
 
-func (getter *K8SResourceMock) DeleteCollection(ctx context.Context, options metav1.DeleteOptions, listOptions metav1.ListOptions) (*unstructured.Unstructured, error) {
+func (getter *K8SResourceMock) DeleteCollection(ctx context.Context, options metav1.DeleteOptions, listOptions metav1.ListOptions) error {
 	args := getter.Called(options)
-	values := args.Get(0).(*unstructured.Unstructured)
 	err := args.Error(1)
-	return values, err
+	return err
 }

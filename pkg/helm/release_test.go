@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	"github.com/soer3n/apps-operator/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/action"
@@ -30,8 +31,8 @@ import (
 
 func TestReleaseConfigMaps(t *testing.T) {
 
-	clientMock := K8SClientMock{}
-	httpMock := HTTPClientMock{}
+	clientMock := mocks.K8SClientMock{}
+	httpMock := mocks.HTTPClientMock{}
 	settings := cli.New()
 	apiObjList := getTestReleaseSpecs()
 
@@ -82,8 +83,8 @@ func TestReleaseConfigMaps(t *testing.T) {
 
 func TestReleaseUpdate(t *testing.T) {
 
-	clientMock := K8SClientMock{}
-	httpMock := HTTPClientMock{}
+	clientMock := mocks.K8SClientMock{}
+	httpMock := mocks.HTTPClientMock{}
 	settings := cli.New()
 	apiObjList := getTestReleaseSpecs()
 

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	"github.com/soer3n/apps-operator/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -16,8 +17,8 @@ import (
 
 func TestClient(t *testing.T) {
 
-	clientMock := K8SClientMock{}
-	httpMock := HTTPClientMock{}
+	clientMock := mocks.K8SClientMock{}
+	httpMock := mocks.HTTPClientMock{}
 
 	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{
 		"label": "selector",

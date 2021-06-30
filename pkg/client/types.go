@@ -1,7 +1,6 @@
 package client
 
 import (
-	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -9,7 +8,7 @@ import (
 
 type Client struct {
 	DynamicClient  dynamic.Interface
-	DiscoverClient discovery.CachedDiscoveryInterface
+	DiscoverClient discovery.ServerResourcesInterface
 	ClientOpts
 	ClientInterface
 }
@@ -21,19 +20,4 @@ type ResourceKind struct {
 }
 
 type ClientOpts interface {
-}
-
-type K8SClientMock struct {
-	mock.Mock
-	dynamic.Interface
-}
-
-type K8SNamespaceMock struct {
-	mock.Mock
-	dynamic.NamespaceableResourceInterface
-}
-
-type K8SResourceMock struct {
-	mock.Mock
-	dynamic.ResourceInterface
 }

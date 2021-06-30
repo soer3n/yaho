@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	"github.com/soer3n/apps-operator/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/chart"
@@ -20,8 +21,8 @@ import (
 
 func TestChartCreateTemplates(t *testing.T) {
 
-	clientMock := K8SClientMock{}
-	httpMock := HTTPClientMock{}
+	clientMock := mocks.K8SClientMock{}
+	httpMock := mocks.HTTPClientMock{}
 	settings := cli.New()
 
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "foo", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
@@ -59,8 +60,8 @@ func TestChartCreateTemplates(t *testing.T) {
 
 func TestChartCreateConfigMaps(t *testing.T) {
 
-	clientMock := K8SClientMock{}
-	httpMock := HTTPClientMock{}
+	clientMock := mocks.K8SClientMock{}
+	httpMock := mocks.HTTPClientMock{}
 	settings := cli.New()
 
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "foo", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
@@ -98,8 +99,8 @@ func TestChartCreateConfigMaps(t *testing.T) {
 
 func TestChartAddOrUpdateMap(t *testing.T) {
 
-	clientMock := K8SClientMock{}
-	httpMock := HTTPClientMock{}
+	clientMock := mocks.K8SClientMock{}
+	httpMock := mocks.HTTPClientMock{}
 	settings := cli.New()
 
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "foo", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {

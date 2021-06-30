@@ -3,13 +3,14 @@ package helm
 import (
 	"testing"
 
+	"github.com/soer3n/apps-operator/internal/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSetEnv(t *testing.T) {
 
-	clientMock := K8SClientMock{}
-	httpMock := HTTPClientMock{}
+	clientMock := mocks.K8SClientMock{}
+	httpMock := mocks.HTTPClientMock{}
 
 	assert := assert.New(t)
 
