@@ -121,7 +121,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 	err = (&RepoReconciler{
-		Client:   mgr.GetClient(),
+		Client:   k8sClient,
 		Log:      logf.Log,
 		Recorder: mgr.GetEventRecorderFor("repo-controller"),
 		Scheme:   mgr.GetScheme(),
@@ -132,7 +132,7 @@ var _ = BeforeSuite(func(done Done) {
 	//Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 	err = (&RepoGroupReconciler{
-		Client:   mgr.GetClient(),
+		Client:   k8sClient,
 		Log:      logf.Log,
 		Recorder: mgr.GetEventRecorderFor("repogroup-controller"),
 		Scheme:   mgr.GetScheme(),
@@ -140,7 +140,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
 
 	err = (&ChartReconciler{
-		Client:   mgr.GetClient(),
+		Client:   k8sClient,
 		Log:      logf.Log,
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("charts-controller"),
@@ -148,7 +148,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
 
 	err = (&ReleaseGroupReconciler{
-		Client:   mgr.GetClient(),
+		Client:   k8sClient,
 		Log:      logf.Log,
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("releasegroup-controller"),
@@ -156,7 +156,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred(), "failed to setup release group controller")
 
 	err = (&ReleaseReconciler{
-		Client:   mgr.GetClient(),
+		Client:   k8sClient,
 		Log:      logf.Log,
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("release-controller"),
@@ -164,7 +164,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred(), "failed to setup release controller")
 
 	err = (&ValuesReconciler{
-		Client:   mgr.GetClient(),
+		Client:   k8sClient,
 		Log:      logf.Log,
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor("values-controller"),

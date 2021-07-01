@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/soer3n/apps-operator/pkg/client"
 )
 
 func New(listen string) *Api {
@@ -27,7 +28,7 @@ func (api *Api) setHttpServer() error {
 
 func (api *Api) getRoutes() *mux.Router {
 	m := mux.NewRouter()
-	h := NewHandler("")
+	h := NewHandler("", client.New())
 	m.HandleFunc("/api/resources/{group}", h.K8sApiGroup)
 	m.HandleFunc("/api/resources/{group}/{version}/{resource}", h.K8sApiGroupResources)
 

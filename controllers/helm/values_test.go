@@ -151,9 +151,7 @@ var _ = Context("Install a release with values", func() {
 
 			Eventually(
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, valuesReleaseChart),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(*&valuesReleaseChart.ObjectMeta.Name).To(Equal("submariner-operator"))
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			By("should create a new Release resource with specified")
 
@@ -189,31 +187,29 @@ var _ = Context("Install a release with values", func() {
 				GetReleaseFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: valuesReleaseKind.Namespace}, valuesRelease),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&valuesRelease.ObjectMeta.Name).To(Equal("testresource"))
+			Expect(valuesRelease.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: valuesReleaseKind.Namespace}, valuesReleaseChart),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(*&valuesReleaseChart.ObjectMeta.Name).To(Equal("submariner-operator"))
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			Eventually(
 				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-tmpl-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&configmap.ObjectMeta.Name).To(Equal("helm-tmpl-submariner-operator-0.7.0"))
+			Expect(configmap.ObjectMeta.Name).To(Equal("helm-tmpl-submariner-operator-0.7.0"))
 
 			Eventually(
 				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-crds-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&configmap.ObjectMeta.Name).To(Equal("helm-crds-submariner-operator-0.7.0"))
+			Expect(configmap.ObjectMeta.Name).To(Equal("helm-crds-submariner-operator-0.7.0"))
 
 			Eventually(
 				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-default-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&configmap.ObjectMeta.Name).To(Equal("helm-default-submariner-operator-0.7.0"))
+			Expect(configmap.ObjectMeta.Name).To(Equal("helm-default-submariner-operator-0.7.0"))
 
 			By("should update release after changing value resource")
 
@@ -291,7 +287,7 @@ var _ = Context("Install a release with values", func() {
 
 			Eventually(
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: valuesReleaseRepo.Namespace}, valuesReleaseChart),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
 
 			Eventually(
 				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-tmpl-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),

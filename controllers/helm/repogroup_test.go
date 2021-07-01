@@ -62,13 +62,11 @@ var _ = Context("Install a repository group", func() {
 				getRepoGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoGroupKind.Namespace}, repoGroup),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&repoGroup.ObjectMeta.Name).To(Equal("testresource"))
+			Expect(repoGroup.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(*&chart.ObjectMeta.Name).To(Equal("submariner"))
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			By("update group by adding another repository resource with the specified name and specified url")
 
@@ -87,19 +85,15 @@ var _ = Context("Install a repository group", func() {
 				getRepoGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoGroupKind.Namespace}, repoGroup),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&repoGroup.ObjectMeta.Name).To(Equal("testresource"))
+			Expect(repoGroup.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(*&chart.ObjectMeta.Name).To(Equal("submariner"))
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(*&chart.ObjectMeta.Name).To(Equal("rocketchat"))
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			By("should remove the first repository resource from the group")
 
@@ -119,13 +113,11 @@ var _ = Context("Install a repository group", func() {
 
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
 
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(*&chart.ObjectMeta.Name).To(Equal("rocketchat"))
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			By("remove every repository left when group is deleted")
 
@@ -138,7 +130,7 @@ var _ = Context("Install a repository group", func() {
 
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
 
 			By("by deletion of namespace test should finish successfully")
 			repoGroupNamespace = &v1.Namespace{
@@ -159,9 +151,17 @@ func getResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha
 	}
 }
 
-func getChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() error {
-	return func() error {
-		return k8sClient.Get(ctx, key, obj)
+func getChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() bool {
+	return func() bool {
+		l := &helmv1alpha1.ChartList{}
+		_ = k8sClient.List(ctx, l)
+
+		for _, v := range l.Items {
+			if key.Name == v.ObjectMeta.Name {
+				return true
+			}
+		}
+		return false
 	}
 }
 

@@ -78,6 +78,10 @@ func TestReleaseConfigMaps(t *testing.T) {
 
 		// assert.Equal(expected, charts, "Structs should be equal.")
 		assert.NotNil(configList)
+
+		if apiObj.ObjectMeta.Labels == nil {
+			assert.NotEmpty(configList)
+		}
 	}
 }
 
@@ -159,10 +163,10 @@ func TestReleaseUpdate(t *testing.T) {
 			log.Print(err)
 		}
 
-		configList := testObj.Update()
+		err := testObj.Update()
 
 		// assert.Equal(expected, charts, "Structs should be equal.")
-		assert.Nil(configList)
+		assert.Nil(err)
 	}
 }
 

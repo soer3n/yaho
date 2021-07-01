@@ -1,6 +1,10 @@
 package api
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/soer3n/apps-operator/pkg/client"
+)
 
 type Api struct {
 	ListenAddress string
@@ -10,6 +14,7 @@ type Api struct {
 
 type Handler struct {
 	ApiVersion string
+	K8SClient  *client.Client
 }
 
 type APIResponse struct {

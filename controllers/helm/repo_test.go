@@ -57,13 +57,11 @@ var _ = Context("Install a repository", func() {
 				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource"))
+			Expect(deployment.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(*&repoChart.ObjectMeta.Name).To(Equal("submariner"))
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			By("should remove this repository resource with the specified name and specified url")
 
@@ -78,7 +76,7 @@ var _ = Context("Install a repository", func() {
 
 			Eventually(
 				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
 
 			By("by deletion of namespace test should finish successfully")
 			repoNamespace = &v1.Namespace{
@@ -98,8 +96,17 @@ func GetResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha
 	}
 }
 
-func GetChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() error {
-	return func() error {
-		return k8sClient.Get(ctx, key, obj)
+func GetChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() bool {
+	return func() bool {
+		l := &helmv1alpha1.ChartList{}
+		_ = k8sClient.List(ctx, l)
+
+		for _, v := range l.Items {
+			if key.Name == v.ObjectMeta.Name {
+				obj = &v
+				return true
+			}
+		}
+		return false
 	}
 }

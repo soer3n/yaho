@@ -12,9 +12,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewHandler(version string) *Handler {
+func NewHandler(version string, c *client.Client) *Handler {
 	return &Handler{
 		ApiVersion: version,
+		K8SClient:  c,
 	}
 }
 
@@ -23,13 +24,12 @@ func (h *Handler) K8sApiGroup(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	vars := mux.Vars(r)
-	rc := client.New()
 	data := make([]map[string]interface{}, 0)
 	response := &APIResponse{
 		Message: "Fail",
 	}
 
-	objs, err := rc.GetAPIResources(vars["group"], true)
+	objs, err := h.K8SClient.GetAPIResources(vars["group"], true)
 
 	if err := json.Unmarshal(objs, &data); err != nil {
 		fmt.Println(err.Error())
@@ -61,7 +61,6 @@ func (h *Handler) K8sApiGroupResources(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	vars := mux.Vars(r)
-	rc := client.New()
 	data := make([]map[string]interface{}, 0)
 	response := &APIResponse{
 		Message: "Fail",
@@ -82,7 +81,7 @@ func (h *Handler) K8sApiGroupResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	objs, err := rc.ListResources("", resource, group, version, metav1.ListOptions{})
+	objs, err := h.K8SClient.ListResources("", resource, group, version, metav1.ListOptions{})
 
 	if err := json.Unmarshal(objs, &data); err != nil {
 		fmt.Println(err.Error())
