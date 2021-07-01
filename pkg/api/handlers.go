@@ -24,7 +24,7 @@ func (h *Handler) K8sApiGroup(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	vars := mux.Vars(r)
-	data := make([]map[string]interface{}, 0)
+	data := make(map[string]interface{}, 0)
 	response := &APIResponse{
 		Message: "Fail",
 	}
@@ -61,7 +61,7 @@ func (h *Handler) K8sApiGroupResources(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	vars := mux.Vars(r)
-	data := make([]map[string]interface{}, 0)
+	data := make(map[string]interface{}, 0)
 	response := &APIResponse{
 		Message: "Fail",
 	}

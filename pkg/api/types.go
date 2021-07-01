@@ -19,5 +19,5 @@ type Handler struct {
 
 type APIResponse struct {
 	Message string
-	Data    []map[string]interface{}
+	Data    map[string]interface{}
 }

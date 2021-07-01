@@ -14,6 +14,39 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+func TestK8sApiGroupResources(t *testing.T) {
+
+	assert := assert.New(t)
+
+	dcMock := &mocks.K8SDiscoveryMock{}
+	dcMock.On("ServerPreferredResources").Return([]*metav1.APIResourceList{
+		{
+			GroupVersion: "apiGroup/v1",
+			APIResources: []metav1.APIResource{
+				{
+					Name:       "apiresource",
+					Group:      "apiGroup",
+					Namespaced: false,
+					Verbs: metav1.Verbs{
+						"foo", "bar",
+					},
+				},
+			},
+		},
+	}, nil)
+
+	k8sclient := client.New()
+	k8sclient.DiscoverClient = dcMock
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res := httptest.NewRecorder()
+
+	handler := NewHandler("v1", k8sclient)
+	handler.K8sApiGroup(res, req)
+	assert.NotNil(res)
+
+}
+
 func TestK8sApiGroup(t *testing.T) {
 
 	assert := assert.New(t)
@@ -29,9 +62,19 @@ func TestK8sApiGroup(t *testing.T) {
 	dcMock.On("Resource", gvr).Return(&namespaceableMock)
 
 	resourceMock := mocks.K8SResourceMock{}
-	namespaceableMock.On("Namespace", "namespace").Return(&resourceMock)
+	namespaceableMock.On("Namespace", "").Return(&resourceMock)
 
-	usObj := &unstructured.UnstructuredList{}
+	objList := []unstructured.Unstructured{
+		{
+			Object: map[string]interface{}{"foo": "bar"},
+		},
+		{
+			Object: map[string]interface{}{"bar": "foo"},
+		},
+	}
+	usObj := &unstructured.UnstructuredList{
+		Items: objList,
+	}
 	resourceMock.On("List", metav1.ListOptions{}).Return(usObj, nil)
 
 	k8sclient := client.New()
@@ -76,36 +119,4 @@ func TestK8sApiGroup(t *testing.T) {
 	handler = NewHandler("v1", k8sclient)
 	handler.K8sApiGroupResources(res, req)
 	assert.NotNil(res)
-}
-
-func TestK8sApiGroupResources(t *testing.T) {
-
-	assert := assert.New(t)
-
-	dcMock := &mocks.K8SDynamicClientMock{}
-
-	gvr := schema.GroupVersionResource{
-		Group:    "group",
-		Version:  "v1",
-		Resource: "resource",
-	}
-	namespaceableMock := mocks.K8SNamespaceMock{}
-	dcMock.On("Resource", gvr).Return(&namespaceableMock)
-
-	resourceMock := mocks.K8SResourceMock{}
-	namespaceableMock.On("Namespace", "namespace").Return(&resourceMock)
-
-	usObj := &unstructured.UnstructuredList{}
-	resourceMock.On("List", metav1.ListOptions{}).Return(usObj, nil)
-
-	k8sclient := client.New()
-	k8sclient.DynamicClient = dcMock
-
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	res := httptest.NewRecorder()
-
-	handler := NewHandler("v1", k8sclient)
-	handler.K8sApiGroup(res, req)
-	assert.NotNil(res)
-
 }

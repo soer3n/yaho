@@ -10,9 +10,15 @@ import (
 )
 
 func New(listen string) *Api {
-	return &Api{
+	api := &Api{
 		ListenAddress: ":" + listen,
 	}
+
+	if err := api.setHttpServer(); err != nil {
+		return nil
+	}
+
+	return api
 }
 
 func (api *Api) setHttpServer() error {
@@ -40,10 +46,6 @@ func (api *Api) getRoutes() *mux.Router {
 }
 
 func (api *Api) Run() error {
-
-	if err := api.setHttpServer(); err != nil {
-		return err
-	}
 
 	log.Println("start server")
 
