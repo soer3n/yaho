@@ -1,6 +1,6 @@
 # Yet Another Helm Operator 
 
-This operator is for managing helm repositories, releases and values in a declarative way. This project was originally created by the idea to deploy helm charts in a simple way without any binary except the kubernetes go-client. During the development more and more ideas came to my mind. The most aren't implemented until now. But this is exactly why i decided to publish this "private" project. When dozens of ideas came up when i'm thinking on it, it could be possible that i'm not the only one.
+This operator is for managing helm repositories, releases and values in a declarative way. This project was originally created by the idea to deploy helm charts in a simple way without any binary except the kubernetes go-client, to avoid problem caused by local dependencies (e.g. missing repo pull, usage of wrong repository, ...), reusing of values in different releases with same sub specifications and to learn how helm and golang actually works. During the development more and more ideas came to my mind. The most aren't implemented until now. But this huge number of ideas brought me to publishing this project. 
 
 
 ## Installation
