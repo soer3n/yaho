@@ -39,7 +39,7 @@ make run
 
 ## Usage
 
-There are samples in [these](https://github.com/soer3n/apps-operator/blob/master/config/samples) directory. You should deploy all needed repositories before deploying a release or releasegroup. Kubectl can be used for filtering repos, charts and releases due to set labels by controllers.
+There are samples in [these](config/samples) directory. You should deploy all needed repositories before deploying a release or releasegroup. Kubectl can be used for filtering repos, charts and releases due to set labels by controllers.
 
 ```
 
@@ -95,6 +95,8 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 
 ## Roadmap
 
+- add assertions for tests; currently there are more or less only the normal cases covered by qa
+- implement web user interface with backend (the [frontend skeleton](web/) and start of [backend server implementation](pkg/api/) is already present)
 - syncing state of releases from helm cli and other tools which are using the binary
 - switching to previous revision and back
 - translate cli flags to release spec
