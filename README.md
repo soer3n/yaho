@@ -108,8 +108,8 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 
 - charts with subfolders in templates are failing due to configmap rendering (slashes are not allowed as charactes in keys)
 - non public repositories cannot be downloaded currently due to a replacement if integrated http client with the client delivered by "net/http" package
-- fix not working release without value ref in spec
-- fix local e2e test runs
+- fix infinite reconciling in e2e tests (tests with release resource deployed)
+- fix local e2e test runs (currently there is a fix needed due to limitations of envtest; garbage collection of owned resources is not working due to missing kubelet)
 
 ## Contributing
 
