@@ -9,8 +9,8 @@ on:
 jobs:
 
   lint:
-    name: Lint
-    runs-on: ubuntu-latest
+    name: lint
+    runs-on: self-hosted
     steps:
       - name: Set up Go
         uses: actions/setup-go@v1
@@ -26,7 +26,7 @@ jobs:
           go get -u golang.org/x/lint/golint 
           golint ./...
 
-  unit:
+  test:
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v2
@@ -36,18 +36,8 @@ jobs:
       with:
         go-version: 1.15
 
-    - name: Test
+    - name: Test packages
       run: go test -cover ./pkg/...
-
-  e2e:
-    runs-on: self-hosted
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.15
 
     # - name: Create k8s Kind Cluster
     #  uses: helm/kind-action@v1.2.0
@@ -59,18 +49,8 @@ jobs:
     #    echo "current-context:" $(kubectl config current-context)
     #    echo "environment-kubeconfig:" ${KUBECONFIG}
 
-    - name: Test
+    - name: Test controllers
       run: go test -cover ./controllers/...
-  
-  coverage:
-    runs-on: self-hosted
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.15
 
     - name: Run coverage
       run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
