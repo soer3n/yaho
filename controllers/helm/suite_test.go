@@ -114,7 +114,6 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-	//Expect(os.Setenv("WATCH_NAMESPACE", "")).To(Succeed())
 	logf.Log.Info("namespace:", "namespace", "default")
 
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
