@@ -28,6 +28,7 @@ jobs:
 
   test:
     runs-on: self-hosted
+    needs: lint
     steps:
     - uses: actions/checkout@v2
 
@@ -60,6 +61,7 @@ jobs:
 
   build:
     runs-on: self-hosted
+    needs: test
     steps:
     - uses: actions/checkout@v2
 
