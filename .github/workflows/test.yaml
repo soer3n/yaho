@@ -21,5 +21,8 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - name: Create k8s Kind Cluster
+      uses: helm/kind-action@v1.2.0
+
     - name: Test
       run: go test -v ./...

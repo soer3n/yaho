@@ -9,7 +9,7 @@ roleRef:
   name: manager-role
 subjects:
 - kind: ServiceAccount
-  name: yaho
+  name: yaho-runner
   namespace: helm
 
 ---

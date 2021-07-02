@@ -128,9 +128,6 @@ var _ = BeforeSuite(func(done Done) {
 	}).SetupWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
-	//repoGroupMgr, err := ctrl.NewManager(cfg, ctrl.Options{Namespace: ns.Name, MetricsBindAddress: "0"})
-	//Expect(err).NotTo(HaveOccurred(), "failed to create manager")
-
 	err = (&RepoGroupReconciler{
 		Client:   k8sClient,
 		Log:      logf.Log,
