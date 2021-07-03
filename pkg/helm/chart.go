@@ -13,14 +13,14 @@ import (
 )
 
 // NewChart represents initialization of internal chart struct
-func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient client.Client, g types.HTTPClientInterface) *HelmChart {
+func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient client.Client, g types.HTTPClientInterface) *Chart {
 
-	var chartVersions []HelmChartVersion
+	var chartVersions []ChartVersion
 	var config *action.Configuration
 	var err error
 
 	for _, version := range versions {
-		item := HelmChartVersion{
+		item := ChartVersion{
 			Version: version,
 		}
 
@@ -29,10 +29,10 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 
 	if config, err = initActionConfig(settings); err != nil {
 		log.Infof("Error on getting action config for chart %v: %v", chartVersions[0].Version.Metadata.Name, err)
-		return &HelmChart{}
+		return &Chart{}
 	}
 
-	return &HelmChart{
+	return &Chart{
 		Versions:  chartVersions,
 		Client:    action.NewInstall(config),
 		Settings:  settings,
@@ -43,7 +43,7 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 }
 
 // CreateTemplates represents func to parse compress chart data into configmaps
-func (chart *HelmChart) CreateTemplates() error {
+func (chart *Chart) CreateTemplates() error {
 
 	var name, chartURL string
 	var chartRequested *helmchart.Chart
@@ -80,7 +80,7 @@ func (chart *HelmChart) CreateTemplates() error {
 }
 
 // AddOrUpdateChartMap represents update of a map of chart structs if needed
-func (chart *HelmChart) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, instance *helmv1alpha1.Repo) map[string]*helmv1alpha1.Chart {
+func (chart *Chart) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, instance *helmv1alpha1.Repo) map[string]*helmv1alpha1.Chart {
 
 	for _, version := range chart.Versions {
 		if chartObjMap, err := version.AddOrUpdateChartMap(chartObjMap, instance); err != nil {
@@ -92,7 +92,7 @@ func (chart *HelmChart) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1
 }
 
 // CreateConfigMaps represents the creation of needed configmaps related to a chart
-func (chart HelmChart) CreateConfigMaps() []v1.ConfigMap {
+func (chart Chart) CreateConfigMaps() []v1.ConfigMap {
 
 	returnList := []v1.ConfigMap{}
 

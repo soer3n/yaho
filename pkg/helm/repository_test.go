@@ -184,13 +184,13 @@ func getTestIndexFile() *repo.IndexFile {
 	}
 }
 
-func getExpectedTestCharts(c client.Client) []*HelmChart {
-	return []*HelmChart{
+func getExpectedTestCharts(c client.Client) []*Chart {
+	return []*Chart{
 		{
 			Repo:      "testrepo",
 			Settings:  cli.New(),
 			k8sClient: c,
-			Versions: HelmChartVersions{
+			Versions: ChartVersions{
 				{},
 			},
 		},

@@ -87,8 +87,8 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return r.syncStatus(ctx, instance, metav1.ConditionTrue, "reconciling", "reconcileSuccess")
 	}
 
-	var hc *helmutils.HelmClient
-	var helmRelease *helmutils.HelmRelease
+	var hc *helmutils.Client
+	var helmRelease *helmutils.Release
 
 	g := http.Client{
 		Timeout: time.Second * 10,
@@ -203,7 +203,7 @@ func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (*helmv1al
 
 }
 
-func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.HelmClient, instance *helmv1alpha1.Release) error {
+func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.Client, instance *helmv1alpha1.Release) error {
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {

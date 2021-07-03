@@ -24,13 +24,13 @@ import (
 )
 
 // NewHelmRelease represents initialization of internal release struct
-func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient client.Client, g inttypes.HTTPClientInterface) *HelmRelease {
+func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient client.Client, g inttypes.HTTPClientInterface) *Release {
 
-	var helmRelease *HelmRelease
+	var helmRelease *Release
 
 	log.Debugf("Trying HelmRelease %v", instance.Spec.Name)
 
-	helmRelease = &HelmRelease{
+	helmRelease = &Release{
 		Name:      instance.Spec.Name,
 		Repo:      instance.Spec.Repo,
 		Chart:     instance.Spec.Chart,
@@ -45,7 +45,7 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k
 
 	if instance.Spec.ValuesTemplate != nil {
 		if instance.Spec.ValuesTemplate.ValueRefs != nil {
-			helmRelease.ValuesTemplate = &HelmValueTemplate{
+			helmRelease.ValuesTemplate = &ValueTemplate{
 				valuesRef: []*ValuesRef{},
 			}
 		}
@@ -55,7 +55,7 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k
 }
 
 // Update represents update or installation process of a release
-func (hc *HelmRelease) Update() error {
+func (hc *Release) Update() error {
 
 	log.Debugf("configinstall: %v", hc.Config)
 
@@ -114,13 +114,13 @@ func (hc *HelmRelease) Update() error {
 }
 
 // Remove represents removing release related resource
-func (hc HelmRelease) Remove() error {
+func (hc Release) Remove() error {
 	client := action.NewUninstall(hc.Config)
 	_, err := client.Run(hc.Name)
 	return err
 }
 
-func (hc HelmRelease) getValues() map[string]interface{} {
+func (hc Release) getValues() map[string]interface{} {
 
 	log.Debugf("init check (%v)", hc.ValuesTemplate)
 
@@ -155,7 +155,7 @@ func (hc HelmRelease) getValues() map[string]interface{} {
 	return mergedVals
 }
 
-func (hc *HelmRelease) setValues() error {
+func (hc *Release) setValues() error {
 
 	templateObj := hc.ValuesTemplate
 	values := make(map[string]interface{})
@@ -171,7 +171,7 @@ func (hc *HelmRelease) setValues() error {
 	return nil
 }
 
-func (hc HelmRelease) getValuesAsList(values map[string]string) []string {
+func (hc Release) getValuesAsList(values map[string]string) []string {
 
 	var valueList []string
 	var transformedVal string
@@ -185,13 +185,13 @@ func (hc HelmRelease) getValuesAsList(values map[string]string) []string {
 	return valueList
 }
 
-func (hc HelmRelease) getInstalledValues() (map[string]interface{}, error) {
+func (hc Release) getInstalledValues() (map[string]interface{}, error) {
 
 	client := action.NewGetValues(hc.Config)
 	return client.Run(hc.Name)
 }
 
-func (hc HelmRelease) valuesChanged() (bool, error) {
+func (hc Release) valuesChanged() (bool, error) {
 
 	var installedValues map[string]interface{}
 	var err error
@@ -222,14 +222,14 @@ func (hc HelmRelease) valuesChanged() (bool, error) {
 	return true, nil
 }
 
-func (hc HelmRelease) getRelease() (*release.Release, error) {
+func (hc Release) getRelease() (*release.Release, error) {
 	log.Debugf("config: %v", hc.Config)
 	getConfig := hc.Config
 	client := action.NewGet(getConfig)
 	return client.Run(hc.Name)
 }
 
-func (hc HelmRelease) getChart(chartName string, chartPathOptions *action.ChartPathOptions) (*chart.Chart, error) {
+func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathOptions) (*chart.Chart, error) {
 
 	helmChart := &chart.Chart{
 		Metadata:  &chart.Metadata{},
@@ -280,7 +280,7 @@ func (hc HelmRelease) getChart(chartName string, chartPathOptions *action.ChartP
 	return helmChart, nil
 }
 
-func (hc HelmRelease) getFiles(helmChart *helmv1alpha1.Chart) []*chart.File {
+func (hc Release) getFiles(helmChart *helmv1alpha1.Chart) []*chart.File {
 
 	files := []*chart.File{}
 
@@ -290,7 +290,7 @@ func (hc HelmRelease) getFiles(helmChart *helmv1alpha1.Chart) []*chart.File {
 	return files
 }
 
-func (hc HelmRelease) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartDep, selectors map[string]string) error {
+func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartDep, selectors map[string]string) error {
 
 	var chartList helmv1alpha1.ChartList
 	var err error
@@ -322,7 +322,7 @@ func (hc HelmRelease) addDependencies(chart *chart.Chart, deps []helmv1alpha1.Ch
 	return nil
 }
 
-func (hc HelmRelease) appendFilesFromConfigMap(name string, list []*chart.File) []*chart.File {
+func (hc Release) appendFilesFromConfigMap(name string, list []*chart.File) []*chart.File {
 
 	var err error
 
@@ -348,7 +348,7 @@ func (hc HelmRelease) appendFilesFromConfigMap(name string, list []*chart.File) 
 	return files
 }
 
-func (hc HelmRelease) getDefaultValuesFromConfigMap(name string) map[string]interface{} {
+func (hc Release) getDefaultValuesFromConfigMap(name string) map[string]interface{} {
 
 	var err error
 	values := make(map[string]interface{})
@@ -367,7 +367,7 @@ func (hc HelmRelease) getDefaultValuesFromConfigMap(name string) map[string]inte
 	return jsonMap
 }
 
-func (hc HelmRelease) getRepo() (helmv1alpha1.Repo, error) {
+func (hc Release) getRepo() (helmv1alpha1.Repo, error) {
 
 	var err error
 
@@ -383,7 +383,7 @@ func (hc HelmRelease) getRepo() (helmv1alpha1.Repo, error) {
 }
 
 // GetParsedConfigMaps represents parsing and returning of chart related data for a release
-func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
+func (hc *Release) GetParsedConfigMaps() []v1.ConfigMap {
 
 	var chartRequested *chart.Chart
 	var repoObj helmv1alpha1.Repo
@@ -395,7 +395,7 @@ func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	releaseClient := action.NewInstall(installConfig)
 	releaseClient.ReleaseName = hc.Name
 	hc.Client = releaseClient
-	chartVersion := &HelmChartVersion{}
+	chartVersion := &ChartVersion{}
 
 	log.Debugf("configinstall: %v", hc.Config)
 
@@ -428,7 +428,7 @@ func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 	return chartVersion.createConfigMaps(hc.Namespace.Name)
 }
 
-func (hc HelmRelease) upgrade(helmChart *chart.Chart, vals chartutil.Values) error {
+func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values) error {
 
 	var rel *release.Release
 	var err error

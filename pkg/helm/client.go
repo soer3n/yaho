@@ -9,11 +9,11 @@ import (
 )
 
 // NewHelmClient represents initialization of the client for managing related stuff
-func NewHelmClient(instance interface{}, k8sClient client.Client, g types.HTTPClientInterface) *HelmClient {
+func NewHelmClient(instance interface{}, k8sClient client.Client, g types.HTTPClientInterface) *Client {
 
-	hc := &HelmClient{
-		Repos:    &HelmRepos{},
-		Releases: &HelmReleases{},
+	hc := &Client{
+		Repos:    &Repos{},
+		Releases: &Releases{},
 		Env:      map[string]string{},
 	}
 
@@ -46,7 +46,7 @@ func NewHelmClient(instance interface{}, k8sClient client.Client, g types.HTTPCl
 }
 
 // GetRepo represents func for returning internal repo struct by name
-func (hc *HelmClient) GetRepo(name string) *HelmRepo {
+func (hc *Client) GetRepo(name string) *Repo {
 
 	for _, repo := range hc.Repos.Entries {
 		if name == repo.Name {
@@ -58,7 +58,7 @@ func (hc *HelmClient) GetRepo(name string) *HelmRepo {
 }
 
 // GetRelease represents func for returning internal release struct by name of it and its repo
-func (hc *HelmClient) GetRelease(name, repo string) *HelmRelease {
+func (hc *Client) GetRelease(name, repo string) *Release {
 
 	for _, release := range hc.Releases.Entries {
 		if release.Name == name && release.Repo == repo {
@@ -68,7 +68,7 @@ func (hc *HelmClient) GetRelease(name, repo string) *HelmRelease {
 	return nil
 }
 
-func (hc *HelmClient) manageEntries(instance interface{}, k8sclient client.Client, g types.HTTPClientInterface) error {
+func (hc *Client) manageEntries(instance interface{}, k8sclient client.Client, g types.HTTPClientInterface) error {
 
 	var releaseObj *helmv1alpha1.Release
 	repoObj, ok := instance.(*helmv1alpha1.Repo)

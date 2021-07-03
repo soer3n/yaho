@@ -10,14 +10,14 @@ import (
 )
 
 // NewValueTemplate represents initialization of internal struct for managing helm values
-func NewValueTemplate(valuesList []*ValuesRef) *HelmValueTemplate {
-	return &HelmValueTemplate{
+func NewValueTemplate(valuesList []*ValuesRef) *ValueTemplate {
+	return &ValueTemplate{
 		valuesRef: valuesList,
 	}
 }
 
 // ManageValues represents parsing of a map with interfaces into HelmValueTemplate struct
-func (hv *HelmValueTemplate) ManageValues() (map[string]interface{}, error) {
+func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 	var base []*ValuesRef
 	var values, merged map[string]interface{}
 	var err error
@@ -54,7 +54,7 @@ func (hv *HelmValueTemplate) ManageValues() (map[string]interface{}, error) {
 	return merged, nil
 }
 
-func (hv *HelmValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface{}, error) {
+func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface{}, error) {
 	valMap := make(map[string]interface{})
 	var merged map[string]interface{}
 
@@ -82,7 +82,7 @@ func (hv *HelmValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]inter
 	return valMap, nil
 }
 
-func (hv HelmValueTemplate) getRefKeyByValue(value string, refMap map[string]string) string {
+func (hv ValueTemplate) getRefKeyByValue(value string, refMap map[string]string) string {
 	for k, v := range refMap {
 		if value == v {
 			return k
@@ -92,7 +92,7 @@ func (hv HelmValueTemplate) getRefKeyByValue(value string, refMap map[string]str
 	return ""
 }
 
-func (hv HelmValueTemplate) getValuesAsList(values map[string]string) []string {
+func (hv ValueTemplate) getValuesAsList(values map[string]string) []string {
 
 	valueList := []string{}
 
@@ -103,7 +103,7 @@ func (hv HelmValueTemplate) getValuesAsList(values map[string]string) []string {
 	return valueList
 }
 
-func (hv *HelmValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
+func (hv *ValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
 	temp := mergeMaps(hv.Values, valueMap)
 	hv.ValuesMap = make(map[string]string)
 
@@ -115,7 +115,7 @@ func (hv *HelmValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
 
 }
 
-func (hv HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, parents ...string) map[string]interface{} {
+func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, parents ...string) map[string]interface{} {
 	valMap := make(map[string]interface{})
 	subMap := make(map[string]string)
 	var parentKey string
@@ -163,7 +163,7 @@ func (hv HelmValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap
 	return valMap
 }
 
-func (hv HelmValueTemplate) parseMap(key string, payload []byte) map[string]string {
+func (hv ValueTemplate) parseMap(key string, payload []byte) map[string]string {
 
 	valMap := make(map[string]string)
 	subMap := make(map[string]string)
@@ -188,7 +188,7 @@ func (hv HelmValueTemplate) parseMap(key string, payload []byte) map[string]stri
 
 }
 
-func (hv HelmValueTemplate) parseFromUntypedMap(parentKey string, convertedMap map[string]interface{}) map[string]string {
+func (hv ValueTemplate) parseFromUntypedMap(parentKey string, convertedMap map[string]interface{}) map[string]string {
 
 	var targetMap map[string]string
 	valMap := make(map[string]string)

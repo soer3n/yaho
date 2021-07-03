@@ -10,27 +10,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// HelmClient represents base struct of this package
-type HelmClient struct {
-	Repos    *HelmRepos
-	Releases *HelmReleases
+// Client represents base struct of this package
+type Client struct {
+	Repos    *Repos
+	Releases *Releases
 	Env      map[string]string
 }
 
-// HelmReleases represents struct for data needed for managing releases and list of installed
-type HelmReleases struct {
-	Entries  []*HelmRelease
+// Releases represents struct for data needed for managing releases and list of installed
+type Releases struct {
+	Entries  []*Release
 	Config   *action.Configuration
 	Settings *cli.EnvSettings
 }
 
-// HelmRelease represents data needed for installing and updating a helm release
-type HelmRelease struct {
+// Release represents data needed for installing and updating a helm release
+type Release struct {
 	Name           string
 	Repo           string
 	Chart          string
 	Version        string
-	ValuesTemplate *HelmValueTemplate
+	ValuesTemplate *ValueTemplate
 	Values         map[string]interface{}
 	Namespace      Namespace
 	Config         *action.Configuration
@@ -40,27 +40,27 @@ type HelmRelease struct {
 	getter         types.HTTPClientInterface
 }
 
-// HelmRepos represents struct for data needed for managing repos and list of installed
-type HelmRepos struct {
-	Entries   []*HelmRepo
+// Repos represents struct for data needed for managing repos and list of installed
+type Repos struct {
+	Entries   []*Repo
 	Settings  *cli.EnvSettings
 	installed *repo.File
 }
 
-// HelmRepo represents struct for data needed for managing repos and list of installed
-type HelmRepo struct {
+// Repo represents struct for data needed for managing repos and list of installed
+type Repo struct {
 	Name      string
 	Url       string
-	Auth      *HelmAuth
+	Auth      *Auth
 	Namespace Namespace
 	Settings  *cli.EnvSettings
 	k8sClient client.Client
 	getter    types.HTTPClientInterface
 }
 
-// HelmChart represents struct for data needed for managing chart
-type HelmChart struct {
-	Versions  HelmChartVersions
+// Chart represents struct for data needed for managing chart
+type Chart struct {
+	Versions  ChartVersions
 	Client    *action.Install
 	Settings  *cli.EnvSettings
 	Repo      string
@@ -68,11 +68,11 @@ type HelmChart struct {
 	getter    types.HTTPClientInterface
 }
 
-// HelmChartVersions represents a list of internal struct for a chart version
-type HelmChartVersions []HelmChartVersion
+// ChartVersions represents a list of internal struct for a chart version
+type ChartVersions []ChartVersion
 
-// HelmChartVersion represents struct with needed data for returning needed data for managing a release
-type HelmChartVersion struct {
+// ChartVersion represents struct with needed data for returning needed data for managing a release
+type ChartVersion struct {
 	Version       *repo.ChartVersion
 	Templates     []*chart.File
 	CRDs          []*chart.File
@@ -80,7 +80,7 @@ type HelmChartVersion struct {
 }
 
 // HelmValueTemplate represents struct for possible value inputs
-type HelmValueTemplate struct {
+type ValueTemplate struct {
 	valuesRef  []*ValuesRef
 	Values     map[string]interface{}
 	ValuesMap  map[string]string
@@ -93,8 +93,8 @@ type ValuesRef struct {
 	Parent string               `json:"Parent" filter:"parent"`
 }
 
-// HelmAuth represents struct with auth data for a repo
-type HelmAuth struct {
+// Auth represents struct with auth data for a repo
+type Auth struct {
 	User     string
 	Password string
 	Cert     string

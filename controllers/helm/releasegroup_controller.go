@@ -77,8 +77,8 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	hc := &helmutils.HelmClient{
-		Repos: &helmutils.HelmRepos{},
+	hc := &helmutils.Client{
+		Repos: &helmutils.Repos{},
 		Env:   map[string]string{},
 	}
 

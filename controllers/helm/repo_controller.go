@@ -77,9 +77,9 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	var hc *helmutils.HelmClient
-	var helmRepo *helmutils.HelmRepo
-	var chartList []*helmutils.HelmChart
+	var hc *helmutils.Client
+	var helmRepo *helmutils.Repo
+	var chartList []*helmutils.Chart
 
 	g := http.Client{
 		Timeout: time.Second * 10,
@@ -152,7 +152,7 @@ func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Rep
 	return nil
 }
 
-func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.HelmClient, instance *helmv1alpha1.Repo) error {
+func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.Client, instance *helmv1alpha1.Repo) error {
 
 	var del bool
 	var err error

@@ -65,15 +65,15 @@ func TestClient(t *testing.T) {
 	assert.Nil(releaseObj)
 }
 
-func getTestClientRepo() *HelmRepo {
-	return &HelmRepo{
+func getTestClientRepo() *Repo {
+	return &Repo{
 		Name: "boo",
 		Url:  "https://unknown.domain/charts",
 	}
 }
 
-func getTestClientRelease() *HelmRelease {
-	return &HelmRelease{
+func getTestClientRelease() *Release {
+	return &Release{
 		Name:    "far",
 		Repo:    "boo",
 		Chart:   "foo",

@@ -11,7 +11,7 @@ import (
 )
 
 // AddOrUpdateChartMap represents update of version specific data of a map of chart structs if needed
-func (chartVersion HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
+func (chartVersion ChartVersion) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
 
 	chartMeta := chartVersion.Version.Metadata
 	_, ok := chartObjMap[chartMeta.Name]
@@ -64,7 +64,7 @@ func (chartVersion HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string]
 	return chartObjMap, nil
 }
 
-func (chartVersion HelmChartVersion) createDependenciesList(chartMeta *chart.Metadata) []helmv1alpha1.ChartDep {
+func (chartVersion ChartVersion) createDependenciesList(chartMeta *chart.Metadata) []helmv1alpha1.ChartDep {
 
 	deps := make([]helmv1alpha1.ChartDep, 0)
 
@@ -79,7 +79,7 @@ func (chartVersion HelmChartVersion) createDependenciesList(chartMeta *chart.Met
 	return deps
 }
 
-func (chartVersion HelmChartVersion) createConfigMaps(namespace string) []v1.ConfigMap {
+func (chartVersion ChartVersion) createConfigMaps(namespace string) []v1.ConfigMap {
 	returnList := []v1.ConfigMap{}
 
 	returnList = append(returnList, chartVersion.createTemplateConfigMap("tmpl", namespace, chartVersion.Templates))
@@ -89,7 +89,7 @@ func (chartVersion HelmChartVersion) createConfigMaps(namespace string) []v1.Con
 	return returnList
 }
 
-func (chartVersion HelmChartVersion) createTemplateConfigMap(name string, namespace string, list []*chart.File) v1.ConfigMap {
+func (chartVersion ChartVersion) createTemplateConfigMap(name string, namespace string, list []*chart.File) v1.ConfigMap {
 
 	immutable := new(bool)
 	*immutable = true
@@ -114,7 +114,7 @@ func (chartVersion HelmChartVersion) createTemplateConfigMap(name string, namesp
 	return configmap
 }
 
-func (chartVersion HelmChartVersion) createDefaultValueConfigMap(namespace string, values map[string]interface{}) v1.ConfigMap {
+func (chartVersion ChartVersion) createDefaultValueConfigMap(namespace string, values map[string]interface{}) v1.ConfigMap {
 
 	immutable := new(bool)
 	*immutable = true

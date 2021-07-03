@@ -19,13 +19,13 @@ import (
 )
 
 // NewHelmRepo represents initialization of internal repo struct
-func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.Client, g types.HTTPClientInterface) *HelmRepo {
+func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.Client, g types.HTTPClientInterface) *Repo {
 
-	var helmRepo *HelmRepo
+	var helmRepo *Repo
 
 	log.Debugf("Trying HelmRepo %v", instance.Spec.Name)
 
-	helmRepo = &HelmRepo{
+	helmRepo = &Repo{
 		Name: instance.Spec.Name,
 		Url:  instance.Spec.URL,
 		Namespace: Namespace{
@@ -38,7 +38,7 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 	}
 
 	if instance.Spec.Auth != nil {
-		helmRepo.Auth = &HelmAuth{
+		helmRepo.Auth = &Auth{
 			User:     instance.Spec.Auth.User,
 			Password: instance.Spec.Auth.Password,
 			Cert:     instance.Spec.Auth.Cert,
@@ -50,7 +50,7 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 	return helmRepo
 }
 
-func (hr HelmRepo) getIndexByURL() (*repo.IndexFile, error) {
+func (hr Repo) getIndexByURL() (*repo.IndexFile, error) {
 
 	var parsedURL *url.URL
 	var entry *repo.Entry
@@ -94,9 +94,9 @@ func (hr HelmRepo) getIndexByURL() (*repo.IndexFile, error) {
 }
 
 // GetCharts represents returning list of internal chart structs for a given repo
-func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selectors map[string]string) ([]*HelmChart, error) {
+func (hr Repo) GetCharts(settings *cli.EnvSettings, selectors map[string]string) ([]*Chart, error) {
 
-	var chartList []*HelmChart
+	var chartList []*Chart
 	var indexFile *repo.IndexFile
 	var chartAPIList helmv1alpha1.ChartList
 	var err error
@@ -137,7 +137,7 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selectors map[string]str
 	return chartList, nil
 }
 
-func (hr HelmRepo) getEntryObj() (*repo.Entry, error) {
+func (hr Repo) getEntryObj() (*repo.Entry, error) {
 
 	obj := &repo.Entry{
 		Name: hr.Name,
