@@ -38,7 +38,7 @@ jobs:
         go-version: 1.15
 
     - name: Test packages
-      run: go test -cover -v ./pkg/...
+      run: go test -v ./pkg/...
 
     # - name: Create k8s Kind Cluster
     #  uses: helm/kind-action@v1.2.0
@@ -51,10 +51,7 @@ jobs:
     #    echo "environment-kubeconfig:" ${KUBECONFIG}
 
     - name: Test controllers
-      run: go test -cover -v ./controllers/...
-    
-    # - name: Upload coverage to Codecov
-    #  run: bash <(curl -s https://codecov.io/bash)
+      run: go test -v ./controllers/...
 
   coverage:
     runs-on: self-hosted

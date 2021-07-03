@@ -1,3 +1,6 @@
+[![Actions Status](https://github.com/soer3n/apps-operator/workflows/build/badge.svg)](https://github.com/soer3n/apps-operator/actions)
+[![codecov](https://codecov.io/gh/soer3n/apps-operator/branch/master/graph/badge.svg)](https://codecov.io/gh/soer3n/apps-operator)
+
 # Yet Another Helm Operator 
 
 This operator is for managing helm repositories, releases and values in a declarative way. This project was originally created by the idea to deploy helm charts in a simple way without any binary except the kubernetes go-client, to avoid problem caused by local dependencies (e.g. missing repo pull, usage of wrong repository, ...), reusing of values in different releases with same sub specifications and to learn how helm and golang actually works. During the development more and more ideas came to my mind. The most aren't implemented until now. But this huge number of ideas brought me to publishing this project. 
