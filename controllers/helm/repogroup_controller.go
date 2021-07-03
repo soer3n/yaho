@@ -18,7 +18,6 @@ package helm
 
 import (
 	"context"
-	"reflect"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
@@ -97,7 +96,7 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	for _, repo := range repos.Items {
 		exists := false
 		for _, repository := range spec {
-			if reflect.DeepEqual(repo.Spec, repository) {
+			if repo.Spec.Name == repository.Name {
 				exists = true
 				break
 			}

@@ -53,15 +53,24 @@ jobs:
     - name: Test controllers
       run: go test -cover -v ./controllers/...
 
-    - name: Run coverage
-      run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+    # - name: Run coverage
+    #  run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
     
-    - name: Upload coverage to Codecov
-      run: bash <(curl -s https://codecov.io/bash)
+    # - name: Upload coverage to Codecov
+    #  run: bash <(curl -s https://codecov.io/bash)
+
+  coverage:
+    runs-on: self-hosted
+    needs: test
+    steps:
+    - name: report coverage
+      uses: codecov/codecov-action@v1
+      with:
+        token: 18c8c4a3-0fb0-44b5-a37d-8bcc9367aa7c
 
   build:
     runs-on: self-hosted
-    needs: test
+    needs: coverage
     steps:
     - uses: actions/checkout@v2
 
