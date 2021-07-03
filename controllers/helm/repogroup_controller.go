@@ -92,7 +92,7 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		LabelSelector: labels.NewSelector().Add(requirement[0]),
 	}
 
-	err = r.List(ctx, repos, opts)
+	err = r.List(context.Background(), repos, opts)
 
 	for _, repo := range repos.Items {
 		exists := false
