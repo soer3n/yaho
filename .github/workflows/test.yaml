@@ -12,15 +12,15 @@ jobs:
     name: lint
     runs-on: self-hosted
     steps:
-      - name: Set up Go
+      - name: set up Go
         uses: actions/setup-go@v1
         with:
           go-version: 1.15
 
-      - name: Check out code
+      - name: check out code
         uses: actions/checkout@v1
 
-      - name: Lint Go Code
+      - name: lint Go code
         run: |
           export PATH=$PATH:$(go env GOPATH)/bin # temporary fix. See https://github.com/actions/setup-go/issues/14
           go get -u golang.org/x/lint/golint 
@@ -32,12 +32,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Go
+    - name: set up Go
       uses: actions/setup-go@v2
       with:
         go-version: 1.15
 
-    - name: Test packages
+    - name: test packages
       run: go test -v ./pkg/...
 
     # - name: Create k8s Kind Cluster
@@ -50,10 +50,10 @@ jobs:
     #    echo "current-context:" $(kubectl config current-context)
     #    echo "environment-kubeconfig:" ${KUBECONFIG}
 
-    - name: Test controllers
+    - name: test controllers
       run: go test -v ./controllers/...
     
-    - name: Run coverage
+    - name: run coverage
       run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
     
     - name: report coverage
@@ -69,10 +69,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Go
+    - name: set up Go
       uses: actions/setup-go@v2
       with:
         go-version: 1.15
 
-    - name: Build
+    - name: build
       run: go build -v ./...
