@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+// NewHelmRepo represents initialization of internal repo struct
 func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.Client, g types.HTTPClientInterface) *HelmRepo {
 
 	var helmRepo *HelmRepo
@@ -26,7 +27,7 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 
 	helmRepo = &HelmRepo{
 		Name: instance.Spec.Name,
-		Url:  instance.Spec.Url,
+		Url:  instance.Spec.URL,
 		Namespace: Namespace{
 			Name:    instance.ObjectMeta.Namespace,
 			Install: false,
@@ -49,7 +50,7 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 	return helmRepo
 }
 
-func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
+func (hr HelmRepo) getIndexByURL() (*repo.IndexFile, error) {
 
 	var parsedURL *url.URL
 	var entry *repo.Entry
@@ -60,7 +61,7 @@ func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 
 	obj := &repo.IndexFile{}
 
-	if err, entry = hr.getEntryObj(); err != nil {
+	if entry, err = hr.getEntryObj(); err != nil {
 		return obj, errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
 	}
 
@@ -92,6 +93,7 @@ func (hr HelmRepo) getIndexByUrl() (*repo.IndexFile, error) {
 	return obj, nil
 }
 
+// GetCharts represents returning list of internal chart structs for a given repo
 func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selectors map[string]string) ([]*HelmChart, error) {
 
 	var chartList []*HelmChart
@@ -116,7 +118,7 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selectors map[string]str
 
 	if chartList == nil {
 
-		if indexFile, err = hr.getIndexByUrl(); err != nil {
+		if indexFile, err = hr.getIndexByURL(); err != nil {
 			return chartList, err
 		}
 
@@ -135,7 +137,7 @@ func (hr HelmRepo) GetCharts(settings *cli.EnvSettings, selectors map[string]str
 	return chartList, nil
 }
 
-func (hr HelmRepo) getEntryObj() (error, *repo.Entry) {
+func (hr HelmRepo) getEntryObj() (*repo.Entry, error) {
 
 	obj := &repo.Entry{
 		Name: hr.Name,
@@ -150,5 +152,5 @@ func (hr HelmRepo) getEntryObj() (error, *repo.Entry) {
 		obj.Password = hr.Auth.Password
 	}
 
-	return nil, obj
+	return obj, nil
 }

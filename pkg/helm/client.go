@@ -1,7 +1,6 @@
 package helm
 
 import (
-	"github.com/pkg/errors"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/soer3n/apps-operator/internal/types"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
@@ -9,6 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// NewHelmClient represents initialization of the client for managing related stuff
 func NewHelmClient(instance interface{}, k8sClient client.Client, g types.HTTPClientInterface) *HelmClient {
 
 	hc := &HelmClient{
@@ -45,15 +45,7 @@ func NewHelmClient(instance interface{}, k8sClient client.Client, g types.HTTPCl
 	return hc
 }
 
-func (hc *HelmClient) RemoveByName(name string) error {
-
-	if ok := hc.Repos.installed.Remove(name); !ok {
-		return errors.Errorf("Error removing repository %q.", name)
-	}
-
-	return nil
-}
-
+// GetRepo represents func for returning internal repo struct by name
 func (hc *HelmClient) GetRepo(name string) *HelmRepo {
 
 	for _, repo := range hc.Repos.Entries {
@@ -65,6 +57,7 @@ func (hc *HelmClient) GetRepo(name string) *HelmRepo {
 	return nil
 }
 
+// GetRelease represents func for returning internal release struct by name of it and its repo
 func (hc *HelmClient) GetRelease(name, repo string) *HelmRelease {
 
 	for _, release := range hc.Releases.Entries {

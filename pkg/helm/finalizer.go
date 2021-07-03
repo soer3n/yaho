@@ -2,6 +2,7 @@ package helm
 
 import "github.com/prometheus/common/log"
 
+// HandleFinalizer represents func for managing action related to a change of a finalizer related to a release or repo resource
 func HandleFinalizer(hc *HelmClient, instance interface{}) (bool, error) {
 
 	if len(hc.Repos.Entries) > 0 {

@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// NewChart represents initialization of internal chart struct
 func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient client.Client, g types.HTTPClientInterface) *HelmChart {
 
 	var chartVersions []HelmChartVersion
@@ -41,6 +42,7 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 	}
 }
 
+// CreateTemplates represents func to parse compress chart data into configmaps
 func (chart *HelmChart) CreateTemplates() error {
 
 	var name, chartURL string
@@ -77,6 +79,7 @@ func (chart *HelmChart) CreateTemplates() error {
 	return nil
 }
 
+// AddOrUpdateChartMap represents update of a map of chart structs if needed
 func (chart *HelmChart) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, instance *helmv1alpha1.Repo) map[string]*helmv1alpha1.Chart {
 
 	for _, version := range chart.Versions {
@@ -88,6 +91,7 @@ func (chart *HelmChart) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1
 	return chartObjMap
 }
 
+// CreateConfigMaps represents the creation of needed configmaps related to a chart
 func (chart HelmChart) CreateConfigMaps() []v1.ConfigMap {
 
 	returnList := []v1.ConfigMap{}

@@ -128,7 +128,7 @@ func getTestRepoSpecs() []*helmv1alpha1.Repo {
 			},
 			Spec: helmv1alpha1.RepoSpec{
 				Name: "test",
-				Url:  "https://foo.bar/charts",
+				URL:  "https://foo.bar/charts",
 			},
 		},
 		{
@@ -139,7 +139,7 @@ func getTestRepoSpecs() []*helmv1alpha1.Repo {
 			},
 			Spec: helmv1alpha1.RepoSpec{
 				Name: "test",
-				Url:  "https://foo.bar/charts",
+				URL:  "https://foo.bar/charts",
 				Auth: &helmv1alpha1.Auth{
 					User:     "foo",
 					Password: "encrypted",
@@ -152,7 +152,7 @@ func getTestRepoSpecs() []*helmv1alpha1.Repo {
 		{
 			Spec: helmv1alpha1.RepoSpec{
 				Name: "notpresent",
-				Url:  "https://foo.bar/charts",
+				URL:  "https://foo.bar/charts",
 			},
 		},
 		/*{

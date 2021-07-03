@@ -35,6 +35,7 @@ type ReleaseSpec struct {
 	ValuesTemplate *ValueTemplate `json:"releaseSpec,omitempty"`
 }
 
+// ValueTemplate represents data for install process of a release
 type ValueTemplate struct {
 	ValueRefs []string `json:"valueRefs,omitempty"`
 }

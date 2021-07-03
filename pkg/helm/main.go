@@ -76,6 +76,7 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 	return b
 }
 
+// GetEnvSettings represents func for returning helm cli settings which are needed for helm actions
 func (c HelmClient) GetEnvSettings() *cli.EnvSettings {
 	settings := cli.New()
 

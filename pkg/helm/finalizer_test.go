@@ -81,7 +81,7 @@ func getTestFinalizerRepo() *helmv1alpha1.Repo {
 		},
 		Spec: helmv1alpha1.RepoSpec{
 			Name: "repo",
-			Url:  "https://foo.bar/charts",
+			URL:  "https://foo.bar/charts",
 		},
 	}
 }

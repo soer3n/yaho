@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// AddOrUpdateChartMap represents update of version specific data of a map of chart structs if needed
 func (chartVersion HelmChartVersion) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
 
 	chartMeta := chartVersion.Version.Metadata

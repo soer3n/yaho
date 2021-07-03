@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// NewHelmRelease represents initialization of internal release struct
 func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient client.Client, g inttypes.HTTPClientInterface) *HelmRelease {
 
 	var helmRelease *HelmRelease
@@ -53,6 +54,7 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k
 	return helmRelease
 }
 
+// Update represents update or installation process of a release
 func (hc *HelmRelease) Update() error {
 
 	log.Debugf("configinstall: %v", hc.Config)
@@ -111,6 +113,7 @@ func (hc *HelmRelease) Update() error {
 	return nil
 }
 
+// Remove represents removing release related resource
 func (hc HelmRelease) Remove() error {
 	client := action.NewUninstall(hc.Config)
 	_, err := client.Run(hc.Name)
@@ -379,6 +382,7 @@ func (hc HelmRelease) getRepo() (helmv1alpha1.Repo, error) {
 	return *repoObj, nil
 }
 
+// GetParsedConfigMaps represents parsing and returning of chart related data for a release
 func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 
 	var chartRequested *chart.Chart
@@ -404,7 +408,7 @@ func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 
 	releaseClient.ReleaseName = hc.Name
 	releaseClient.Version = hc.Version
-	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.Url
+	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.URL
 
 	if chartRequested, err = getChartByURL(chartURL, hc.getter); err != nil {
 		return configmapList

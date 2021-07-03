@@ -128,7 +128,7 @@ func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, insta
 		},
 		Spec: helmv1alpha1.RepoSpec{
 			Name: repository.Name,
-			Url:  repository.Url,
+			URL:  repository.URL,
 		},
 	}
 

@@ -43,7 +43,7 @@ var _ = Context("Install a repository group", func() {
 					Repos: []helmv1alpha1.RepoSpec{
 						{
 							Name: "deployment-name-2",
-							Url:  "https://submariner-io.github.io/submariner-charts/charts",
+							URL:  "https://submariner-io.github.io/submariner-charts/charts",
 							Auth: &helmv1alpha1.Auth{},
 						},
 					},
@@ -72,7 +72,7 @@ var _ = Context("Install a repository group", func() {
 
 			repoGroupKind.Spec.Repos = append(repoGroupKind.Spec.Repos, helmv1alpha1.RepoSpec{
 				Name: "deployment-name-3",
-				Url:  "https://rocketchat.github.io/helm-charts",
+				URL:  "https://rocketchat.github.io/helm-charts",
 				Auth: &helmv1alpha1.Auth{},
 			})
 
@@ -100,7 +100,7 @@ var _ = Context("Install a repository group", func() {
 			repoGroupKind.Spec.Repos = []helmv1alpha1.RepoSpec{
 				{
 					Name: "deployment-name-3",
-					Url:  "https://rocketchat.github.io/helm-charts",
+					URL:  "https://rocketchat.github.io/helm-charts",
 					Auth: &helmv1alpha1.Auth{},
 				},
 			}

@@ -45,7 +45,7 @@ var _ = Context("Install a releasegroup", func() {
 				},
 				Spec: helmv1alpha1.RepoSpec{
 					Name: "deployment-name",
-					Url:  "https://submariner-io.github.io/submariner-charts/charts",
+					URL:  "https://submariner-io.github.io/submariner-charts/charts",
 				},
 			}
 
@@ -62,7 +62,7 @@ var _ = Context("Install a releasegroup", func() {
 				},
 				Spec: helmv1alpha1.RepoSpec{
 					Name: "deployment-name2",
-					Url:  "https://jfelten.github.io/helm-charts/charts",
+					URL:  "https://jfelten.github.io/helm-charts/charts",
 				},
 			}
 
@@ -192,7 +192,7 @@ var _ = Context("Install a releasegroup", func() {
 				},
 				Spec: helmv1alpha1.RepoSpec{
 					Name: "deployment-name",
-					Url:  "https://submariner-io.github.io/submariner-charts/charts",
+					URL:  "https://submariner-io.github.io/submariner-charts/charts",
 				},
 			}
 

@@ -28,10 +28,11 @@ type RepoSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	Name string `json:"name"`
-	Url  string `json:"url"`
+	URL  string `json:"url"`
 	Auth *Auth  `json:"auth,omitempty"`
 }
 
+// Auth represents data for authentication for a repository
 type Auth struct {
 	User     string `json:"user,omitempty"`
 	Password string `json:"pw,omitempty"`

@@ -10,19 +10,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// HelmClient represents base struct of this package
 type HelmClient struct {
 	Repos    *HelmRepos
 	Releases *HelmReleases
 	Env      map[string]string
 }
 
+// HelmReleases represents struct for data needed for managing releases and list of installed
 type HelmReleases struct {
-	Entries     []*HelmRelease
-	Conditional ResourceConditional
-	Config      *action.Configuration
-	Settings    *cli.EnvSettings
+	Entries  []*HelmRelease
+	Config   *action.Configuration
+	Settings *cli.EnvSettings
 }
 
+// HelmRelease represents data needed for installing and updating a helm release
 type HelmRelease struct {
 	Name           string
 	Repo           string
@@ -31,7 +33,6 @@ type HelmRelease struct {
 	ValuesTemplate *HelmValueTemplate
 	Values         map[string]interface{}
 	Namespace      Namespace
-	Conditional    ResourceConditional
 	Config         *action.Configuration
 	Settings       *cli.EnvSettings
 	Client         *action.Install
@@ -39,12 +40,14 @@ type HelmRelease struct {
 	getter         types.HTTPClientInterface
 }
 
+// HelmRepos represents struct for data needed for managing repos and list of installed
 type HelmRepos struct {
 	Entries   []*HelmRepo
 	Settings  *cli.EnvSettings
 	installed *repo.File
 }
 
+// HelmRepo represents struct for data needed for managing repos and list of installed
 type HelmRepo struct {
 	Name      string
 	Url       string
@@ -55,6 +58,7 @@ type HelmRepo struct {
 	getter    types.HTTPClientInterface
 }
 
+// HelmChart represents struct for data needed for managing chart
 type HelmChart struct {
 	Versions  HelmChartVersions
 	Client    *action.Install
@@ -64,8 +68,10 @@ type HelmChart struct {
 	getter    types.HTTPClientInterface
 }
 
+// HelmChartVersions represents a list of internal struct for a chart version
 type HelmChartVersions []HelmChartVersion
 
+// HelmChartVersion represents struct with needed data for returning needed data for managing a release
 type HelmChartVersion struct {
 	Version       *repo.ChartVersion
 	Templates     []*chart.File
@@ -73,6 +79,7 @@ type HelmChartVersion struct {
 	DefaultValues map[string]interface{}
 }
 
+// HelmValueTemplate represents struct for possible value inputs
 type HelmValueTemplate struct {
 	valuesRef  []*ValuesRef
 	Values     map[string]interface{}
@@ -80,11 +87,13 @@ type HelmValueTemplate struct {
 	ValueFiles []string
 }
 
+// ValuesRef represents struct for filtering values kubernetes resources by json tag
 type ValuesRef struct {
 	Ref    *helmv1alpha1.Values `json:"Ref" filter:"ref"`
 	Parent string               `json:"Parent" filter:"parent"`
 }
 
+// HelmAuth represents struct with auth data for a repo
 type HelmAuth struct {
 	User     string
 	Password string
@@ -93,14 +102,13 @@ type HelmAuth struct {
 	Ca       string
 }
 
+// Namespace represents struct with release namespace name and if it should be installed
 type Namespace struct {
 	Name    string
 	Install bool
 }
 
-type ResourceConditional struct {
-}
-
+// ListOptions represents struct for filters for searching in values kubernetes resources
 type ListOptions struct {
 	filter map[string]string
 }

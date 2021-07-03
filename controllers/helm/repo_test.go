@@ -41,7 +41,7 @@ var _ = Context("Install a repository", func() {
 				},
 				Spec: helmv1alpha1.RepoSpec{
 					Name: "deployment-name",
-					Url:  "https://submariner-io.github.io/submariner-charts/charts",
+					URL:  "https://submariner-io.github.io/submariner-charts/charts",
 				},
 			}
 

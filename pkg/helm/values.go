@@ -9,12 +9,14 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+// NewValueTemplate represents initialization of internal struct for managing helm values
 func NewValueTemplate(valuesList []*ValuesRef) *HelmValueTemplate {
 	return &HelmValueTemplate{
 		valuesRef: valuesList,
 	}
 }
 
+// ManageValues represents parsing of a map with interfaces into HelmValueTemplate struct
 func (hv *HelmValueTemplate) ManageValues() (map[string]interface{}, error) {
 	var base []*ValuesRef
 	var values, merged map[string]interface{}
