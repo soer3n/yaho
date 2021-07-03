@@ -228,8 +228,6 @@ func (hc HelmRelease) getRelease() (*release.Release, error) {
 
 func (hc HelmRelease) getChart(chartName string, chartPathOptions *action.ChartPathOptions) (*chart.Chart, error) {
 
-	var err error
-
 	helmChart := &chart.Chart{
 		Metadata:  &chart.Metadata{},
 		Files:     []*chart.File{},
@@ -242,9 +240,9 @@ func (hc HelmRelease) getChart(chartName string, chartPathOptions *action.ChartP
 
 	log.Debugf("namespace: %v", hc.Namespace.Name)
 
-	if err = hc.k8sClient.Get(context.Background(), types.NamespacedName{
+	if err := hc.k8sClient.Get(context.Background(), types.NamespacedName{
 		Namespace: hc.Namespace.Name,
-		Name:      hc.Name,
+		Name:      hc.Chart,
 	}, chartObj); err != nil {
 		return helmChart, err
 	}
@@ -366,24 +364,26 @@ func (hc HelmRelease) getDefaultValuesFromConfigMap(name string) map[string]inte
 	return jsonMap
 }
 
-func (hc HelmRelease) getRepo() (error, helmv1alpha1.Repo) {
+func (hc HelmRelease) getRepo() (helmv1alpha1.Repo, error) {
 
 	var err error
 
 	repoObj := &helmv1alpha1.Repo{}
 
 	if err = hc.k8sClient.Get(context.Background(), types.NamespacedName{Namespace: hc.Namespace.Name, Name: hc.Repo}, repoObj); err != nil {
-		return err, *repoObj
+		return *repoObj, err
 	}
 
 	log.Infof("Repo namespace: %v", hc.Namespace.Name)
 
-	return nil, *repoObj
+	return *repoObj, nil
 }
 
 func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 
 	var chartRequested *chart.Chart
+	var repoObj helmv1alpha1.Repo
+	var chartURL string
 	var err error
 
 	configmapList := []v1.ConfigMap{}
@@ -395,8 +395,12 @@ func (hc *HelmRelease) GetParsedConfigMaps() []v1.ConfigMap {
 
 	log.Debugf("configinstall: %v", hc.Config)
 
-	_, repoObj := hc.getRepo()
-	chartURL, _ := getChartURL(hc.k8sClient, hc.Chart, hc.Version, hc.Namespace.Name)
+	if repoObj, err = hc.getRepo(); err != nil {
+		return configmapList
+	}
+	if chartURL, err = getChartURL(hc.k8sClient, hc.Chart, hc.Version, hc.Namespace.Name); err != nil {
+		return configmapList
+	}
 
 	releaseClient.ReleaseName = hc.Name
 	releaseClient.Version = hc.Version

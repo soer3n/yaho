@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"io/ioutil"
 	"log"
@@ -37,12 +38,14 @@ func TestReleaseConfigMaps(t *testing.T) {
 	apiObjList := getTestReleaseSpecs()
 
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "repo", Namespace: ""}, &helmv1alpha1.Repo{}).Return(nil)
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "notfound", Namespace: ""}, &helmv1alpha1.Repo{}).Return(errors.New("repo not found"))
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "chart", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
 		c := args.Get(2).(*helmv1alpha1.Chart)
 		spec := getTestChartSpec()
 		c.Spec = spec.Spec
 		c.ObjectMeta = spec.ObjectMeta
 	})
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "notfound", Namespace: ""}, &helmv1alpha1.Chart{}).Return(errors.New("chart not found"))
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 
@@ -58,30 +61,30 @@ func TestReleaseConfigMaps(t *testing.T) {
 	httpMock.On("Get",
 		"https://foo.bar/charts/foo-0.0.1.tgz").Return(httpResponse, nil)
 
+	httpMock.On("Get",
+		"").Return(&http.Response{}, errors.New("no valid url"))
+
 	assert := assert.New(t)
 
 	for _, apiObj := range apiObjList {
 
-		testObj := NewHelmRelease(apiObj, settings, &clientMock, &httpMock)
+		current := apiObj["input"].(*helmv1alpha1.Release)
+		testObj := NewHelmRelease(current, settings, &clientMock, &httpMock)
 		selectors := ""
 
 		// parse selectors string from api object meta data
-		for k, v := range apiObj.ObjectMeta.Labels {
+		for k, v := range current.ObjectMeta.Labels {
 			if selectors != "" {
 				selectors = selectors + ","
 			}
 			selectors = selectors + k + "=" + v
 		}
 
-		testObj.Version = apiObj.Spec.Version
+		testObj.Version = current.Spec.Version
 		configList := testObj.GetParsedConfigMaps()
 
 		// assert.Equal(expected, charts, "Structs should be equal.")
-		assert.NotNil(configList)
-
-		if apiObj.ObjectMeta.Labels == nil {
-			assert.NotEmpty(configList)
-		}
+		assert.Equal(apiObj["returnValue"], configList)
 	}
 }
 
@@ -92,11 +95,23 @@ func TestReleaseUpdate(t *testing.T) {
 	settings := cli.New()
 	apiObjList := getTestReleaseSpecs()
 
-	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.MatchingLabels{"repo": "repo"}, client.InNamespace("")}).Return(nil).Run(func(args mock.Arguments) {
+	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.MatchingLabels{"repo": "repo", "repoGroup": "group"}, client.InNamespace("")}).Return(nil).Run(func(args mock.Arguments) {
 
-		_ = args.Get(1).(*helmv1alpha1.ChartList)
+		c := args.Get(1).(*helmv1alpha1.ChartList)
+		spec := helmv1alpha1.ChartList{
+			Items: []helmv1alpha1.Chart{
+				{
+					Spec: helmv1alpha1.ChartSpec{
+						Name: "dep",
+					},
+				},
+				getTestChartSpec(),
+			},
+		}
+		c.Items = spec.Items
+
 	})
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "test", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "chart", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
 		c := args.Get(2).(*helmv1alpha1.Chart)
 		spec := getTestChartSpec()
 		c.Spec = spec.Spec
@@ -108,13 +123,20 @@ func TestReleaseUpdate(t *testing.T) {
 		c.Spec = spec.Spec
 		c.ObjectMeta = spec.ObjectMeta
 	})
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "notfound", Namespace: ""}, &helmv1alpha1.Chart{}).Return(errors.New("chart not found"))
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-tmpl-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
 
-		_ = args.Get(2).(*v1.ConfigMap)
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := getTestTemplateConfigMap()
+		c.BinaryData = spec.BinaryData
+		c.ObjectMeta = spec.ObjectMeta
 	})
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-crds-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
 
-		_ = args.Get(2).(*v1.ConfigMap)
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := getTestCRDConfigMap()
+		c.BinaryData = spec.BinaryData
+		c.ObjectMeta = spec.ObjectMeta
 	})
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-default-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
 
@@ -142,18 +164,19 @@ func TestReleaseUpdate(t *testing.T) {
 
 	for _, apiObj := range apiObjList {
 
-		testObj := NewHelmRelease(apiObj, settings, &clientMock, &httpMock)
+		current := apiObj["input"].(*helmv1alpha1.Release)
+		testObj := NewHelmRelease(current, settings, &clientMock, &httpMock)
 		selectors := ""
 
 		// parse selectors string from api object meta data
-		for k, v := range apiObj.ObjectMeta.Labels {
+		for k, v := range current.ObjectMeta.Labels {
 			if selectors != "" {
 				selectors = selectors + ","
 			}
 			selectors = selectors + k + "=" + v
 		}
 
-		testObj.Version = apiObj.Spec.Version
+		testObj.Version = current.Spec.Version
 		testObj.ValuesTemplate.ValuesMap = map[string]string{
 			"bar": "foo",
 		}
@@ -166,36 +189,88 @@ func TestReleaseUpdate(t *testing.T) {
 		err := testObj.Update()
 
 		// assert.Equal(expected, charts, "Structs should be equal.")
-		assert.Nil(err)
+		assert.Equal(err, apiObj["returnError"])
 	}
 }
 
-func getTestReleaseSpecs() []*helmv1alpha1.Release {
-	return []*helmv1alpha1.Release{
+func getTestReleaseSpecs() []map[string]interface{} {
+	return []map[string]interface{}{
 		{
-			Spec: helmv1alpha1.ReleaseSpec{
-				Name:    "test",
-				Chart:   "chart",
-				Repo:    "repo",
-				Version: "0.0.1",
-				ValuesTemplate: &helmv1alpha1.ValueTemplate{
-					ValueRefs: []string{"notpresent"},
+			"returnValue": []v1.ConfigMap{
+				getTestTemplateConfigMap(),
+				getTestCRDConfigMap(),
+				getTestDefaultValueConfigMap(),
+			},
+			"returnError": nil,
+			"input": &helmv1alpha1.Release{
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:    "test",
+					Chart:   "chart",
+					Repo:    "repo",
+					Version: "0.0.1",
+					ValuesTemplate: &helmv1alpha1.ValueTemplate{
+						ValueRefs: []string{"notpresent"},
+					},
 				},
 			},
 		},
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					"label": "selector",
+			"returnValue": []v1.ConfigMap{},
+			"returnError": nil,
+			"input": &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"label": "selector",
+					},
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:    "release",
+					Chart:   "chart",
+					Repo:    "repo",
+					Version: "0.0.1",
+					ValuesTemplate: &helmv1alpha1.ValueTemplate{
+						ValueRefs: []string{"notpresent"},
+					},
 				},
 			},
-			Spec: helmv1alpha1.ReleaseSpec{
-				Name:    "release",
-				Chart:   "chart",
-				Repo:    "repo",
-				Version: "0.0.1",
-				ValuesTemplate: &helmv1alpha1.ValueTemplate{
-					ValueRefs: []string{"notpresent"},
+		},
+		{
+			"returnValue": []v1.ConfigMap{},
+			"returnError": errors.New("chart not found"),
+			"input": &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"label": "selector",
+					},
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:    "test",
+					Chart:   "notfound",
+					Repo:    "repo",
+					Version: "0.0.1",
+					ValuesTemplate: &helmv1alpha1.ValueTemplate{
+						ValueRefs: []string{"notpresent"},
+					},
+				},
+			},
+		},
+		{
+			"returnValue": []v1.ConfigMap{},
+			"returnError": errors.New("chart not found"),
+			"input": &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"label": "selector",
+					},
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:    "test",
+					Chart:   "notfound",
+					Repo:    "notfound",
+					Version: "0.0.1",
+					ValuesTemplate: &helmv1alpha1.ValueTemplate{
+						ValueRefs: []string{"notpresent"},
+					},
 				},
 			},
 		},
@@ -206,6 +281,9 @@ func getTestChartSpec() helmv1alpha1.Chart {
 	return helmv1alpha1.Chart{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "chart",
+			Labels: map[string]string{
+				"repoGroup": "group",
+			},
 		},
 		Spec: helmv1alpha1.ChartSpec{
 			Name:       "chart",
@@ -214,6 +292,13 @@ func getTestChartSpec() helmv1alpha1.Chart {
 				{
 					Name: "0.0.1",
 					URL:  "https://foo.bar/charts/foo-0.0.1.tgz",
+					Dependencies: []helmv1alpha1.ChartDep{
+						{
+							Name:    "dep",
+							Version: "0.1.0",
+							Repo:    "repo",
+						},
+					},
 				},
 			},
 		},
@@ -278,6 +363,54 @@ func getTestDefaultValueConfigMap() v1.ConfigMap {
 	}
 	castedValues, _ := json.Marshal(values)
 	configmap.Data["values"] = string(castedValues)
+
+	return configmap
+}
+
+func getTestTemplateConfigMap() v1.ConfigMap {
+
+	immutable := new(bool)
+	*immutable = true
+	objectMeta := metav1.ObjectMeta{
+		Name:      "helm-tmpl-chart-0.0.1",
+		Namespace: "",
+	}
+	configmap := v1.ConfigMap{
+		Immutable:  immutable,
+		ObjectMeta: objectMeta,
+		BinaryData: make(map[string][]byte),
+	}
+
+	values := map[string]interface{}{
+		"values": "foo",
+		"key":    map[string]string{"bar": "fuz"},
+	}
+	castedValues, _ := json.Marshal(values)
+	configmap.BinaryData["values"] = castedValues
+
+	return configmap
+}
+
+func getTestCRDConfigMap() v1.ConfigMap {
+
+	immutable := new(bool)
+	*immutable = true
+	objectMeta := metav1.ObjectMeta{
+		Name:      "helm-crd-chart-0.0.1",
+		Namespace: "",
+	}
+	configmap := v1.ConfigMap{
+		Immutable:  immutable,
+		ObjectMeta: objectMeta,
+		BinaryData: make(map[string][]byte),
+	}
+
+	values := map[string]interface{}{
+		"values": "foo",
+		"key":    map[string]string{"bar": "fuz"},
+	}
+	castedValues, _ := json.Marshal(values)
+	configmap.BinaryData["values"] = castedValues
 
 	return configmap
 }

@@ -43,7 +43,7 @@ func getChartByURL(url string, g inttypes.HTTPClientInterface) (*chart.Chart, er
 	log.Infof("url: %v", url)
 
 	if resp, err = g.Get(url); err != nil {
-		log.Fatal(err)
+		return &chart.Chart{}, err
 	}
 
 	log.Infof("%v", url)
