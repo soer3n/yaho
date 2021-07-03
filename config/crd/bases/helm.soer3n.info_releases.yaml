@@ -54,6 +54,8 @@ spec:
               name:
                 type: string
               releaseSpec:
+                description: ValueTemplate represents data for install process of
+                  a release
                 properties:
                   valueRefs:
                     items:

@@ -47,6 +47,7 @@ spec:
                   description: RepoSpec defines the desired state of Repo
                   properties:
                     auth:
+                      description: Auth represents data for authentication for a repository
                       properties:
                         ca:
                           type: string

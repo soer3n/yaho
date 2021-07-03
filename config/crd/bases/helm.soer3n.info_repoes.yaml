@@ -6,20 +6,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: releasegroups.helm.soer3n.info
+  name: repoes.helm.soer3n.info
 spec:
   group: helm.soer3n.info
   names:
-    kind: ReleaseGroup
-    listKind: ReleaseGroupList
-    plural: releasegroups
-    singular: releasegroup
+    kind: Repo
+    listKind: RepoList
+    plural: repoes
+    singular: repo
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ReleaseGroup is the Schema for the releasegroups API
+        description: Repo is the Schema for the repos API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -34,50 +34,40 @@ spec:
           metadata:
             type: object
           spec:
-            description: ReleaseGroupSpec defines the desired state of ReleaseGroup
+            description: RepoSpec defines the desired state of Repo
             properties:
-              env:
-                additionalProperties:
-                  type: string
+              auth:
+                description: Auth represents data for authentication for a repository
+                properties:
+                  ca:
+                    type: string
+                  cert:
+                    type: string
+                  key:
+                    type: string
+                  pw:
+                    type: string
+                  user:
+                    type: string
                 type: object
-              labelSelector:
-                type: string
               name:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
                 type: string
-              releases:
-                items:
-                  description: ReleaseSpec defines the desired state of Release
-                  properties:
-                    chart:
-                      type: string
-                    name:
-                      type: string
-                    releaseSpec:
-                      description: ValueTemplate represents data for install process
-                        of a release
-                      properties:
-                        valueRefs:
-                          items:
-                            type: string
-                          type: array
-                      type: object
-                    repo:
-                      type: string
-                    version:
-                      type: string
-                  required:
-                  - chart
-                  - name
-                  - repo
-                  type: object
-                type: array
+              url:
+                type: string
             required:
-            - labelSelector
             - name
-            - releases
+            - url
             type: object
           status:
-            description: ReleaseGroupStatus defines the observed state of ReleaseGroup
+            description: RepoStatus defines the observed state of Repo
+            properties:
+              phase:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: string
             type: object
         type: object
     served: true

@@ -119,11 +119,14 @@ spec:
               versions:
                 description: A SemVer 2 conformant version string of the chart
                 items:
+                  description: ChartVersion repesents data for parsing a chart
                   properties:
                     crdRef:
                       type: string
                     deps:
                       items:
+                        description: ChartDep represents data for parsing a chart
+                          dependency
                         properties:
                           name:
                             type: string
