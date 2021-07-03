@@ -96,6 +96,7 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 ## Roadmap
 
 - add assertions for tests; currently there are more or less only the normal cases covered by qa
+- running e2e tests with kind in kubernetes
 - add contribution guideline
 - implement web user interface with backend (the [frontend skeleton](web/) and start of [backend server implementation](pkg/api/) is already present)
 - syncing state of releases from helm cli and other tools which are using the binary
@@ -110,7 +111,7 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 - charts with subfolders in templates are failing due to configmap rendering (slashes are not allowed as charactes in keys)
 - non public repositories cannot be downloaded currently due to a replacement if integrated http client with the client delivered by "net/http" package
 - fix infinite reconciling in e2e tests (tests with release resource deployed)
-- fix local e2e test runs (currently there is a fix needed due to limitations of envtest; garbage collection of owned resources is not working due to missing kubelet)
+- fix local e2e test runs (currently there is a fix needed due to limitations of envtest; [garbage collection of owned resources is not working due to missing kubelet](https://book.kubebuilder.io/reference/envtest.html#testing-considerations) and a [caching problem related to go-client](https://github.com/kubernetes-sigs/controller-runtime/issues/343))
 
 ## Contributing
 
