@@ -53,16 +53,10 @@ var _ = Context("Install a repository group", func() {
 			err = k8sClient.Create(ctx, repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
-			time.Sleep(3 * time.Second)
+			time.Sleep(5 * time.Second)
 
 			repoGroup = &helmv1alpha1.RepoGroup{}
 			chart = &helmv1alpha1.Chart{}
-
-			Eventually(
-				getRepoGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoGroupKind.Namespace}, repoGroup),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(repoGroup.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
@@ -80,12 +74,6 @@ var _ = Context("Install a repository group", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
 			time.Sleep(1 * time.Second)
-
-			Eventually(
-				getRepoGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoGroupKind.Namespace}, repoGroup),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(repoGroup.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
 				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
