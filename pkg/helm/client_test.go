@@ -68,7 +68,7 @@ func TestClient(t *testing.T) {
 func getTestClientRepo() *Repo {
 	return &Repo{
 		Name: "boo",
-		Url:  "https://unknown.domain/charts",
+		URL:  "https://unknown.domain/charts",
 	}
 }
 

@@ -50,7 +50,7 @@ type Repos struct {
 // Repo represents struct for data needed for managing repos and list of installed
 type Repo struct {
 	Name      string
-	Url       string
+	URL       string
 	Auth      *Auth
 	Namespace Namespace
 	Settings  *cli.EnvSettings
@@ -79,7 +79,7 @@ type ChartVersion struct {
 	DefaultValues map[string]interface{}
 }
 
-// HelmValueTemplate represents struct for possible value inputs
+// ValueTemplate represents struct for possible value inputs
 type ValueTemplate struct {
 	valuesRef  []*ValuesRef
 	Values     map[string]interface{}

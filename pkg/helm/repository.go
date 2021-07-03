@@ -27,7 +27,7 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 
 	helmRepo = &Repo{
 		Name: instance.Spec.Name,
-		Url:  instance.Spec.URL,
+		URL:  instance.Spec.URL,
 		Namespace: Namespace{
 			Name:    instance.ObjectMeta.Namespace,
 			Install: false,
@@ -62,7 +62,7 @@ func (hr Repo) getIndexByURL() (*repo.IndexFile, error) {
 	obj := &repo.IndexFile{}
 
 	if entry, err = hr.getEntryObj(); err != nil {
-		return obj, errors.Wrapf(err, "error on initializing object for %q.", hr.Url)
+		return obj, errors.Wrapf(err, "error on initializing object for %q.", hr.URL)
 	}
 
 	cr = &repo.ChartRepository{
@@ -141,7 +141,7 @@ func (hr Repo) getEntryObj() (*repo.Entry, error) {
 
 	obj := &repo.Entry{
 		Name: hr.Name,
-		URL:  hr.Url,
+		URL:  hr.URL,
 	}
 
 	if hr.Auth != nil {
