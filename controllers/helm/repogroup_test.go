@@ -31,7 +31,7 @@ var _ = Context("Install a repository group", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Create(ctx, repoGroupNamespace)
+			err = k8sClient.Create(context.Background(), repoGroupNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("creating a new repository group resource with the specified names and specified urls")
@@ -59,7 +59,7 @@ var _ = Context("Install a repository group", func() {
 			chart = &helmv1alpha1.Chart{}
 
 			Eventually(
-				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
+				getChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
 				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			By("update group by adding another repository resource with the specified name and specified url")
@@ -76,11 +76,11 @@ var _ = Context("Install a repository group", func() {
 			time.Sleep(1 * time.Second)
 
 			Eventually(
-				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
+				getChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
 				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			Eventually(
-				getChartFunc(ctx, client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
+				getChartFunc(context.Background(), client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
 				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			By("should remove the first repository resource from the group")
@@ -100,24 +100,24 @@ var _ = Context("Install a repository group", func() {
 			err = k8sClient.List(ctx, &foo)
 
 			Eventually(
-				getChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
+				getChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
 
 			Eventually(
-				getChartFunc(ctx, client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
+				getChartFunc(context.Background(), client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
 				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			By("remove every repository left when group is deleted")
 
-			err = k8sClient.Delete(ctx, repoGroupKind)
+			err = k8sClient.Delete(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
 
 			Eventually(
-				getRepoGroupFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoGroupKind.Namespace}, repoGroup),
+				getRepoGroupFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: repoGroupKind.Namespace}, repoGroup),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				getChartFunc(ctx, client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
+				getChartFunc(context.Background(), client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
 
 			By("by deletion of namespace test should finish successfully")
