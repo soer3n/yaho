@@ -6,18 +6,21 @@ import (
 	"github.com/soer3n/apps-operator/pkg/client"
 )
 
-type Api struct {
+// API represents struct for handling an http server
+type API struct {
 	ListenAddress string
 	Server        *http.Server
 	Routes        *http.ServeMux
 }
 
+// Handler represents struct for managing sub handler and similar
 type Handler struct {
-	ApiVersion string
+	APIVersion string
 	K8SClient  *client.Client
 }
 
-type APIResponse struct {
+// Response represents struct for an http server json response
+type Response struct {
 	Message string
 	Data    map[string]interface{}
 }

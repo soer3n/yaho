@@ -19,6 +19,7 @@ import (
 
 var addToScheme sync.Once
 
+// New represents initialization of needed data for running request by client
 func New() *Client {
 
 	env := cli.New()
@@ -55,6 +56,7 @@ func New() *Client {
 	return rc
 }
 
+// GetResource represents func for returning k8s unstructured resource by given parameters
 func (c *Client) GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error) {
 
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
@@ -67,6 +69,7 @@ func (c *Client) GetResource(name, namespace, resource, group, version string, o
 	return json.Marshal(obj.UnstructuredContent())
 }
 
+// ListResources represents func for returning k8s unstructured resource list by given parameters
 func (c *Client) ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error) {
 
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
@@ -79,6 +82,7 @@ func (c *Client) ListResources(namespace, resource, group, version string, opts 
 	return json.Marshal(obj.UnstructuredContent())
 }
 
+// GetAPIResources represents func for returning resource kinds by given api group name
 func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...string) ([]byte, error) {
 
 	var resources []ResourceKind

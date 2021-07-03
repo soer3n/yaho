@@ -12,20 +12,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// NewHandler represents func for returning struct for managing server routes logic
 func NewHandler(version string, c *client.Client) *Handler {
 	return &Handler{
-		ApiVersion: version,
+		APIVersion: version,
 		K8SClient:  c,
 	}
 }
 
-func (h *Handler) K8sApiGroup(w http.ResponseWriter, r *http.Request) {
+// K8sAPIGroup represents func for resturning  resource kinds related to an api group
+func (h *Handler) K8sAPIGroup(w http.ResponseWriter, r *http.Request) {
 	var payload []byte
 	var err error
 
 	vars := mux.Vars(r)
 	data := make(map[string]interface{}, 0)
-	response := &APIResponse{
+	response := &Response{
 		Message: "Fail",
 	}
 
@@ -53,7 +55,8 @@ func (h *Handler) K8sApiGroup(w http.ResponseWriter, r *http.Request) {
 	w.Write(payload)
 }
 
-func (h *Handler) K8sApiGroupResources(w http.ResponseWriter, r *http.Request) {
+// K8sAPIGroupResources represents func for returning resources related to a resource kind of an api group
+func (h *Handler) K8sAPIGroupResources(w http.ResponseWriter, r *http.Request) {
 
 	var payload []byte
 	var resource, version, group string
@@ -62,7 +65,7 @@ func (h *Handler) K8sApiGroupResources(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	data := make(map[string]interface{}, 0)
-	response := &APIResponse{
+	response := &Response{
 		Message: "Fail",
 	}
 

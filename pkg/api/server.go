@@ -9,19 +9,20 @@ import (
 	"github.com/soer3n/apps-operator/pkg/client"
 )
 
-func New(listen string) *Api {
-	api := &Api{
+// New represents func for returning struct for managing an api http server
+func New(listen string) *API {
+	api := &API{
 		ListenAddress: ":" + listen,
 	}
 
-	if err := api.setHttpServer(); err != nil {
+	if err := api.setHTTPServer(); err != nil {
 		return nil
 	}
 
 	return api
 }
 
-func (api *Api) setHttpServer() error {
+func (api *API) setHTTPServer() error {
 	api.Server = &http.Server{
 		Addr:    api.ListenAddress,
 		Handler: api.getRoutes(),
@@ -32,11 +33,11 @@ func (api *Api) setHttpServer() error {
 	return nil
 }
 
-func (api *Api) getRoutes() *mux.Router {
+func (api *API) getRoutes() *mux.Router {
 	m := mux.NewRouter()
 	h := NewHandler("", client.New())
-	m.HandleFunc("/api/resources/{group}", h.K8sApiGroup)
-	m.HandleFunc("/api/resources/{group}/{version}/{resource}", h.K8sApiGroupResources)
+	m.HandleFunc("/api/resources/{group}", h.K8sAPIGroup)
+	m.HandleFunc("/api/resources/{group}/{version}/{resource}", h.K8sAPIGroupResources)
 
 	// Serve static files from the frontend/dist directory.
 	fs := http.FileServer(http.Dir("./frontend/dist"))
@@ -45,7 +46,8 @@ func (api *Api) getRoutes() *mux.Router {
 	return m
 }
 
-func (api *Api) Run() error {
+// Run represents func for starting an http server
+func (api *API) Run() error {
 
 	log.Println("start server")
 

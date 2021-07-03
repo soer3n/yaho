@@ -42,7 +42,7 @@ func TestK8sApiGroupResources(t *testing.T) {
 	res := httptest.NewRecorder()
 
 	handler := NewHandler("v1", k8sclient)
-	handler.K8sApiGroup(res, req)
+	handler.K8sAPIGroup(res, req)
 	assert.NotNil(res)
 
 }
@@ -84,7 +84,7 @@ func TestK8sApiGroup(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/resources/", res.Body)
 
 	handler := NewHandler("v1", k8sclient)
-	handler.K8sApiGroupResources(res, req)
+	handler.K8sAPIGroupResources(res, req)
 	assert.NotNil(res)
 
 	res = httptest.NewRecorder()
@@ -94,7 +94,7 @@ func TestK8sApiGroup(t *testing.T) {
 	})
 
 	handler = NewHandler("v1", k8sclient)
-	handler.K8sApiGroupResources(res, req)
+	handler.K8sAPIGroupResources(res, req)
 	assert.NotNil(res)
 
 	res = httptest.NewRecorder()
@@ -105,7 +105,7 @@ func TestK8sApiGroup(t *testing.T) {
 	})
 
 	handler = NewHandler("v1", k8sclient)
-	handler.K8sApiGroupResources(res, req)
+	handler.K8sAPIGroupResources(res, req)
 	assert.NotNil(res)
 
 	req = httptest.NewRequest(http.MethodGet, "/api/resources/resource/group/version", nil)
@@ -117,6 +117,6 @@ func TestK8sApiGroup(t *testing.T) {
 	})
 
 	handler = NewHandler("v1", k8sclient)
-	handler.K8sApiGroupResources(res, req)
+	handler.K8sAPIGroupResources(res, req)
 	assert.NotNil(res)
 }

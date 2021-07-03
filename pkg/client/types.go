@@ -7,18 +7,21 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+// Client represents struct needed for handling subclients
 type Client struct {
 	DynamicClient  dynamic.Interface
 	DiscoverClient discovery.ServerResourcesInterface
-	ClientOpts
+	Opts
 	types.ClientInterface
 }
 
+// ResourceKind represents a kind in a k8s api group
 type ResourceKind struct {
 	APIGroup        string
 	APIGroupVersion string
 	APIResource     metav1.APIResource
 }
 
-type ClientOpts interface {
+// Opts represents an interface for collecting options in a generic way
+type Opts interface {
 }

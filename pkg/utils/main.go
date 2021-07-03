@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Contains represents func for checking if a string is in a list of strings
 func Contains(list []string, s string) bool {
 	for _, v := range list {
 		if v == s {
@@ -19,6 +20,7 @@ func Contains(list []string, s string) bool {
 	return false
 }
 
+// GetLabelsByInstance represents func for parsing labels by k8s objectMeta and env map
 func GetLabelsByInstance(metaObj metav1.ObjectMeta, env map[string]string) (string, string) {
 
 	var repoPath, repoCache string
@@ -42,6 +44,7 @@ func GetLabelsByInstance(metaObj metav1.ObjectMeta, env map[string]string) (stri
 	return repoPath + "/repositories.yaml", repoCache
 }
 
+// GetChartVersion represents func for returning a struct for a version of a chart
 func GetChartVersion(version string, chart *types.Chart) *types.ChartVersion {
 	versionObj := &types.ChartVersion{}
 	var constraint *semver.Constraints
@@ -65,6 +68,7 @@ func GetChartVersion(version string, chart *types.Chart) *types.ChartVersion {
 	return versionObj
 }
 
+// ConvertChartVersions represents func for converting chart version from internal to official helm project struct
 func ConvertChartVersions(chart *types.Chart) []*repo.ChartVersion {
 	var convertedVersions []*repo.ChartVersion
 
