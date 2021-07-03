@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -18,6 +19,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
@@ -194,13 +196,10 @@ func TestReleaseUpdate(t *testing.T) {
 }
 
 func getTestReleaseSpecs() []map[string]interface{} {
+
 	return []map[string]interface{}{
 		{
-			"returnValue": []v1.ConfigMap{
-				getTestTemplateConfigMap(),
-				getTestCRDConfigMap(),
-				getTestDefaultValueConfigMap(),
-			},
+			"returnValue": getTestReleaseChartConfigMapsValid(),
 			"returnError": nil,
 			"input": &helmv1alpha1.Release{
 				Spec: helmv1alpha1.ReleaseSpec{
@@ -413,4 +412,57 @@ func getTestCRDConfigMap() v1.ConfigMap {
 	configmap.BinaryData["values"] = castedValues
 
 	return configmap
+}
+
+func getTestReleaseChartConfigMapsValid() []v1.ConfigMap {
+
+	raw, _ := os.Open("../../testutils/busybox-0.1.0.tgz")
+	defer raw.Close()
+	chart, _ := loader.LoadArchive(raw)
+
+	immutable := new(bool)
+	*immutable = true
+
+	l := []v1.ConfigMap{}
+	t := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "helm-tmpl-chart-0.0.1",
+		},
+		Immutable:  immutable,
+		BinaryData: map[string][]byte{},
+	}
+
+	for _, tpl := range chart.Templates {
+		path := strings.SplitAfter(tpl.Name, "/")
+		t.BinaryData[path[1]] = tpl.Data
+	}
+
+	l = append(l, t)
+	t = v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "helm-crds-chart-0.0.1",
+		},
+		Immutable:  immutable,
+		BinaryData: map[string][]byte{},
+	}
+
+	for _, tpl := range chart.CRDs() {
+		path := strings.SplitAfter(tpl.Name, "/")
+		t.BinaryData[path[1]] = tpl.Data
+	}
+
+	l = append(l, t)
+	t = v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "helm-default-chart-0.0.1",
+		},
+		Immutable: immutable,
+		Data:      map[string]string{},
+	}
+
+	castedValues, _ := json.Marshal(chart.Values)
+	t.Data["values"] = string(castedValues)
+
+	l = append(l, t)
+	return l
 }
