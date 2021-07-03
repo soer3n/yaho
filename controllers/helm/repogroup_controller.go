@@ -75,15 +75,6 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	spec := instance.Spec.Repos
 
-	log.Infof("Trying to install HelmRepoSpecs: %v", spec)
-
-	for _, repository := range spec {
-
-		if err = r.deployRepo(repository, instance); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
 	// fetch charts
 	repos := &helmv1alpha1.RepoList{}
 	requirement, _ := labels.ParseToRequirements("repoGroup=" + instance.Spec.LabelSelector)
@@ -92,6 +83,8 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	err = r.List(context.Background(), repos, opts)
+
+	log.Infof("Trying to delete unwanted HelmRepoSpecs: %v", spec)
 
 	for _, repo := range repos.Items {
 		exists := false
@@ -107,6 +100,15 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if err = r.Delete(ctx, &repo); err != nil {
 				return ctrl.Result{}, err
 			}
+		}
+	}
+
+	log.Infof("Trying to install HelmRepoSpecs: %v", spec)
+
+	for _, repository := range spec {
+
+		if err = r.deployRepo(repository, instance); err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 
