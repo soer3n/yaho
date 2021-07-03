@@ -116,9 +116,10 @@ func TestChartAddOrUpdateMap(t *testing.T) {
 	assert := assert.New(t)
 
 	testObj := NewChart(getTestRepoChartVersions(), settings, "test", &clientMock, &httpMock)
-	maps := testObj.AddOrUpdateChartMap(getTestHelmChartMap(), getTestChartRepo())
-
-	assert.NotNil(maps)
+	maps := testObj.AddOrUpdateChartMap(getTestHelmChartMapNotFound(), getTestChartRepo())
+	assert.Len(maps, 2)
+	maps = testObj.AddOrUpdateChartMap(getTestHelmChartMap(), getTestChartRepo())
+	assert.Len(maps, 1)
 }
 
 func getTestRepoChartVersions() []*repo.ChartVersion {
@@ -127,6 +128,13 @@ func getTestRepoChartVersions() []*repo.ChartVersion {
 			Metadata: &chart.Metadata{
 				Name:    "foo",
 				Version: "0.0.1",
+				Dependencies: []*chart.Dependency{
+					{
+						Name:       "dep",
+						Version:    "0.1.1",
+						Repository: "repo",
+					},
+				},
 			},
 			URLs: []string{"https://foo.bar/charts/foo-0.0.1.tgz"},
 		},
@@ -142,6 +150,39 @@ func getTestHelmChartMap() map[string]*helmv1alpha1.Chart {
 			},
 			Spec: helmv1alpha1.ChartSpec{
 				Name: "baz",
+				Versions: []helmv1alpha1.ChartVersion{
+					{
+						Name: "0.0.2",
+						URL:  "nodomain.com",
+					},
+				},
+			},
+		},
+	}
+}
+
+func getTestHelmChartMapNotFound() map[string]*helmv1alpha1.Chart {
+	return map[string]*helmv1alpha1.Chart{
+		"bar": {
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "bar",
+				Namespace: "",
+			},
+			Spec: helmv1alpha1.ChartSpec{
+				Name: "baz",
+				Versions: []helmv1alpha1.ChartVersion{
+					{
+						Name: "0.0.2",
+						URL:  "nodomain.com",
+						Dependencies: []helmv1alpha1.ChartDep{
+							{
+								Name:    "dep",
+								Repo:    "repo",
+								Version: "0.1.1",
+							},
+						},
+					},
+				},
 			},
 		},
 	}
