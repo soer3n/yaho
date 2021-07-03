@@ -45,7 +45,7 @@ var _ = Context("Install a repository", func() {
 				},
 			}
 
-			err = k8sClient.Create(ctx, repoKind)
+			err = k8sClient.Create(context.Background(), repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
 			time.Sleep(3 * time.Second)
@@ -54,28 +54,28 @@ var _ = Context("Install a repository", func() {
 			repoChart = &helmv1alpha1.Chart{}
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(deployment.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
 				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			By("should remove this repository resource with the specified name and specified url")
 
-			err = k8sClient.Delete(ctx, repoKind)
+			err = k8sClient.Delete(context.Background(), repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
 
 			time.Sleep(5 * time.Second)
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
 
 			By("by deletion of namespace test should finish successfully")
@@ -84,7 +84,7 @@ var _ = Context("Install a repository", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Delete(ctx, repoNamespace)
+			err = k8sClient.Delete(context.Background(), repoNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete testresource")
 		})
 	})

@@ -31,7 +31,7 @@ var _ = Context("Install a repository group", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Create(context.Background(), repoGroupNamespace)
+			err = k8sClient.Create(ctx, repoGroupNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("creating a new repository group resource with the specified names and specified urls")
@@ -50,7 +50,7 @@ var _ = Context("Install a repository group", func() {
 				},
 			}
 
-			err = k8sClient.Create(ctx, repoGroupKind)
+			err = k8sClient.Create(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
 			time.Sleep(5 * time.Second)
@@ -70,7 +70,7 @@ var _ = Context("Install a repository group", func() {
 				Auth: &helmv1alpha1.Auth{},
 			})
 
-			err = k8sClient.Update(ctx, repoGroupKind)
+			err = k8sClient.Update(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
 			time.Sleep(1 * time.Second)
@@ -93,11 +93,8 @@ var _ = Context("Install a repository group", func() {
 				},
 			}
 
-			err = k8sClient.Update(ctx, repoGroupKind)
+			err = k8sClient.Update(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
-
-			foo := helmv1alpha1.ChartList{}
-			err = k8sClient.List(ctx, &foo)
 
 			Eventually(
 				getChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
@@ -126,7 +123,7 @@ var _ = Context("Install a repository group", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Delete(ctx, repoGroupNamespace)
+			err = k8sClient.Delete(context.Background(), repoGroupNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
 
 		})

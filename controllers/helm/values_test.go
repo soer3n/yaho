@@ -51,7 +51,7 @@ var _ = Context("Install a release with values", func() {
 				},
 			}
 
-			err = k8sClient.Create(ctx, valuesReleaseRepo)
+			err = k8sClient.Create(context.Background(), valuesReleaseRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(3 * time.Second)
@@ -88,7 +88,7 @@ var _ = Context("Install a release with values", func() {
 				},
 			}
 
-			err = k8sClient.Create(ctx, values)
+			err = k8sClient.Create(context.Background(), values)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("should create a new values resource with specified")
@@ -120,7 +120,7 @@ var _ = Context("Install a release with values", func() {
 				},
 			}
 
-			err = k8sClient.Create(ctx, values)
+			err = k8sClient.Create(context.Background(), values)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("should create a new values resource with specified")
@@ -140,17 +140,17 @@ var _ = Context("Install a release with values", func() {
 				},
 			}
 
-			err = k8sClient.Create(ctx, values)
+			err = k8sClient.Create(context.Background(), values)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource-123"))
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, valuesReleaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, valuesReleaseChart),
 				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			By("should create a new Release resource with specified")
@@ -174,7 +174,7 @@ var _ = Context("Install a release with values", func() {
 				},
 			}
 
-			err = k8sClient.Create(ctx, valuesReleaseKind)
+			err = k8sClient.Create(context.Background(), valuesReleaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(5 * time.Second)
@@ -184,29 +184,29 @@ var _ = Context("Install a release with values", func() {
 			configmap := &v1.ConfigMap{}
 
 			Eventually(
-				GetReleaseFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: valuesReleaseKind.Namespace}, valuesRelease),
+				GetReleaseFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: valuesReleaseKind.Namespace}, valuesRelease),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(valuesRelease.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: valuesReleaseKind.Namespace}, valuesReleaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: valuesReleaseKind.Namespace}, valuesReleaseChart),
 				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			Eventually(
-				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-tmpl-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
+				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-tmpl-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(configmap.ObjectMeta.Name).To(Equal("helm-tmpl-submariner-operator-0.7.0"))
 
 			Eventually(
-				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-crds-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
+				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-crds-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(configmap.ObjectMeta.Name).To(Equal("helm-crds-submariner-operator-0.7.0"))
 
 			Eventually(
-				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-default-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
+				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-default-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Expect(configmap.ObjectMeta.Name).To(Equal("helm-default-submariner-operator-0.7.0"))
@@ -224,7 +224,7 @@ var _ = Context("Install a release with values", func() {
 			valuesSpecRaw, err = json.Marshal(valuesSpec)
 			Expect(err).NotTo(HaveOccurred(), "failed to convert values")
 
-			err = k8sClient.Get(ctx, types.NamespacedName{
+			err = k8sClient.Get(context.Background(), types.NamespacedName{
 				Name:      "testresource-nested",
 				Namespace: namespace,
 			}, values)
@@ -232,7 +232,7 @@ var _ = Context("Install a release with values", func() {
 
 			values.Spec.ValuesMap.Raw = []byte(valuesSpecRaw)
 
-			err = k8sClient.Update(ctx, values)
+			err = k8sClient.Update(context.Background(), values)
 			Expect(err).NotTo(HaveOccurred(), "failed to update values resource")
 
 			time.Sleep(5 * time.Second)
@@ -255,50 +255,50 @@ var _ = Context("Install a release with values", func() {
 				},
 			}
 
-			err = k8sClient.Create(ctx, secondValuesReleaseKind)
+			err = k8sClient.Create(context.Background(), secondValuesReleaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(5 * time.Second)
 
 			By("should remove this Release resource with the specified configmaps after deletion")
 
-			err = k8sClient.Delete(ctx, valuesReleaseKind)
+			err = k8sClient.Delete(context.Background(), valuesReleaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			err = k8sClient.Delete(ctx, secondValuesReleaseKind)
+			err = k8sClient.Delete(context.Background(), secondValuesReleaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(5 * time.Second)
 
 			Eventually(
-				GetReleaseFunc(ctx, client.ObjectKey{Name: "testresource", Namespace: valuesReleaseKind.Namespace}, valuesRelease),
+				GetReleaseFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: valuesReleaseKind.Namespace}, valuesRelease),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			By("should remove this Repository resource with the specified name and specified url")
 
-			err = k8sClient.Delete(ctx, valuesReleaseRepo)
+			err = k8sClient.Delete(context.Background(), valuesReleaseRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
 
 			time.Sleep(1 * time.Second)
 
 			Eventually(
-				GetResourceFunc(ctx, client.ObjectKey{Name: "testresource-123", Namespace: valuesReleaseRepo.Namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: valuesReleaseRepo.Namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(ctx, client.ObjectKey{Name: "submariner-operator", Namespace: valuesReleaseRepo.Namespace}, valuesReleaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: valuesReleaseRepo.Namespace}, valuesReleaseChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
 
 			Eventually(
-				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-tmpl-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
+				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-tmpl-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-crds-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
+				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-crds-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetConfigMapFunc(ctx, client.ObjectKey{Name: "helm-default-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
+				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-default-submariner-operator-0.7.0", Namespace: valuesReleaseKind.Namespace}, configmap),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			By("by deletion of namespace")
@@ -307,7 +307,7 @@ var _ = Context("Install a release with values", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Delete(ctx, releaseNamespace)
+			err = k8sClient.Delete(context.Background(), releaseNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 		})
