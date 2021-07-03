@@ -60,12 +60,21 @@ jobs:
     runs-on: self-hosted
     needs: test
     steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+    
     - name: Run coverage
       run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+    
     - name: report coverage
       uses: codecov/codecov-action@v1
       with:
         token: 18c8c4a3-0fb0-44b5-a37d-8bcc9367aa7c
+        file: ./coverage.txt
 
   build:
     runs-on: self-hosted
