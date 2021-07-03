@@ -145,10 +145,10 @@ func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Rep
 	controllerutil.AddFinalizer(m, "finalizer.repo.helm.soer3n.info")
 
 	// Update CR
-	err := r.Update(context.TODO(), m)
-	if err != nil {
+	if err := r.Update(context.TODO(), m); err != nil {
 		return err
 	}
+
 	return nil
 }
 

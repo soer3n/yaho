@@ -52,17 +52,6 @@ jobs:
 
     - name: Test controllers
       run: go test -v ./controllers/...
-
-  coverage:
-    runs-on: self-hosted
-    needs: test
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.15
     
     - name: Run coverage
       run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
@@ -72,6 +61,7 @@ jobs:
       with:
         token: 18c8c4a3-0fb0-44b5-a37d-8bcc9367aa7c
         file: ./coverage.txt
+        fail_ci_if_error: true
 
   build:
     runs-on: self-hosted

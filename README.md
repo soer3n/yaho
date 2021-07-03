@@ -1,4 +1,3 @@
-[![Actions Status](https://github.com/soer3n/apps-operator/workflows/build/badge.svg)](https://github.com/soer3n/apps-operator/actions)
 [![codecov](https://codecov.io/gh/soer3n/apps-operator/branch/master/graph/badge.svg)](https://codecov.io/gh/soer3n/apps-operator)
 
 # Yet Another Helm Operator 
