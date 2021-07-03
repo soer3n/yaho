@@ -324,6 +324,11 @@ func (r *ReleaseReconciler) updateValuesAnnotations(obj *helmv1alpha1.Values, re
 }
 
 func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Release, stats metav1.ConditionStatus, reason, message string) (ctrl.Result, error) {
+
+	if meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", stats) {
+		return ctrl.Result{}, nil
+	}
+
 	condition := metav1.Condition{Type: "synced", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
 	meta.SetStatusCondition(&instance.Status.Conditions, condition)
 
