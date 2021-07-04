@@ -1,4 +1,4 @@
-[![codecov](https://codecov.io/gh/soer3n/apps-operator/branch/master/graph/badge.svg)](https://codecov.io/gh/soer3n/apps-operator/actions/workflows/test.yaml)
+[![codecov](https://codecov.io/gh/soer3n/apps-operator/branch/master/graph/badge.svg?token=DCPVNPSIFF)](https://codecov.io/gh/soer3n/apps-operator)
 
 # Yet Another Helm Operator 
 
