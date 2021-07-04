@@ -134,6 +134,7 @@ rules:
   - helm.soer3n.info
   resources:
   - repos
+  - repoes
   verbs:
   - create
   - delete
