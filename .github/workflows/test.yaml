@@ -40,15 +40,15 @@ jobs:
     - name: test packages
       run: go test -v ./pkg/...
 
-    # - name: Create k8s Kind Cluster
-    #  uses: helm/kind-action@v1.2.0
+    - name: Create k8s Kind Cluster
+     uses: helm/kind-action@v1.2.0
 
-    # - name: Testing
-    #  run: |
-    #    kubectl cluster-info
-    #    kubectl get pods -n kube-system
-    #    echo "current-context:" $(kubectl config current-context)
-    #    echo "environment-kubeconfig:" ${KUBECONFIG}
+    - name: Testing
+      run: |
+       kubectl cluster-info
+       kubectl get pods -n kube-system
+       echo "current-context:" $(kubectl config current-context)
+       echo "environment-kubeconfig:" ${KUBECONFIG}
 
     - name: test controllers
       run: go test -v ./controllers/...
