@@ -3,183 +3,36 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: yaho-runner
-  namespace: harbor
+  namespace: helm
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: manager-rolebinding
+  name: yaho-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: manager-role
+  name: yaho-manager-role
 subjects:
 - kind: ServiceAccount
   name: yaho-runner
-  namespace: harbor
+  namespace: helm
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: manager-role
+  name: yaho-manager-role
 rules:
 - apiGroups:
-  - helm.soer3n.info
+  - '*'
   resources:
-  - charts
+  - '*'
   verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - charts/finalizers
+  - '*'
+- nonResourceURLs:
+  - '*'
   verbs:
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - charts/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - releasegroups
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - releasegroups/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - releasegroups/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - releases
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - releases/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - releases/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - repogroups
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - repogroups/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - repogroups/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - repos
-  - repoes
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - repos/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - repos/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - values
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - values/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - helm.soer3n.info
-  resources:
-  - values/status
-  verbs:
-  - get
-  - patch
-  - update
+  - '*'

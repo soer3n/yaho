@@ -20,6 +20,9 @@ make install
 export IMG="image_name:image_tag"
 make docker-build docker-push
 
+# create image pull secret if needed
+kubectl create secret generic harbor-registry-secret -n helm --from-file=.dockerconfigjson=harbor.json --type=kubernetes.io/dockerconfigjson
+
 # Deploy the built operator
 kubectl apply -f deploy/rbac.yaml
 cat deploy/operator.yaml | envsubst | kubectl apply -f -

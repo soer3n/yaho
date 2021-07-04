@@ -1,27 +1,27 @@
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    control-plane: controller-manager
-  name: harbor
+#---
+#apiVersion: v1
+#kind: Namespace
+#metadata:
+#  labels:
+#    control-plane: controller-manager
+#  name: harbor
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
+  name: yaho-controller-manager
   namespace: harbor
   labels:
-    control-plane: controller-manager
+    control-plane: yaho-controller-manager
 spec:
   selector:
     matchLabels:
-      control-plane: controller-manager
+      control-plane: yaho-controller-manager
   replicas: 1
   template:
     metadata:
       labels:
-        control-plane: controller-manager
+        control-plane: yaho-controller-manager
     spec:
       imagePullSecrets:
       - name: harbor-registry-secret
@@ -34,7 +34,7 @@ spec:
         args:
         - operator
         image: ${IMG}
-        name: manager
+        name: yaho-manager
         securityContext:
           allowPrivilegeEscalation: false
         livenessProbe:
@@ -52,8 +52,8 @@ spec:
         resources:
           limits:
             cpu: 100m
-            memory: 30Mi
+            memory: 300Mi
           requests:
             cpu: 100m
-            memory: 20Mi
+            memory: 200Mi
       terminationGracePeriodSeconds: 10
