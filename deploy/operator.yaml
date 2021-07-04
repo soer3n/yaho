@@ -4,13 +4,13 @@ kind: Namespace
 metadata:
   labels:
     control-plane: controller-manager
-  name: helm
+  name: harbor
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: controller-manager
-  namespace: helm
+  namespace: harbor
   labels:
     control-plane: controller-manager
 spec:
@@ -23,14 +23,16 @@ spec:
       labels:
         control-plane: controller-manager
     spec:
-      serviceAccountName: yaho
+      imagePullSecrets:
+      - name: harbor-registry-secret
+      serviceAccountName: yaho-runner
       securityContext:
         runAsUser: 65532
       containers:
       - command:
         - /manager
         args:
-        - --leader-elect
+        - operator
         image: ${IMG}
         name: manager
         securityContext:

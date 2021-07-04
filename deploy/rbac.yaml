@@ -1,4 +1,11 @@
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: yaho-runner
+  namespace: harbor
+
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -10,7 +17,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: yaho-runner
-  namespace: helm
+  namespace: harbor
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
