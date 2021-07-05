@@ -52,7 +52,7 @@ var _ = Context("Install a releasegroup", func() {
 			err = testClient.Create(context.Background(), releaseGroupRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			time.Sleep(1 * time.Second)
+			time.Sleep(3 * time.Second)
 
 			By("should create a new Repository resource with the specified name and specified url")
 			releaseGroupRepo = &helmv1alpha1.Repo{
@@ -77,9 +77,7 @@ var _ = Context("Install a releasegroup", func() {
 
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: "test-releasegroup-123", Namespace: namespace}, deployment),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(deployment.ObjectMeta.Name).To(Equal("test-releasegroup-123"))
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			Eventually(
 				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, releaseGroupChart),
@@ -203,7 +201,7 @@ var _ = Context("Install a releasegroup", func() {
 
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: releaseGroupRepo.Namespace}, deployment),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
 
 			Eventually(
 				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: releaseGroupRepo.Namespace}, releaseGroupChart),

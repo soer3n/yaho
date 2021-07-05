@@ -55,16 +55,6 @@ var _ = Context("Install a release", func() {
 			deployment = &helmv1alpha1.Repo{}
 			repoChart = &helmv1alpha1.Chart{}
 
-			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: namespace}, deployment),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource-123"))
-
-			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, repoChart),
-				time.Second*20, time.Millisecond*1500).Should(BeTrue())
-
 			By("creating a new release resource with specified data")
 
 			releaseKind = &helmv1alpha1.Release{
@@ -88,6 +78,14 @@ var _ = Context("Install a release", func() {
 			release = &helmv1alpha1.Release{}
 			releaseChart = &helmv1alpha1.Chart{}
 			configmap := &v1.ConfigMap{}
+
+			Eventually(
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: namespace}, deployment),
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
+
+			Eventually(
+				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, repoChart),
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			Eventually(
 				GetReleaseFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: releaseKind.Namespace}, release),
@@ -137,7 +135,7 @@ var _ = Context("Install a release", func() {
 
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: releaseRepo.Namespace}, deployment),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
 
 			Eventually(
 				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: releaseRepo.Namespace}, repoChart),

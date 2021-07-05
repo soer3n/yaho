@@ -58,10 +58,6 @@ var _ = Context("Install a repository group", func() {
 			repoGroup = &helmv1alpha1.RepoGroup{}
 			chart = &helmv1alpha1.Chart{}
 
-			Eventually(
-				getChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*20, time.Millisecond*1500).Should(BeTrue())
-
 			By("update group by adding another repository resource with the specified name and specified url")
 
 			repoGroupKind.Spec.Repos = append(repoGroupKind.Spec.Repos, helmv1alpha1.RepoSpec{
@@ -72,6 +68,10 @@ var _ = Context("Install a repository group", func() {
 
 			err = testClient.Update(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
+
+			Eventually(
+				getChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
+				time.Second*40, time.Millisecond*1500).Should(BeTrue())
 
 			Eventually(
 				getChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),

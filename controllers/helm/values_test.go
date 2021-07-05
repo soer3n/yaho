@@ -143,16 +143,6 @@ var _ = Context("Install a release with values", func() {
 			err = testClient.Create(context.Background(), values)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: namespace}, deployment),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(*&deployment.ObjectMeta.Name).To(Equal("testresource-123"))
-
-			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, valuesReleaseChart),
-				time.Second*20, time.Millisecond*1500).Should(BeTrue())
-
 			By("should create a new Release resource with specified")
 
 			valuesReleaseKind = &helmv1alpha1.Release{
@@ -182,6 +172,14 @@ var _ = Context("Install a release with values", func() {
 			valuesRelease = &helmv1alpha1.Release{}
 			valuesReleaseChart = &helmv1alpha1.Chart{}
 			configmap := &v1.ConfigMap{}
+
+			Eventually(
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: namespace}, deployment),
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
+
+			Eventually(
+				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, valuesReleaseChart),
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			Eventually(
 				GetReleaseFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: valuesReleaseKind.Namespace}, valuesRelease),
@@ -283,7 +281,7 @@ var _ = Context("Install a release with values", func() {
 
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: valuesReleaseRepo.Namespace}, deployment),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
 
 			Eventually(
 				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: valuesReleaseRepo.Namespace}, valuesReleaseChart),
