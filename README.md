@@ -15,7 +15,6 @@ For now there is no docker image neither for the operator nor for the planned we
 make install
 
 
-
 # Building and pushing as an image to private registry
 export IMG="image_name:image_tag"
 make docker-build docker-push
@@ -31,7 +30,7 @@ cat deploy/operator.yaml | envsubst | kubectl apply -f -
 ## OR ##
 ########
 
-# Run it local simply with
+# Run it local
 make run
 
 ```
@@ -102,6 +101,7 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 
 - add assertions for tests; currently there are more or less only the normal cases covered by qa
 - running e2e tests with kind in kubernetes( [related issue](https://github.com/actions-runner-controller/actions-runner-controller/issues/640))
+- evaluate where to use concurrency and implement it with goroutines and channels
 - add contribution guideline
 - implement web user interface with backend (the [frontend skeleton](web/) and start of [backend server implementation](pkg/api/) is already present)
 - syncing state of releases from helm cli and other tools which are using the binary
