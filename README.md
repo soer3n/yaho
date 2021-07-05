@@ -2,7 +2,7 @@
 
 # Yet Another Helm Operator 
 
-This operator is for managing helm repositories, releases and values in a declarative way. This project was originally created by the idea to deploy helm charts in a simple way without any binary except the kubernetes go-client, to avoid problem caused by local dependencies (e.g. missing repo pull, usage of wrong repository, ...), reusing of values in different releases with same sub specifications and to learn how helm and golang actually works. During the development more and more ideas came to my mind. The most aren't implemented until now. But this huge number of ideas brought me to publishing this project. 
+This operator is for managing helm repositories, releases and values in a declarative way. This project was originally created by the idea to deploy helm charts in a simple way without any binary except the kubernetes go-client, to avoid problem caused by local dependencies (e.g. missing repo pull, usage of wrong repository, not synced values for a release, ...), reusing of values in different releases with same sub specifications and to learn how helm and golang actually works. During the development more and more ideas came to my mind. The most aren't implemented until now. But this huge number of ideas brought me to publishing this project. 
 
 
 ## Installation
@@ -16,7 +16,7 @@ make install
 
 
 
-# Building and pushing an image
+# Building and pushing as an image to private registry
 export IMG="image_name:image_tag"
 make docker-build docker-push
 
