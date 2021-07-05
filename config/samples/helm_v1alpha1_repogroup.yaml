@@ -8,5 +8,5 @@ spec:
   repos:
     - name: nextcloud
       url: https://nextcloud.github.io/helm/
-    - name: bitnami
-      url: https://charts.bitnami.com/bitnami
+    # - name: bitnami
+    #  url: https://charts.bitnami.com/bitnami

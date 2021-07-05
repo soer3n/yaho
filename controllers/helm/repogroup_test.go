@@ -73,15 +73,13 @@ var _ = Context("Install a repository group", func() {
 			err = k8sClient.Update(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
-			time.Sleep(1 * time.Second)
-
 			Eventually(
 				getChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*20, time.Millisecond*1500).Should(BeTrue())
+				time.Second*40, time.Millisecond*1500).Should(BeTrue())
 
 			Eventually(
 				getChartFunc(context.Background(), client.ObjectKey{Name: "rocketchat", Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*20, time.Millisecond*1500).Should(BeTrue())
+				time.Second*40, time.Millisecond*1500).Should(BeTrue())
 
 			By("should remove the first repository resource from the group")
 

@@ -18,10 +18,12 @@ package helm
 
 import (
 	"context"
+	"sync"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,7 +32,6 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 // RepoGroupReconciler reconciles a RepoGroup object
@@ -75,7 +76,10 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	spec := instance.Spec.Repos
 
-	// fetch charts
+	var wg sync.WaitGroup
+	delOutput := make(chan string, 100)
+
+	// fetch owned repos
 	repos := &helmv1alpha1.RepoList{}
 	requirement, _ := labels.ParseToRequirements("repoGroup=" + instance.Spec.LabelSelector)
 	opts := &client.ListOptions{
@@ -88,36 +92,118 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	for _, repo := range repos.Items {
 		exists := false
-		for _, repository := range spec {
-			if repo.Spec.Name == repository.Name {
-				exists = true
-				break
-			}
-		}
+		wg.Add(1)
 
-		if !exists {
-			log.Infof("Delete unwanted repo: %v.\n", repo.Spec.Name)
-			if err = r.Delete(ctx, &repo); err != nil {
-				return ctrl.Result{}, err
+		go func(repo helmv1alpha1.Repo, spec []helmv1alpha1.RepoSpec, int <-chan string) {
+
+			defer wg.Done()
+			for _, repository := range spec {
+				if repo.Name == repository.Name {
+					exists = true
+					break
+				}
 			}
-		}
+
+			if !exists {
+				delOutput <- "Delete unwanted repo: " + repo.Name
+				if err = r.Delete(ctx, &helmv1alpha1.Repo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      repo.Name,
+						Namespace: instance.Namespace,
+					},
+				}); err != nil {
+					delOutput <- err.Error()
+				}
+			}
+		}(repo, spec, delOutput)
+	}
+
+	go func() {
+		wg.Wait()
+		close(delOutput)
+	}()
+
+	for i := range delOutput {
+		log.Info(i)
 	}
 
 	log.Infof("Trying to install HelmRepoSpecs: %v", spec)
 
+	output := make(chan string, 100)
+
 	for _, repository := range spec {
 
-		if err = r.deployRepo(repository, instance); err != nil {
-			return ctrl.Result{}, err
-		}
+		wg.Add(1)
+
+		go func(repository helmv1alpha1.RepoSpec, int <-chan string) {
+			defer wg.Done()
+			output <- "Trying to install HelmRepo " + repository.Name
+
+			helmRepo := &helmv1alpha1.Repo{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      repository.Name,
+					Namespace: instance.ObjectMeta.Namespace,
+					Labels: map[string]string{
+						"repo":      repository.Name,
+						"repoGroup": instance.Spec.LabelSelector,
+					},
+				},
+				Spec: helmv1alpha1.RepoSpec{
+					Name: repository.Name,
+					URL:  repository.URL,
+				},
+			}
+
+			if repository.Auth != nil {
+				helmRepo.Spec.Auth = &helmv1alpha1.Auth{
+					User:     repository.Auth.User,
+					Password: repository.Auth.Password,
+					Cert:     repository.Auth.Cert,
+					Key:      repository.Auth.Key,
+					Ca:       repository.Auth.Ca,
+				}
+			}
+
+			if err := controllerutil.SetControllerReference(instance, helmRepo, r.Scheme); err != nil {
+				output <- err.Error()
+				return
+			}
+
+			installedRepo := &helmv1alpha1.Repo{}
+			err := r.Client.Get(context.Background(), client.ObjectKey{
+				Namespace: helmRepo.ObjectMeta.Namespace,
+				Name:      helmRepo.Spec.Name,
+			}, installedRepo)
+
+			if err != nil {
+				if errors.IsNotFound(err) {
+					err = r.Client.Create(context.TODO(), helmRepo)
+
+					if err != nil {
+						output <- err.Error()
+					}
+				}
+
+			}
+		}(repository, output)
+	}
+
+	go func() {
+		wg.Wait()
+		close(output)
+	}()
+
+	for i := range output {
+		log.Info(i)
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, instance *helmv1alpha1.RepoGroup) error {
+func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, instance *helmv1alpha1.RepoGroup, c chan<- string) {
 
-	log.Infof("Trying to install HelmRepo %v", repository.Name)
+	c <- "Trying to install HelmRepo " + repository.Name
+
 	helmRepo := &helmv1alpha1.Repo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      repository.Name,
@@ -143,14 +229,13 @@ func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, insta
 		}
 	}
 
-	err := controllerutil.SetControllerReference(instance, helmRepo, r.Scheme)
-
-	if err != nil {
-		return err
+	if err := controllerutil.SetControllerReference(instance, helmRepo, r.Scheme); err != nil {
+		c <- err.Error()
+		return
 	}
 
 	installedRepo := &helmv1alpha1.Repo{}
-	err = r.Client.Get(context.Background(), client.ObjectKey{
+	err := r.Client.Get(context.Background(), client.ObjectKey{
 		Namespace: helmRepo.ObjectMeta.Namespace,
 		Name:      helmRepo.Spec.Name,
 	}, installedRepo)
@@ -160,20 +245,20 @@ func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, insta
 			err = r.Client.Create(context.TODO(), helmRepo)
 
 			if err != nil {
-				return err
+				c <- err.Error()
 			}
 		}
-		return nil
+
+		return
 	}
 
 	installedRepo.Spec = helmRepo.Spec
 	err = r.Client.Update(context.TODO(), installedRepo)
 
 	if err != nil {
-		return err
+		c <- err.Error()
 	}
 
-	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
