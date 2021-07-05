@@ -43,7 +43,7 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var cfg *rest.Config
-var k8sClient client.Client
+var k8sClient, testClient client.Client
 var stopCh context.Context
 
 //var namespace string
@@ -171,6 +171,10 @@ var _ = BeforeSuite(func(done Done) {
 		err := mgr.Start(ctrl.SetupSignalHandler())
 		Expect(err).NotTo(HaveOccurred(), "failed to start helm manager")
 	}()
+
+	testClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(k8sClient).NotTo(BeNil())
 
 	close(done)
 }, 60)

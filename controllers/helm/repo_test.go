@@ -30,7 +30,7 @@ var _ = Context("Install a repository", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Create(ctx, repoNamespace)
+			err = testClient.Create(ctx, repoNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("creating a new repository resource with the specified name and specified url")
@@ -45,7 +45,7 @@ var _ = Context("Install a repository", func() {
 				},
 			}
 
-			err = k8sClient.Create(context.Background(), repoKind)
+			err = testClient.Create(context.Background(), repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
 			time.Sleep(3 * time.Second)
@@ -65,7 +65,7 @@ var _ = Context("Install a repository", func() {
 
 			By("should remove this repository resource with the specified name and specified url")
 
-			err = k8sClient.Delete(context.Background(), repoKind)
+			err = testClient.Delete(context.Background(), repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
 
 			time.Sleep(5 * time.Second)
@@ -84,7 +84,7 @@ var _ = Context("Install a repository", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Delete(context.Background(), repoNamespace)
+			err = testClient.Delete(context.Background(), repoNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete testresource")
 		})
 	})
@@ -92,14 +92,14 @@ var _ = Context("Install a repository", func() {
 
 func GetResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repo) func() error {
 	return func() error {
-		return k8sClient.Get(ctx, key, obj)
+		return testClient.Get(ctx, key, obj)
 	}
 }
 
 func GetChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() bool {
 	return func() bool {
 		l := &helmv1alpha1.ChartList{}
-		_ = k8sClient.List(ctx, l)
+		_ = testClient.List(ctx, l)
 
 		for _, v := range l.Items {
 			if key.Name == v.ObjectMeta.Name {

@@ -31,7 +31,7 @@ var _ = Context("Install a repository group", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Create(ctx, repoGroupNamespace)
+			err = testClient.Create(ctx, repoGroupNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("creating a new repository group resource with the specified names and specified urls")
@@ -50,7 +50,7 @@ var _ = Context("Install a repository group", func() {
 				},
 			}
 
-			err = k8sClient.Create(context.Background(), repoGroupKind)
+			err = testClient.Create(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
 			time.Sleep(5 * time.Second)
@@ -70,7 +70,7 @@ var _ = Context("Install a repository group", func() {
 				Auth: &helmv1alpha1.Auth{},
 			})
 
-			err = k8sClient.Update(context.Background(), repoGroupKind)
+			err = testClient.Update(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
 			Eventually(
@@ -91,7 +91,7 @@ var _ = Context("Install a repository group", func() {
 				},
 			}
 
-			err = k8sClient.Update(context.Background(), repoGroupKind)
+			err = testClient.Update(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
 			Eventually(
@@ -104,7 +104,7 @@ var _ = Context("Install a repository group", func() {
 
 			By("remove every repository left when group is deleted")
 
-			err = k8sClient.Delete(context.Background(), repoGroupKind)
+			err = testClient.Delete(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
 
 			Eventually(
@@ -121,7 +121,7 @@ var _ = Context("Install a repository group", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Delete(context.Background(), repoGroupNamespace)
+			err = testClient.Delete(context.Background(), repoGroupNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
 
 		})
@@ -130,14 +130,14 @@ var _ = Context("Install a repository group", func() {
 
 func getResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repo) func() error {
 	return func() error {
-		return k8sClient.Get(ctx, key, obj)
+		return testClient.Get(ctx, key, obj)
 	}
 }
 
 func getChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() bool {
 	return func() bool {
 		l := &helmv1alpha1.ChartList{}
-		_ = k8sClient.List(ctx, l)
+		_ = testClient.List(ctx, l)
 
 		for _, v := range l.Items {
 			if key.Name == v.ObjectMeta.Name {
@@ -150,6 +150,6 @@ func getChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.C
 
 func getRepoGroupFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.RepoGroup) func() error {
 	return func() error {
-		return k8sClient.Get(ctx, key, obj)
+		return testClient.Get(ctx, key, obj)
 	}
 }

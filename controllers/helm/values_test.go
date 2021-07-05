@@ -36,7 +36,7 @@ var _ = Context("Install a release with values", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Create(ctx, releaseNamespace)
+			err = testClient.Create(ctx, releaseNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("should create a new Repository resource with the specified name and specified url")
@@ -51,7 +51,7 @@ var _ = Context("Install a release with values", func() {
 				},
 			}
 
-			err = k8sClient.Create(context.Background(), valuesReleaseRepo)
+			err = testClient.Create(context.Background(), valuesReleaseRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(3 * time.Second)
@@ -88,7 +88,7 @@ var _ = Context("Install a release with values", func() {
 				},
 			}
 
-			err = k8sClient.Create(context.Background(), values)
+			err = testClient.Create(context.Background(), values)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("should create a new values resource with specified")
@@ -120,7 +120,7 @@ var _ = Context("Install a release with values", func() {
 				},
 			}
 
-			err = k8sClient.Create(context.Background(), values)
+			err = testClient.Create(context.Background(), values)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("should create a new values resource with specified")
@@ -140,7 +140,7 @@ var _ = Context("Install a release with values", func() {
 				},
 			}
 
-			err = k8sClient.Create(context.Background(), values)
+			err = testClient.Create(context.Background(), values)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			Eventually(
@@ -174,7 +174,7 @@ var _ = Context("Install a release with values", func() {
 				},
 			}
 
-			err = k8sClient.Create(context.Background(), valuesReleaseKind)
+			err = testClient.Create(context.Background(), valuesReleaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(5 * time.Second)
@@ -224,7 +224,7 @@ var _ = Context("Install a release with values", func() {
 			valuesSpecRaw, err = json.Marshal(valuesSpec)
 			Expect(err).NotTo(HaveOccurred(), "failed to convert values")
 
-			err = k8sClient.Get(context.Background(), types.NamespacedName{
+			err = testClient.Get(context.Background(), types.NamespacedName{
 				Name:      "testresource-nested",
 				Namespace: namespace,
 			}, values)
@@ -232,7 +232,7 @@ var _ = Context("Install a release with values", func() {
 
 			values.Spec.ValuesMap.Raw = []byte(valuesSpecRaw)
 
-			err = k8sClient.Update(context.Background(), values)
+			err = testClient.Update(context.Background(), values)
 			Expect(err).NotTo(HaveOccurred(), "failed to update values resource")
 
 			time.Sleep(5 * time.Second)
@@ -255,17 +255,17 @@ var _ = Context("Install a release with values", func() {
 				},
 			}
 
-			err = k8sClient.Create(context.Background(), secondValuesReleaseKind)
+			err = testClient.Create(context.Background(), secondValuesReleaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(5 * time.Second)
 
 			By("should remove this Release resource with the specified configmaps after deletion")
 
-			err = k8sClient.Delete(context.Background(), valuesReleaseKind)
+			err = testClient.Delete(context.Background(), valuesReleaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			err = k8sClient.Delete(context.Background(), secondValuesReleaseKind)
+			err = testClient.Delete(context.Background(), secondValuesReleaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(5 * time.Second)
@@ -276,7 +276,7 @@ var _ = Context("Install a release with values", func() {
 
 			By("should remove this Repository resource with the specified name and specified url")
 
-			err = k8sClient.Delete(context.Background(), valuesReleaseRepo)
+			err = testClient.Delete(context.Background(), valuesReleaseRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
 
 			time.Sleep(1 * time.Second)
@@ -307,7 +307,7 @@ var _ = Context("Install a release with values", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Delete(context.Background(), releaseNamespace)
+			err = testClient.Delete(context.Background(), releaseNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 		})

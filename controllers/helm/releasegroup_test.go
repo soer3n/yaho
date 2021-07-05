@@ -32,7 +32,7 @@ var _ = Context("Install a releasegroup", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Create(ctx, releaseNamespace)
+			err = testClient.Create(ctx, releaseNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(2 * time.Second)
@@ -49,7 +49,7 @@ var _ = Context("Install a releasegroup", func() {
 				},
 			}
 
-			err = k8sClient.Create(context.Background(), releaseGroupRepo)
+			err = testClient.Create(context.Background(), releaseGroupRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(1 * time.Second)
@@ -66,7 +66,7 @@ var _ = Context("Install a releasegroup", func() {
 				},
 			}
 
-			err = k8sClient.Create(context.Background(), releaseGroupRepo)
+			err = testClient.Create(context.Background(), releaseGroupRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(5 * time.Second)
@@ -117,7 +117,7 @@ var _ = Context("Install a releasegroup", func() {
 				},
 			}
 
-			err = k8sClient.Create(context.Background(), releaseGroupKind)
+			err = testClient.Create(context.Background(), releaseGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(5 * time.Second)
@@ -169,7 +169,7 @@ var _ = Context("Install a releasegroup", func() {
 
 			By("should remove this Release resource with the specified configmaps after deletion")
 
-			err = k8sClient.Delete(context.Background(), releaseGroupKind)
+			err = testClient.Delete(context.Background(), releaseGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(10 * time.Second)
@@ -180,7 +180,7 @@ var _ = Context("Install a releasegroup", func() {
 
 			By("should remove this Repository resource with the specified name and specified url")
 
-			err = k8sClient.Delete(context.Background(), releaseGroupRepo)
+			err = testClient.Delete(context.Background(), releaseGroupRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
 
 			By("should remove this Repository resource with the specified name and specified url")
@@ -196,7 +196,7 @@ var _ = Context("Install a releasegroup", func() {
 				},
 			}
 
-			err = k8sClient.Delete(context.Background(), releaseGroupRepo)
+			err = testClient.Delete(context.Background(), releaseGroupRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			time.Sleep(1 * time.Second)
@@ -239,7 +239,7 @@ var _ = Context("Install a releasegroup", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
-			err = k8sClient.Delete(context.Background(), releaseNamespace)
+			err = testClient.Delete(context.Background(), releaseNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 		})
@@ -248,6 +248,6 @@ var _ = Context("Install a releasegroup", func() {
 
 func GetReleaseGroupFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.ReleaseGroup) func() error {
 	return func() error {
-		return k8sClient.Get(ctx, key, obj)
+		return testClient.Get(ctx, key, obj)
 	}
 }
