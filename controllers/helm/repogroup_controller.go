@@ -200,67 +200,6 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, nil
 }
 
-func (r *RepoGroupReconciler) deployRepo(repository helmv1alpha1.RepoSpec, instance *helmv1alpha1.RepoGroup, c chan<- string) {
-
-	c <- "Trying to install HelmRepo " + repository.Name
-
-	helmRepo := &helmv1alpha1.Repo{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      repository.Name,
-			Namespace: instance.ObjectMeta.Namespace,
-			Labels: map[string]string{
-				"repo":      repository.Name,
-				"repoGroup": instance.Spec.LabelSelector,
-			},
-		},
-		Spec: helmv1alpha1.RepoSpec{
-			Name: repository.Name,
-			URL:  repository.URL,
-		},
-	}
-
-	if repository.Auth != nil {
-		helmRepo.Spec.Auth = &helmv1alpha1.Auth{
-			User:     repository.Auth.User,
-			Password: repository.Auth.Password,
-			Cert:     repository.Auth.Cert,
-			Key:      repository.Auth.Key,
-			Ca:       repository.Auth.Ca,
-		}
-	}
-
-	if err := controllerutil.SetControllerReference(instance, helmRepo, r.Scheme); err != nil {
-		c <- err.Error()
-		return
-	}
-
-	installedRepo := &helmv1alpha1.Repo{}
-	err := r.Client.Get(context.Background(), client.ObjectKey{
-		Namespace: helmRepo.ObjectMeta.Namespace,
-		Name:      helmRepo.Spec.Name,
-	}, installedRepo)
-
-	if err != nil {
-		if errors.IsNotFound(err) {
-			err = r.Client.Create(context.TODO(), helmRepo)
-
-			if err != nil {
-				c <- err.Error()
-			}
-		}
-
-		return
-	}
-
-	installedRepo.Spec = helmRepo.Spec
-	err = r.Client.Update(context.TODO(), installedRepo)
-
-	if err != nil {
-		c <- err.Error()
-	}
-
-}
-
 // SetupWithManager sets up the controller with the Manager.
 func (r *RepoGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
