@@ -81,7 +81,7 @@ var _ = Context("Install a release", func() {
 
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: namespace}, deployment),
-				time.Second*20, time.Millisecond*1500).Should(BeTrue())
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
 				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, repoChart),
@@ -135,7 +135,7 @@ var _ = Context("Install a release", func() {
 
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: releaseRepo.Namespace}, deployment),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
 				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: releaseRepo.Namespace}, repoChart),

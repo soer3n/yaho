@@ -1069,6 +1069,8 @@ gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776/go.mod h1:K4uyk7z7BCEPqu6E+C
 gotest.tools v2.2.0+incompatible h1:VsBPFP1AI068pPrMxtb/S8Zkgf9xEmTLJjfM+P5UIEo=
 gotest.tools v2.2.0+incompatible/go.mod h1:DsYFclhRJ6vuDpmuTbkuFWG+y2sxOXAzmJt81HFBacw=
 gotest.tools/v3 v3.0.2/go.mod h1:3SzNCllyD9/Y+b5r9JIKQ474KzkZyqLqEfYqMsX94Bk=
+helm.sh/helm v1.2.1 h1:Jrn7kKQqQ/hnFWZEX+9pMFvYqFexkzrBnGqYBmIph7c=
+helm.sh/helm v2.17.0+incompatible h1:cSe3FaQOpRWLDXvTObQNj0P7WI98IG5yloU6tQVls2k=
 helm.sh/helm/v3 v3.4.0 h1:rsut6hqQfjD3G/ic1XPh3KyasfOHZuDUhtyAJjuquew=
 helm.sh/helm/v3 v3.4.0/go.mod h1:jbfz/BoYmpJ3njhHBdH7F3kR8CNUGeRueliFtOhQK+M=
 honnef.co/go/tools v0.0.0-20180728063816-88497007e858/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=

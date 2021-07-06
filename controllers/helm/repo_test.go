@@ -55,7 +55,7 @@ var _ = Context("Install a repository", func() {
 
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
-				time.Second*20, time.Millisecond*1500).Should(BeTrue())
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
 				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
@@ -70,7 +70,7 @@ var _ = Context("Install a repository", func() {
 
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
 				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
@@ -88,18 +88,9 @@ var _ = Context("Install a repository", func() {
 	})
 })
 
-func GetResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repo) func() bool {
-	return func() bool {
-		l := &helmv1alpha1.RepoList{}
-		_ = testClient.List(ctx, l)
-
-		for _, v := range l.Items {
-			if key.Name == v.ObjectMeta.Name {
-				obj = &v
-				return true
-			}
-		}
-		return false
+func GetResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repo) func() error {
+	return func() error {
+		return testClient.Get(ctx, key, obj)
 	}
 }
 

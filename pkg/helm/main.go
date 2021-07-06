@@ -4,7 +4,6 @@ import (
 	"context"
 	actionlog "log"
 	"net/http"
-	"os"
 
 	"github.com/prometheus/common/log"
 	"k8s.io/apimachinery/pkg/types"
@@ -16,22 +15,33 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/kube"
+	"helm.sh/helm/v3/pkg/storage"
+	"helm.sh/helm/v3/pkg/storage/driver"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func initActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) {
 
-	actionConfig := new(action.Configuration)
-	err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionlog.Printf)
+	// actionConfig := new(action.Configuration)
+	// err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionlog.Printf)
+
+	getter := settings.RESTClientGetter()
+	conf := &action.Configuration{
+		RESTClientGetter: getter,
+		KubeClient:       kube.New(getter),
+		Log:              actionlog.Printf,
+		Releases:         storage.Init(driver.NewMemory()),
+	}
 
 	// You can pass an empty string instead of settings.Namespace() to list
 	// all namespaces
-	if err != nil {
+	/*if err != nil {
 		log.Debugf("%+v", err)
 		return actionConfig, err
-	}
+	}*/
 
-	return actionConfig, nil
+	return conf, nil
 }
 
 func getChartByURL(url string, g inttypes.HTTPClientInterface) (*chart.Chart, error) {
