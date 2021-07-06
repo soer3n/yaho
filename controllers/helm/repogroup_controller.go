@@ -18,6 +18,7 @@ package helm
 
 import (
 	"context"
+	"sync"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
@@ -87,85 +88,115 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	err = r.List(context.Background(), repos, opts)
 
+	var wg sync.WaitGroup
+	c := make(chan string, 10)
+
 	log.Infof("Trying to delete unwanted HelmRepoSpecs: %v", spec)
 
 	for _, repo := range repos.Items {
 		exists := false
+		wg.Add(1)
 
-		for _, repository := range spec {
-			if repo.Name == repository.Name {
-				exists = true
-				break
-			}
-		}
+		go func(spec []helmv1alpha1.RepoSpec, repo helmv1alpha1.Repo, c chan<- string) {
+			defer wg.Done()
 
-		if !exists {
-			log.Info("Delete unwanted repo: " + repo.Name)
-			if err = r.Delete(ctx, &helmv1alpha1.Repo{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      repo.Name,
-					Namespace: instance.Namespace,
-				},
-			}); err != nil {
-				log.Info(err.Error())
+			for _, repository := range spec {
+				if repo.Name == repository.Name {
+					exists = true
+					break
+				}
 			}
-		}
+
+			if !exists {
+				c <- "Delete unwanted repo: " + repo.Name
+				if err = r.Delete(ctx, &helmv1alpha1.Repo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      repo.Name,
+						Namespace: instance.Namespace,
+					},
+				}); err != nil {
+					c <- err.Error()
+				}
+			}
+		}(spec, repo, c)
+
+	}
+
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+
+	for i := range c {
+		log.Info(i)
 	}
 
 	log.Infof("Trying to install HelmRepoSpecs: %v", spec)
 
+	c = make(chan string, 10)
+
 	for _, repository := range spec {
+		wg.Add(1)
 
-		log.Info("Trying to install HelmRepo " + repository.Name)
+		go func(repository helmv1alpha1.RepoSpec, c chan<- string) {
+			defer wg.Done()
 
-		helmRepo := &helmv1alpha1.Repo{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      repository.Name,
-				Namespace: instance.ObjectMeta.Namespace,
-				Labels: map[string]string{
-					"repo":      repository.Name,
-					"repoGroup": instance.Spec.LabelSelector,
+			c <- "Trying to install HelmRepo " + repository.Name
+
+			helmRepo := &helmv1alpha1.Repo{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      repository.Name,
+					Namespace: instance.ObjectMeta.Namespace,
+					Labels: map[string]string{
+						"repo":      repository.Name,
+						"repoGroup": instance.Spec.LabelSelector,
+					},
 				},
-			},
-			Spec: helmv1alpha1.RepoSpec{
-				Name: repository.Name,
-				URL:  repository.URL,
-			},
-		}
-
-		if repository.Auth != nil {
-			helmRepo.Spec.Auth = &helmv1alpha1.Auth{
-				User:     repository.Auth.User,
-				Password: repository.Auth.Password,
-				Cert:     repository.Auth.Cert,
-				Key:      repository.Auth.Key,
-				Ca:       repository.Auth.Ca,
+				Spec: helmv1alpha1.RepoSpec{
+					Name: repository.Name,
+					URL:  repository.URL,
+				},
 			}
-		}
 
-		if err := controllerutil.SetControllerReference(instance, helmRepo, r.Scheme); err != nil {
-			log.Info(err.Error())
-			continue
-		}
-
-		installedRepo := &helmv1alpha1.Repo{}
-		err := r.Client.Get(context.Background(), client.ObjectKey{
-			Namespace: helmRepo.ObjectMeta.Namespace,
-			Name:      helmRepo.Spec.Name,
-		}, installedRepo)
-
-		if err != nil {
-			if errors.IsNotFound(err) {
-				err = r.Client.Create(context.TODO(), helmRepo)
-
-				if err != nil {
-					log.Info(err.Error())
-					continue
+			if repository.Auth != nil {
+				helmRepo.Spec.Auth = &helmv1alpha1.Auth{
+					User:     repository.Auth.User,
+					Password: repository.Auth.Password,
+					Cert:     repository.Auth.Cert,
+					Key:      repository.Auth.Key,
+					Ca:       repository.Auth.Ca,
 				}
 			}
 
-		}
+			if err := controllerutil.SetControllerReference(instance, helmRepo, r.Scheme); err != nil {
+				c <- err.Error()
+			}
 
+			installedRepo := &helmv1alpha1.Repo{}
+			err := r.Client.Get(context.Background(), client.ObjectKey{
+				Namespace: helmRepo.ObjectMeta.Namespace,
+				Name:      helmRepo.Spec.Name,
+			}, installedRepo)
+
+			if err != nil {
+				if errors.IsNotFound(err) {
+					c <- err.Error()
+
+					if err = r.Client.Create(context.TODO(), helmRepo); err != nil {
+						c <- err.Error()
+					}
+				}
+			}
+		}(repository, c)
+	}
+
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+
+	for i := range c {
+		log.Info(i)
 	}
 
 	return ctrl.Result{}, nil
