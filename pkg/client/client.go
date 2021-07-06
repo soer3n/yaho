@@ -46,6 +46,7 @@ func New() *Client {
 	rc.DynamicClient = dc
 
 	discoveryclient, err := cmdutil.NewFactory(getter).ToDiscoveryClient()
+	// ks, _ := cmdutil.NewFactory(getter).KubernetesClientSet()
 
 	if err != nil {
 		log.Fatal("no client detected.")
