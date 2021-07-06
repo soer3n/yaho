@@ -23,8 +23,12 @@ import (
 
 func initActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configuration, error) {
 
-	// actionConfig := new(action.Configuration)
-	// err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionlog.Printf)
+	/*
+		/ we cannot use helm init func here due to data race issues on concurrent execution (helm's kube client tries to update the namespace field on each initialization)
+
+		// actionConfig := new(action.Configuration)
+		// err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionlog.Printf)
+	*/
 
 	getter := settings.RESTClientGetter()
 	conf := &action.Configuration{
@@ -33,13 +37,6 @@ func initActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configu
 		Log:              actionlog.Printf,
 		Releases:         storage.Init(driver.NewMemory()),
 	}
-
-	// You can pass an empty string instead of settings.Namespace() to list
-	// all namespaces
-	/*if err != nil {
-		log.Debugf("%+v", err)
-		return actionConfig, err
-	}*/
 
 	return conf, nil
 }
