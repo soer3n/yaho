@@ -2,6 +2,7 @@ apiVersion: helm.soer3n.info/v1alpha1
 kind: ReleaseGroup
 metadata:
   name: releasegroup-sample
+  namespace: helm
 spec:
   name: sample
   labelSelector: foo
@@ -10,3 +11,10 @@ spec:
     repo: bitnami
     chart: memcached
     version: 5.4.2
+  - name: nextcloud
+    repo: nextcloud
+    chart: nextcloud
+    version: 2.6.5
+    releaseSpec:
+      valueRefs:
+      - values-sample
