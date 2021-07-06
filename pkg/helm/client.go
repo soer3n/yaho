@@ -4,9 +4,13 @@ import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/soer3n/apps-operator/internal/types"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
+	"helm.sh/helm/v3/pkg/kube"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var nopLogger = func(_ string, _ ...interface{}) {}
 
 // NewHelmClient represents initialization of the client for managing related stuff
 func NewHelmClient(instance interface{}, k8sClient client.Client, g types.HTTPClientInterface) *Client {
@@ -37,11 +41,16 @@ func NewHelmClient(instance interface{}, k8sClient client.Client, g types.HTTPCl
 	hc.Env["RepositoryCache"] = settings.RepositoryCache
 	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(metaStruct, hc.Env)
 
-	if err := hc.manageEntries(instance, k8sClient, g); err != nil {
+	c := kube.Client{
+		Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
+		Log:     nopLogger,
+	}
+
+	if err := hc.manageEntries(instance, k8sClient, g, c); err != nil {
 		return hc
 	}
 
-	hc.Repos.Settings = hc.GetEnvSettings()
+	hc.Repos.Settings = settings
 	return hc
 }
 
@@ -68,18 +77,18 @@ func (hc *Client) GetRelease(name, repo string) *Release {
 	return nil
 }
 
-func (hc *Client) manageEntries(instance interface{}, k8sclient client.Client, g types.HTTPClientInterface) error {
+func (hc *Client) manageEntries(instance interface{}, k8sclient client.Client, g types.HTTPClientInterface, helmClient kube.Client) error {
 
 	var releaseObj *helmv1alpha1.Release
 	repoObj, ok := instance.(*helmv1alpha1.Repo)
 	settings := hc.GetEnvSettings()
 
 	if ok {
-		hc.Repos.Entries = append(hc.Repos.Entries, NewHelmRepo(repoObj, settings, k8sclient, g))
+		hc.Repos.Entries = append(hc.Repos.Entries, NewHelmRepo(repoObj, settings, k8sclient, g, helmClient))
 	}
 
 	if releaseObj, ok = instance.(*helmv1alpha1.Release); ok {
-		hc.Releases.Entries = append(hc.Releases.Entries, NewHelmRelease(releaseObj, settings, k8sclient, g))
+		hc.Releases.Entries = append(hc.Releases.Entries, NewHelmRelease(releaseObj, settings, k8sclient, g, helmClient))
 	}
 
 	return nil

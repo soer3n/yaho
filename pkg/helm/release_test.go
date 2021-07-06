@@ -22,6 +22,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/kube"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
@@ -71,7 +72,7 @@ func TestReleaseConfigMaps(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj["input"].(*helmv1alpha1.Release)
-		testObj := NewHelmRelease(current, settings, &clientMock, &httpMock)
+		testObj := NewHelmRelease(current, settings, &clientMock, &httpMock, kube.Client{})
 		selectors := ""
 
 		// parse selectors string from api object meta data
@@ -167,7 +168,7 @@ func TestReleaseUpdate(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj["input"].(*helmv1alpha1.Release)
-		testObj := NewHelmRelease(current, settings, &clientMock, &httpMock)
+		testObj := NewHelmRelease(current, settings, &clientMock, &httpMock, kube.Client{})
 		selectors := ""
 
 		// parse selectors string from api object meta data

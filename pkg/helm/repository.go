@@ -13,13 +13,15 @@ import (
 	"github.com/soer3n/apps-operator/internal/types"
 	"github.com/soer3n/apps-operator/pkg/utils"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/repo"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
 // NewHelmRepo represents initialization of internal repo struct
-func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.Client, g types.HTTPClientInterface) *Repo {
+func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.Client, g types.HTTPClientInterface, c kube.Client) *Repo {
 
 	var helmRepo *Repo
 
@@ -32,9 +34,10 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 			Name:    instance.ObjectMeta.Namespace,
 			Install: false,
 		},
-		Settings:  settings,
-		k8sClient: k8sclient,
-		getter:    g,
+		Settings:   settings,
+		k8sClient:  k8sclient,
+		getter:     g,
+		helmClient: c,
 	}
 
 	if instance.Spec.Auth != nil {
@@ -112,7 +115,10 @@ func (hr Repo) GetCharts(settings *cli.EnvSettings, selectors map[string]string)
 	}
 
 	for _, v := range chartAPIList.Items {
-		chartList = append(chartList, NewChart(utils.ConvertChartVersions(&v), settings, hr.Name, hr.k8sClient, hr.getter))
+		chartList = append(chartList, NewChart(utils.ConvertChartVersions(&v), settings, hr.Name, hr.k8sClient, hr.getter, kube.Client{
+			Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
+			Log:     nopLogger,
+		}))
 		log.Debugf("new: %v", v)
 	}
 
@@ -130,7 +136,10 @@ func (hr Repo) GetCharts(settings *cli.EnvSettings, selectors map[string]string)
 
 		for _, chartMetadata := range indexFile.Entries {
 			log.Debugf("ChartMetadata: %v", chartMetadata)
-			chartList = append(chartList, NewChart(chartMetadata, settings, hr.Name, hr.k8sClient, hr.getter))
+			chartList = append(chartList, NewChart(chartMetadata, settings, hr.Name, hr.k8sClient, hr.getter, kube.Client{
+				Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
+				Log:     nopLogger,
+			}))
 		}
 	}
 

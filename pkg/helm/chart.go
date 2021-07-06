@@ -7,13 +7,14 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	helmchart "helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // NewChart represents initialization of internal chart struct
-func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient client.Client, g types.HTTPClientInterface) *Chart {
+func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient client.Client, g types.HTTPClientInterface, c kube.Client) *Chart {
 
 	var chartVersions []ChartVersion
 	var config *action.Configuration
@@ -27,7 +28,7 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 		chartVersions = append(chartVersions, item)
 	}
 
-	if config, err = initActionConfig(settings); err != nil {
+	if config, err = initActionConfig(settings, c); err != nil {
 		log.Infof("Error on getting action config for chart %v: %v", chartVersions[0].Version.Metadata.Name, err)
 		return &Chart{}
 	}

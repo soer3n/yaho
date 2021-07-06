@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func initActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) {
+func initActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configuration, error) {
 
 	// actionConfig := new(action.Configuration)
 	// err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionlog.Printf)
@@ -29,7 +29,7 @@ func initActionConfig(settings *cli.EnvSettings) (*action.Configuration, error) 
 	getter := settings.RESTClientGetter()
 	conf := &action.Configuration{
 		RESTClientGetter: getter,
-		KubeClient:       kube.New(getter),
+		KubeClient:       &c,
 		Log:              actionlog.Printf,
 		Releases:         storage.Init(driver.NewMemory()),
 	}

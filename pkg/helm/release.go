@@ -12,6 +12,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/cli/values"
 	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
@@ -24,7 +25,7 @@ import (
 )
 
 // NewHelmRelease represents initialization of internal release struct
-func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient client.Client, g inttypes.HTTPClientInterface) *Release {
+func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient client.Client, g inttypes.HTTPClientInterface, c kube.Client) *Release {
 
 	var helmRelease *Release
 
@@ -39,7 +40,7 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k
 		getter:    g,
 	}
 
-	helmRelease.Config, _ = initActionConfig(settings)
+	helmRelease.Config, _ = initActionConfig(settings, c)
 
 	log.Debugf("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
 

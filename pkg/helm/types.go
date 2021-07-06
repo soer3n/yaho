@@ -6,6 +6,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/repo"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -15,6 +16,7 @@ type Client struct {
 	Repos    *Repos
 	Releases *Releases
 	Env      map[string]string
+	Client   kube.Client
 }
 
 // Releases represents struct for data needed for managing releases and list of installed
@@ -49,13 +51,14 @@ type Repos struct {
 
 // Repo represents struct for data needed for managing repos and list of installed
 type Repo struct {
-	Name      string
-	URL       string
-	Auth      *Auth
-	Namespace Namespace
-	Settings  *cli.EnvSettings
-	k8sClient client.Client
-	getter    types.HTTPClientInterface
+	Name       string
+	URL        string
+	Auth       *Auth
+	Namespace  Namespace
+	Settings   *cli.EnvSettings
+	k8sClient  client.Client
+	getter     types.HTTPClientInterface
+	helmClient kube.Client
 }
 
 // Chart represents struct for data needed for managing chart

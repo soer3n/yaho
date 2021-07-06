@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -52,7 +53,7 @@ func TestChartCreateTemplates(t *testing.T) {
 
 	assert := assert.New(t)
 
-	testObj := NewChart(getTestRepoChartVersions(), settings, "test", &clientMock, &httpMock)
+	testObj := NewChart(getTestRepoChartVersions(), settings, "test", &clientMock, &httpMock, kube.Client{})
 	err := testObj.CreateTemplates()
 
 	assert.Nil(err)
@@ -91,7 +92,7 @@ func TestChartCreateConfigMaps(t *testing.T) {
 
 	assert := assert.New(t)
 
-	testObj := NewChart(getTestRepoChartVersions(), settings, "test", &clientMock, &httpMock)
+	testObj := NewChart(getTestRepoChartVersions(), settings, "test", &clientMock, &httpMock, kube.Client{})
 	maps := testObj.CreateConfigMaps()
 
 	assert.NotNil(maps)
@@ -115,7 +116,7 @@ func TestChartAddOrUpdateMap(t *testing.T) {
 
 	assert := assert.New(t)
 
-	testObj := NewChart(getTestRepoChartVersions(), settings, "test", &clientMock, &httpMock)
+	testObj := NewChart(getTestRepoChartVersions(), settings, "test", &clientMock, &httpMock, kube.Client{})
 	maps := testObj.AddOrUpdateChartMap(getTestHelmChartMapNotFound(), getTestChartRepo())
 	assert.Len(maps, 2)
 	maps = testObj.AddOrUpdateChartMap(getTestHelmChartMap(), getTestChartRepo())

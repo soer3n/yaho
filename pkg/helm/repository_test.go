@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,7 +61,7 @@ func TestRepoGetCharts(t *testing.T) {
 
 	for _, apiObj := range apiObjList {
 
-		testObj := NewHelmRepo(apiObj, settings, &clientMock, &httpMock)
+		testObj := NewHelmRepo(apiObj, settings, &clientMock, &httpMock, kube.Client{})
 		selectors := make(map[string]string, 0)
 
 		// parse selectors string from api object meta data
