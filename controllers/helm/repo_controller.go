@@ -140,7 +140,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 			defer wg.Done()
 
 			if err := controllerutil.SetControllerReference(instance, helmChart, r.Scheme); err != nil {
-				c <- err.Error()
+				log.Info(err.Error())
 			}
 
 			installedChart := &helmv1alpha1.Chart{}
@@ -151,10 +151,10 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 			if err != nil {
 				if errors.IsNotFound(err) {
-					c <- "Trying to install HelmChart " + helmChart.Name
+					log.Info("Trying to install HelmChart " + helmChart.Name)
 
 					if err = r.Client.Create(context.TODO(), helmChart); err != nil {
-						c <- err.Error()
+						log.Info(err.Error())
 					}
 				}
 			}
@@ -162,7 +162,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 			installedChart.Spec = helmChart.Spec
 
 			if err = r.Client.Update(context.TODO(), installedChart); err != nil {
-				c <- err.Error()
+				log.Info(err.Error())
 			}
 
 		}(chartObj, instance, c)
@@ -172,10 +172,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		wg.Wait()
 		close(c)
 	}()
-
-	for i := range c {
-		log.Info(i)
-	}
 
 	log.Infof("Repo %v deployed in namespace %v", instance.Spec.Name, instance.ObjectMeta.Namespace)
 	log.Info("Don't reconcile repos.")
@@ -215,37 +211,6 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.Cl
 	}
 
 	return nil
-}
-
-func (r *RepoReconciler) deployChart(helmChart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo, c chan string) {
-
-	if err := controllerutil.SetControllerReference(instance, helmChart, r.Scheme); err != nil {
-		c <- err.Error()
-	}
-
-	installedChart := &helmv1alpha1.Chart{}
-	err := r.Client.Get(context.Background(), client.ObjectKey{
-		Namespace: helmChart.ObjectMeta.Namespace,
-		Name:      helmChart.Spec.Name,
-	}, installedChart)
-
-	if err != nil {
-		if errors.IsNotFound(err) {
-			c <- "Trying to install HelmChart " + helmChart.Name
-
-			if err = r.Client.Create(context.TODO(), helmChart); err != nil {
-				c <- err.Error()
-			}
-		}
-	}
-
-	installedChart.Spec = helmChart.Spec
-
-	if err = r.Client.Update(context.TODO(), installedChart); err != nil {
-		c <- err.Error()
-	}
-
-	close(c)
 }
 
 // SetupWithManager sets up the controller with the Manager.
