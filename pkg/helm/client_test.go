@@ -12,6 +12,7 @@ import (
 	"github.com/soer3n/apps-operator/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"helm.sh/helm/v3/pkg/repo"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -41,7 +42,7 @@ func TestClient(t *testing.T) {
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 
-	indexFile := getTestIndexFile()
+	indexFile := getTestClientIndexFile()
 	rawIndexFile, _ := json.Marshal(indexFile)
 	httpResponse := &http.Response{
 		Body: ioutil.NopCloser(bytes.NewReader(rawIndexFile)),
@@ -78,5 +79,13 @@ func getTestClientRelease() *Release {
 		Repo:    "boo",
 		Chart:   "foo",
 		Version: "0.0.1",
+	}
+}
+
+func getTestClientIndexFile() *repo.IndexFile {
+	return &repo.IndexFile{
+		Entries: map[string]repo.ChartVersions{
+			"doo": []*repo.ChartVersion{},
+		},
 	}
 }

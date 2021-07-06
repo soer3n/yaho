@@ -13,6 +13,13 @@ import (
 	"github.com/soer3n/apps-operator/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chartutil"
+	kubefake "helm.sh/helm/v3/pkg/kube/fake"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/repo"
+	"helm.sh/helm/v3/pkg/storage"
+	"helm.sh/helm/v3/pkg/storage/driver"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -43,7 +50,7 @@ func TestFinalizerHandle(t *testing.T) {
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 
-	indexFile := getTestIndexFile()
+	indexFile := getTestFinalizerIndexFile()
 	rawIndexFile, _ := json.Marshal(indexFile)
 	httpResponse := &http.Response{
 		Body: ioutil.NopCloser(bytes.NewReader(rawIndexFile)),
@@ -55,9 +62,9 @@ func TestFinalizerHandle(t *testing.T) {
 	assert := assert.New(t)
 
 	testObj := NewHelmClient(getTestFinalizerRelease(), &clientMock, &httpMock)
-	testObj.Releases.Entries[0].Config = getFakeActionConfig(t)
+	testObj.Releases.Entries[0].Config = getTestFinalizerFakeActionConfig(t)
 
-	if err := testObj.Releases.Entries[0].Config.Releases.Create(getTestDeployedReleaseObj()); err != nil {
+	if err := testObj.Releases.Entries[0].Config.Releases.Create(getTestFinalizerDeployedReleaseObj()); err != nil {
 		log.Print(err)
 	}
 
@@ -96,6 +103,38 @@ func getTestFinalizerRelease() *helmv1alpha1.Release {
 			Name:  "release",
 			Repo:  "repo",
 			Chart: "chart",
+		},
+	}
+}
+
+func getTestFinalizerFakeActionConfig(t *testing.T) *action.Configuration {
+	return &action.Configuration{
+		Releases:     storage.Init(driver.NewMemory()),
+		KubeClient:   &kubefake.FailingKubeClient{PrintingKubeClient: kubefake.PrintingKubeClient{Out: ioutil.Discard}},
+		Capabilities: chartutil.DefaultCapabilities,
+		Log: func(format string, v ...interface{}) {
+			t.Helper()
+			if *verbose {
+				t.Logf(format, v...)
+			}
+		},
+	}
+}
+
+func getTestFinalizerDeployedReleaseObj() *release.Release {
+	return &release.Release{
+		Name:  "release",
+		Chart: getTestHelmChart(),
+		Info: &release.Info{
+			Status: release.StatusDeployed,
+		},
+	}
+}
+
+func getTestFinalizerIndexFile() *repo.IndexFile {
+	return &repo.IndexFile{
+		Entries: map[string]repo.ChartVersions{
+			"doo": []*repo.ChartVersion{},
 		},
 	}
 }

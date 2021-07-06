@@ -48,7 +48,7 @@ func TestRepoGetCharts(t *testing.T) {
 
 	/*expected :=  getExpectedTestCharts(clientMock)*/
 
-	indexFile := getTestIndexFile()
+	indexFile := getTestRepoIndexFile()
 	rawIndexFile, _ := json.Marshal(indexFile)
 	httpResponse := &http.Response{
 		Body: ioutil.NopCloser(bytes.NewReader(rawIndexFile)),
@@ -76,7 +76,7 @@ func TestRepoGetCharts(t *testing.T) {
 	}
 }
 
-func getTestChartListSpec() *helmv1alpha1.ChartList {
+func getTestRepoChartListSpec() *helmv1alpha1.ChartList {
 
 	chartSpec := helmv1alpha1.ChartSpec{
 		Name:        "chart.Name",
@@ -177,7 +177,7 @@ func getTestRepoSpecs() []*helmv1alpha1.Repo {
 	}
 }
 
-func getTestIndexFile() *repo.IndexFile {
+func getTestRepoIndexFile() *repo.IndexFile {
 	return &repo.IndexFile{
 		Entries: map[string]repo.ChartVersions{
 			"doo": []*repo.ChartVersion{},
@@ -185,7 +185,7 @@ func getTestIndexFile() *repo.IndexFile {
 	}
 }
 
-func getExpectedTestCharts(c client.Client) []*Chart {
+func getExpectedTestRepoCharts(c client.Client) []*Chart {
 	return []*Chart{
 		{
 			Repo:      "testrepo",

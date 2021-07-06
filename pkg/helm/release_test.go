@@ -130,21 +130,21 @@ func TestReleaseUpdate(t *testing.T) {
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-tmpl-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
 
 		c := args.Get(2).(*v1.ConfigMap)
-		spec := getTestTemplateConfigMap()
+		spec := getTestReleaseTemplateConfigMap()
 		c.BinaryData = spec.BinaryData
 		c.ObjectMeta = spec.ObjectMeta
 	})
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-crds-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
 
 		c := args.Get(2).(*v1.ConfigMap)
-		spec := getTestCRDConfigMap()
+		spec := getTestReleaseCRDConfigMap()
 		c.BinaryData = spec.BinaryData
 		c.ObjectMeta = spec.ObjectMeta
 	})
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-default-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
 
 		c := args.Get(2).(*v1.ConfigMap)
-		spec := getTestDefaultValueConfigMap()
+		spec := getTestReleaseDefaultValueConfigMap()
 		c.Data = spec.Data
 		c.ObjectMeta = spec.ObjectMeta
 	})
@@ -183,9 +183,9 @@ func TestReleaseUpdate(t *testing.T) {
 		testObj.ValuesTemplate.ValuesMap = map[string]string{
 			"bar": "foo",
 		}
-		testObj.Config = getFakeActionConfig(t)
+		testObj.Config = getTestReleaseFakeActionConfig(t)
 
-		if err := testObj.Config.Releases.Create(getTestDeployedReleaseObj()); err != nil {
+		if err := testObj.Config.Releases.Create(getTestReleaseDeployedReleaseObj()); err != nil {
 			log.Print(err)
 		}
 
@@ -319,7 +319,7 @@ func getTestHelmChart() *chart.Chart {
 
 var verbose = flag.Bool("test.log", false, "enable test logging")
 
-func getFakeActionConfig(t *testing.T) *action.Configuration {
+func getTestReleaseFakeActionConfig(t *testing.T) *action.Configuration {
 	return &action.Configuration{
 		Releases:     storage.Init(driver.NewMemory()),
 		KubeClient:   &kubefake.FailingKubeClient{PrintingKubeClient: kubefake.PrintingKubeClient{Out: ioutil.Discard}},
@@ -333,7 +333,7 @@ func getFakeActionConfig(t *testing.T) *action.Configuration {
 	}
 }
 
-func getTestDeployedReleaseObj() *release.Release {
+func getTestReleaseDeployedReleaseObj() *release.Release {
 	return &release.Release{
 		Name:  "release",
 		Chart: getTestHelmChart(),
@@ -343,7 +343,7 @@ func getTestDeployedReleaseObj() *release.Release {
 	}
 }
 
-func getTestDefaultValueConfigMap() v1.ConfigMap {
+func getTestReleaseDefaultValueConfigMap() v1.ConfigMap {
 
 	immutable := new(bool)
 	*immutable = true
@@ -367,7 +367,7 @@ func getTestDefaultValueConfigMap() v1.ConfigMap {
 	return configmap
 }
 
-func getTestTemplateConfigMap() v1.ConfigMap {
+func getTestReleaseTemplateConfigMap() v1.ConfigMap {
 
 	immutable := new(bool)
 	*immutable = true
@@ -391,7 +391,7 @@ func getTestTemplateConfigMap() v1.ConfigMap {
 	return configmap
 }
 
-func getTestCRDConfigMap() v1.ConfigMap {
+func getTestReleaseCRDConfigMap() v1.ConfigMap {
 
 	immutable := new(bool)
 	*immutable = true

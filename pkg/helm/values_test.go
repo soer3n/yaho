@@ -12,10 +12,6 @@ import (
 
 func TestValues(t *testing.T) {
 
-	//clientMock := K8SClientMock{}
-	//httpMock := HTTPClientMock{}
-	//settings := cli.New()
-
 	assert := assert.New(t)
 
 	testObj := NewValueTemplate(getTestValueSpecs())
