@@ -128,6 +128,8 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		chartObjMap = chart.AddOrUpdateChartMap(chartObjMap, instance)
 	}
 
+	// this is use just for using channels, goroutines and waitGroup
+	// could be senseful here if we have to deal with big repositories
 	var wg sync.WaitGroup
 	c := make(chan string, 10)
 
