@@ -101,6 +101,7 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 
 - add assertions for tests; currently there are more or less only the normal cases covered by qa
 - running e2e tests with kind in kubernetes( [related issue](https://github.com/actions-runner-controller/actions-runner-controller/issues/640))
+- handle func calls with context.Context
 - evaluate where to use concurrency and implement it with goroutines and channels
 - add contribution guideline
 - implement web user interface with backend (the [frontend skeleton](web/) and start of [backend server implementation](pkg/api/) is already present)
