@@ -101,8 +101,8 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 
 - add assertions for tests; currently there are more or less only the normal cases covered by qa
 - running e2e tests with kind in kubernetes( [related issue](https://github.com/actions-runner-controller/actions-runner-controller/issues/640))
-- handle func calls with context.Context
-- evaluate where to use concurrency and implement it with goroutines and channels
+- handle func calls with context.Context if actually needed
+- evaluate where to use concurrency makes sense
 - add contribution guideline
 - implement web user interface with backend (the [frontend skeleton](web/) and start of [backend server implementation](pkg/api/) is already present)
 - syncing state of releases from helm cli and other tools which are using the binary
@@ -121,8 +121,9 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 
 ## Contributing
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-Please make sure to update tests as appropriate.
+Pull requests are welcome. As these project is in a very early stage there is currently no traditional contribution guideline due to the fact that actually every issue is a bigger change which can bring incompatibility on update processes of this operator.
+
+But everyone can feel welcome to mention ideas and adding features which makes sense what could be actually everything what you can do with helm. The reason why i'm open sourced this project is that different views are needed for a proper further development.
 
 
 ## License
