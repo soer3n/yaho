@@ -19,6 +19,7 @@ package helm
 import (
 	"context"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -127,12 +128,51 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		chartObjMap = chart.AddOrUpdateChartMap(chartObjMap, instance)
 	}
 
+	var wg sync.WaitGroup
+	c := make(chan string, 10)
+
 	for _, chartObj := range chartObjMap {
-		c := make(chan string, 10)
-		go r.deployChart(chartObj, instance, c)
-		for i := range c {
-			log.Info(i)
-		}
+		wg.Add(1)
+
+		go func(helmChart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo, c chan<- string) {
+			defer wg.Done()
+
+			if err := controllerutil.SetControllerReference(instance, helmChart, r.Scheme); err != nil {
+				c <- err.Error()
+			}
+
+			installedChart := &helmv1alpha1.Chart{}
+			err := r.Client.Get(context.Background(), client.ObjectKey{
+				Namespace: helmChart.ObjectMeta.Namespace,
+				Name:      helmChart.Spec.Name,
+			}, installedChart)
+
+			if err != nil {
+				if errors.IsNotFound(err) {
+					c <- "Trying to install HelmChart " + helmChart.Name
+
+					if err = r.Client.Create(context.TODO(), helmChart); err != nil {
+						c <- err.Error()
+					}
+				}
+			}
+
+			installedChart.Spec = helmChart.Spec
+
+			if err = r.Client.Update(context.TODO(), installedChart); err != nil {
+				c <- err.Error()
+			}
+
+		}(chartObj, instance, c)
+	}
+
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+
+	for i := range c {
+		log.Info(i)
 	}
 
 	log.Infof("Repo %v deployed in namespace %v", instance.Spec.Name, instance.ObjectMeta.Namespace)

@@ -94,7 +94,7 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		exists := false
 		wg.Add(1)
 
-		go func(repo helmv1alpha1.Repo, spec []helmv1alpha1.RepoSpec, int <-chan string) {
+		go func(repo helmv1alpha1.Repo, spec []helmv1alpha1.RepoSpec, delOutput chan<- string) {
 
 			defer wg.Done()
 			for _, repository := range spec {

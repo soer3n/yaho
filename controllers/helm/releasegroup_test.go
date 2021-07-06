@@ -22,7 +22,7 @@ var _ = Context("Install a releasegroup", func() {
 
 	Describe("when no existing resources exist", func() {
 
-		It("should create a new Repository resource with the specified name and specified url", func() {
+		FIt("should create a new Repository resource with the specified name and specified url", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
 
