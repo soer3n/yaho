@@ -11,6 +11,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/soer3n/apps-operator/internal/mocks"
+	inttypes "github.com/soer3n/apps-operator/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/action"
@@ -65,18 +66,23 @@ func TestFinalizerHandle(t *testing.T) {
 	testObj.Releases.Entries[0].Config = getTestFinalizerFakeActionConfig(t)
 
 	if err := testObj.Releases.Entries[0].Config.Releases.Create(getTestFinalizerDeployedReleaseObj()); err != nil {
-		log.Print(err)
+		log.
+			Print(err)
 	}
 
-	ok, _ := HandleFinalizer(testObj, getTestClientRelease())
+	for _, v := range getTestFinalizerSpecs() {
 
-	//ok, _ := HandleFinalizer(testObj, getTestClientRepo())
+		ok, err := HandleFinalizer(testObj, v)
 
-	// assert.Equal(expected, charts, "Structs should be equal.")
-	//assert.True(ok)
+		//ok, _ := HandleFinalizer(testObj, getTestClientRepo())
 
-	// assert.Equal(expected, charts, "Structs should be equal.")
-	assert.False(ok)
+		// assert.Equal(expected, charts, "Structs should be equal.")
+		//assert.True(ok)
+
+		// assert.Equal(expected, charts, "Structs should be equal.")
+		assert.Equal(v.ReturnValue, ok)
+		assert.Equal(v.ReturnError, err)
+	}
 
 }
 
@@ -135,6 +141,16 @@ func getTestFinalizerIndexFile() *repo.IndexFile {
 	return &repo.IndexFile{
 		Entries: map[string]repo.ChartVersions{
 			"doo": []*repo.ChartVersion{},
+		},
+	}
+}
+
+func getTestFinalizerSpecs() []inttypes.TestCase {
+	return []inttypes.TestCase{
+		{
+			ReturnError: nil,
+			ReturnValue: true,
+			Input:       getTestClientRelease(),
 		},
 	}
 }

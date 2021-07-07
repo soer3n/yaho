@@ -13,7 +13,10 @@ func HandleFinalizer(hc *Client, instance interface{}) (bool, error) {
 		if err := removeRelease(hc.Releases.Entries[0]); err != nil {
 			return true, err
 		}
+
+		return true, nil
 	}
+
 	return false, nil
 }
 
