@@ -121,8 +121,7 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 
 Pull requests are welcome. As these project is in a very early stage there is currently no traditional contribution guideline due to the fact that actually every issue is a bigger change which can bring incompatibility on update processes of this operator.
 
-But everyone can feel welcome to mention ideas and adding features which makes sense what could be actually everything what you can do with helm. The reason why i'm open sourced this project is that different views are needed for a proper further development.
-
+But everyone can feel welcome to mention ideas and adding features which makes sense what could be actually everything what you can do with helm. More than view is needed for a proper further development.
 
 ## License
 [LICENSE](LICENSE)
