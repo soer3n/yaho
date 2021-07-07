@@ -165,6 +165,12 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 				log.Info(err.Error())
 			}
 
+			if err != nil {
+				c <- err.Error()
+			} else {
+				c <- "Successfully installed chart " + installedChart.Spec.Name
+			}
+
 		}(chartObj, instance, c)
 	}
 
@@ -172,6 +178,10 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		wg.Wait()
 		close(c)
 	}()
+
+	for i := range c {
+		log.Info(i)
+	}
 
 	log.Infof("Repo %v deployed in namespace %v", instance.Spec.Name, instance.ObjectMeta.Namespace)
 	log.Info("Don't reconcile repos.")
