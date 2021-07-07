@@ -25,6 +25,27 @@ func TestGetAPIResources(t *testing.T) {
 						"foo", "bar",
 					},
 				},
+				{
+					Name:       "apiresource2",
+					Group:      "noApiGroup",
+					Namespaced: false,
+					Verbs: metav1.Verbs{
+						"foo", "bar",
+					},
+				},
+				{
+					Name:       "apiresource3",
+					Group:      "noApiGroup",
+					Namespaced: true,
+				},
+				{
+					Name:       "apiresource4",
+					Group:      "apiGroup",
+					Namespaced: true,
+					Verbs: metav1.Verbs{
+						"foo", "bar",
+					},
+				},
 			},
 		},
 	}, nil)
