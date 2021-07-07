@@ -18,6 +18,7 @@ import (
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -31,11 +32,12 @@ func initActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configu
 	*/
 
 	getter := settings.RESTClientGetter()
+	set, _ := cmdutil.NewFactory(getter).KubernetesClientSet()
 	conf := &action.Configuration{
 		RESTClientGetter: getter,
 		KubeClient:       &c,
 		Log:              actionlog.Printf,
-		Releases:         storage.Init(driver.NewMemory()),
+		Releases:         storage.Init(driver.NewSecrets(set.CoreV1().Secrets(settings.Namespace()))),
 	}
 
 	return conf, nil
