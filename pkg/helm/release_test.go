@@ -188,7 +188,10 @@ func TestReleaseUpdate(t *testing.T) {
 			log.Print(err)
 		}
 
-		err := testObj.Update()
+		err := testObj.Update(helmv1alpha1.Namespace{
+			Name:    "",
+			Install: false,
+		})
 		assert.Equal(err, apiObj.ReturnError)
 	}
 }

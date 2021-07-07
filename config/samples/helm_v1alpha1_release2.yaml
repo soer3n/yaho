@@ -5,6 +5,9 @@ metadata:
   namespace: helm
 spec:
   name: submariner
+  namespace:
+    install: true
+    name: foo
   repo: submariner
   chart: submariner-operator
   version: 0.7.0

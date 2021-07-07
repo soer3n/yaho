@@ -158,7 +158,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	if err = helmRelease.Update(); err != nil {
+	if err = helmRelease.Update(instance.Spec.Namespace); err != nil {
 		return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
 	}
 

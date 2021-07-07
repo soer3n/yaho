@@ -56,7 +56,7 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k
 }
 
 // Update represents update or installation process of a release
-func (hc *Release) Update() error {
+func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 
 	log.Debugf("configinstall: %v", hc.Config)
 
@@ -86,7 +86,8 @@ func (hc *Release) Update() error {
 		return err
 	}
 
-	client.Namespace = hc.Settings.Namespace()
+	client.Namespace = namespace.Name
+	client.CreateNamespace = namespace.Install
 	vals := mergeMaps(hc.getValues(), helmChart.Values)
 
 	// Check if something changed regarding the existing release
@@ -96,7 +97,7 @@ func (hc *Release) Update() error {
 		}
 
 		if ok {
-			return hc.upgrade(helmChart, vals)
+			return hc.upgrade(helmChart, vals, namespace.Name)
 		}
 
 		return nil
@@ -110,7 +111,7 @@ func (hc *Release) Update() error {
 		return err
 	}
 
-	log.Debugf("Release (%q) successfully installed.", release.Name)
+	log.Debugf("Release (%q) successfully installed in namespace %v.", release.Name, namespace)
 	return nil
 }
 
@@ -429,12 +430,13 @@ func (hc *Release) GetParsedConfigMaps() []v1.ConfigMap {
 	return chartVersion.createConfigMaps(hc.Namespace.Name)
 }
 
-func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values) error {
+func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values, namespace string) error {
 
 	var rel *release.Release
 	var err error
 
 	client := action.NewUpgrade(hc.Config)
+	client.Namespace = namespace
 
 	if err = chartutil.ProcessDependencies(helmChart, vals); err != nil {
 		return err

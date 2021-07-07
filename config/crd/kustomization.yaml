@@ -2,7 +2,7 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/helm.soer3n.info_repos.yaml
+- bases/helm.soer3n.info_repoes.yaml
 - bases/helm.soer3n.info_repogroups.yaml
 - bases/helm.soer3n.info_releases.yaml
 - bases/helm.soer3n.info_releasegroups.yaml

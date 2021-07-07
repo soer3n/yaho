@@ -52,6 +52,15 @@ spec:
                       type: string
                     name:
                       type: string
+                    namespace:
+                      description: Namespace represents struct for release namespace
+                        data
+                      properties:
+                        install:
+                          type: boolean
+                        name:
+                          type: string
+                      type: object
                     releaseSpec:
                       description: ValueTemplate represents data for install process
                         of a release
