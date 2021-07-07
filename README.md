@@ -102,12 +102,12 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 - add assertions for tests; currently there are more or less only the normal cases covered by qa
 - running e2e tests with kind in kubernetes( [related issue](https://github.com/actions-runner-controller/actions-runner-controller/issues/640))
 - handle func calls with context.Context if actually needed
-- add contribution guideline
+- add details to contribution guideline
 - implement web user interface with backend (the [frontend skeleton](web/) and start of [backend server implementation](pkg/api/) is already present)
 - syncing state of releases from helm cli and other tools which are using the binary
 - switching to previous revision and back
 - translate cli flags to release spec
-- auto-sync for new chart versions from repository
+- auto-sync for new chart versions from repository (for sure with enabled flag)
 - black- and whitelisting for charts when auto-sync for repository is enabled
 - loading charts from volume or git
 
