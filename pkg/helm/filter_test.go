@@ -3,27 +3,37 @@ package helm
 import (
 	"testing"
 
+	inttypes "github.com/soer3n/apps-operator/internal/types"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFilterGetSpec(t *testing.T) {
+func TestFilterFilter(t *testing.T) {
 	options := make(map[string]string)
 	fitlerOptions := NewOptions(options)
-
-	valuesObj := []*ValuesRef{
-		{
-			Parent: "parent",
-		},
-	}
-
-	expectedReturnStruct := []*ValuesRef{
-		{
-			Parent: "parent",
-		},
-	}
-
-	returnStruct := fitlerOptions.Filter(valuesObj)
-
 	assert := assert.New(t)
-	assert.Equal(expectedReturnStruct, returnStruct, "Structs should be equal.")
+
+	for _, v := range getTestFilterSpecs() {
+		i, _ := v.Input.([]*ValuesRef)
+		returnStruct := fitlerOptions.Filter(i)
+		r, _ := v.ReturnValue.([]*ValuesRef)
+		assert.Equal(r, returnStruct, "Structs should be equal.")
+	}
+}
+
+func getTestFilterSpecs() []inttypes.TestCase {
+	return []inttypes.TestCase{
+		{
+			ReturnError: nil,
+			ReturnValue: []*ValuesRef{
+				{
+					Parent: "parent",
+				},
+			},
+			Input: []*ValuesRef{
+				{
+					Parent: "parent",
+				},
+			},
+		},
+	}
 }

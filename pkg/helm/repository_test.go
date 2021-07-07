@@ -10,6 +10,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/soer3n/apps-operator/internal/mocks"
+	inttypes "github.com/soer3n/apps-operator/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/chart"
@@ -61,18 +62,17 @@ func TestRepoGetCharts(t *testing.T) {
 
 	for _, apiObj := range apiObjList {
 
-		testObj := NewHelmRepo(apiObj, settings, &clientMock, &httpMock, kube.Client{})
+		val := apiObj.Input.(helmv1alpha1.Repo)
+		testObj := NewHelmRepo(&val, settings, &clientMock, &httpMock, kube.Client{})
 		selectors := make(map[string]string, 0)
 
 		// parse selectors string from api object meta data
-		for k, v := range apiObj.ObjectMeta.Labels {
+		for k, v := range val.ObjectMeta.Labels {
 			selectors[k] = v
 		}
 
 		_, err := testObj.GetCharts(settings, selectors)
-
-		// assert.Equal(expected, charts, "Structs should be equal.")
-		assert.Nil(err)
+		assert.Equal(err, apiObj.ReturnError)
 	}
 }
 
@@ -119,61 +119,74 @@ func getTestRepoChartListSpec() *helmv1alpha1.ChartList {
 	}
 }
 
-func getTestRepoSpecs() []*helmv1alpha1.Repo {
-	return []*helmv1alpha1.Repo{
+func getTestRepoSpecs() []inttypes.TestCase {
+	return []inttypes.TestCase{
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					"label": "selector",
+			Input: helmv1alpha1.Repo{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"label": "selector",
+					},
+				},
+				Spec: helmv1alpha1.RepoSpec{
+					Name: "test",
+					URL:  "https://foo.bar/charts",
 				},
 			},
-			Spec: helmv1alpha1.RepoSpec{
-				Name: "test",
-				URL:  "https://foo.bar/charts",
-			},
+			ReturnValue: "",
+			ReturnError: nil,
 		},
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					"label": "selector",
+			Input: helmv1alpha1.Repo{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"label": "selector",
+					},
+				},
+				Spec: helmv1alpha1.RepoSpec{
+					Name: "test",
+					URL:  "https://foo.bar/charts",
+					Auth: &helmv1alpha1.Auth{
+						User:     "foo",
+						Password: "encrypted",
+						Cert:     "certContent",
+						Key:      "keyContent",
+						Ca:       "certCa",
+					},
 				},
 			},
-			Spec: helmv1alpha1.RepoSpec{
-				Name: "test",
-				URL:  "https://foo.bar/charts",
-				Auth: &helmv1alpha1.Auth{
-					User:     "foo",
-					Password: "encrypted",
-					Cert:     "certContent",
-					Key:      "keyContent",
-					Ca:       "certCa",
-				},
-			},
+			ReturnValue: "",
+			ReturnError: nil,
 		},
 		{
-			Spec: helmv1alpha1.RepoSpec{
-				Name: "notpresent",
-				URL:  "https://foo.bar/charts",
+			Input: helmv1alpha1.Repo{
+				Spec: helmv1alpha1.RepoSpec{
+					Name: "notpresent",
+					URL:  "https://foo.bar/charts",
+				},
 			},
+			ReturnValue: "",
+			ReturnError: nil,
+			//},
+			/*{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"label": "notpresent",
+					},
+				},
+				Spec: helmv1alpha1.RepoSpec{
+					Name: "notpresent",
+					Url:  "https://foo.bar/charts",
+					Auth: &helmv1alpha1.Auth{
+						User:     "foo",
+						Password: "encrypted",
+						Cert:     "certContent",
+						Key:      "keyContent",
+						Ca:       "certCa",
+					},
+				},
+			},*/
 		},
-		/*{
-			ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					"label": "notpresent",
-				},
-			},
-			Spec: helmv1alpha1.RepoSpec{
-				Name: "notpresent",
-				Url:  "https://foo.bar/charts",
-				Auth: &helmv1alpha1.Auth{
-					User:     "foo",
-					Password: "encrypted",
-					Cert:     "certContent",
-					Key:      "keyContent",
-					Ca:       "certCa",
-				},
-			},
-		},*/
 	}
 }
 

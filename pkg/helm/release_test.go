@@ -15,6 +15,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/soer3n/apps-operator/internal/mocks"
+	inttypes "github.com/soer3n/apps-operator/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/action"
@@ -50,8 +51,6 @@ func TestReleaseConfigMaps(t *testing.T) {
 	})
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "notfound", Namespace: ""}, &helmv1alpha1.Chart{}).Return(errors.New("chart not found"))
 
-	/*expected :=  getExpectedTestCharts(clientMock)*/
-
 	var payload []byte
 
 	raw, _ := os.Open("../../testutils/busybox-0.1.0.tgz")
@@ -71,7 +70,7 @@ func TestReleaseConfigMaps(t *testing.T) {
 
 	for _, apiObj := range apiObjList {
 
-		current := apiObj["input"].(*helmv1alpha1.Release)
+		current := apiObj.Input.(*helmv1alpha1.Release)
 		testObj := NewHelmRelease(current, settings, &clientMock, &httpMock, kube.Client{})
 		selectors := ""
 
@@ -85,9 +84,9 @@ func TestReleaseConfigMaps(t *testing.T) {
 
 		testObj.Version = current.Spec.Version
 		configList := testObj.GetParsedConfigMaps()
+		expect, _ := apiObj.ReturnValue.([]v1.ConfigMap)
 
-		// assert.Equal(expected, charts, "Structs should be equal.")
-		assert.Equal(apiObj["returnValue"], configList)
+		assert.Equal(expect, configList)
 	}
 }
 
@@ -167,7 +166,7 @@ func TestReleaseUpdate(t *testing.T) {
 
 	for _, apiObj := range apiObjList {
 
-		current := apiObj["input"].(*helmv1alpha1.Release)
+		current := apiObj.Input.(*helmv1alpha1.Release)
 		testObj := NewHelmRelease(current, settings, &clientMock, &httpMock, kube.Client{})
 		selectors := ""
 
@@ -190,19 +189,17 @@ func TestReleaseUpdate(t *testing.T) {
 		}
 
 		err := testObj.Update()
-
-		// assert.Equal(expected, charts, "Structs should be equal.")
-		assert.Equal(err, apiObj["returnError"])
+		assert.Equal(err, apiObj.ReturnError)
 	}
 }
 
-func getTestReleaseSpecs() []map[string]interface{} {
+func getTestReleaseSpecs() []inttypes.TestCase {
 
-	return []map[string]interface{}{
+	return []inttypes.TestCase{
 		{
-			"returnValue": getTestReleaseChartConfigMapsValid(),
-			"returnError": nil,
-			"input": &helmv1alpha1.Release{
+			ReturnValue: getTestReleaseChartConfigMapsValid(),
+			ReturnError: nil,
+			Input: &helmv1alpha1.Release{
 				Spec: helmv1alpha1.ReleaseSpec{
 					Name:    "test",
 					Chart:   "chart",
@@ -215,9 +212,9 @@ func getTestReleaseSpecs() []map[string]interface{} {
 			},
 		},
 		{
-			"returnValue": []v1.ConfigMap{},
-			"returnError": nil,
-			"input": &helmv1alpha1.Release{
+			ReturnValue: []v1.ConfigMap{},
+			ReturnError: nil,
+			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"label": "selector",
@@ -235,9 +232,9 @@ func getTestReleaseSpecs() []map[string]interface{} {
 			},
 		},
 		{
-			"returnValue": []v1.ConfigMap{},
-			"returnError": errors.New("chart not found"),
-			"input": &helmv1alpha1.Release{
+			ReturnValue: []v1.ConfigMap{},
+			ReturnError: errors.New("chart not found"),
+			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"label": "selector",
@@ -255,9 +252,9 @@ func getTestReleaseSpecs() []map[string]interface{} {
 			},
 		},
 		{
-			"returnValue": []v1.ConfigMap{},
-			"returnError": errors.New("chart not found"),
-			"input": &helmv1alpha1.Release{
+			ReturnValue: []v1.ConfigMap{},
+			ReturnError: errors.New("chart not found"),
+			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"label": "selector",

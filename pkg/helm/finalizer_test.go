@@ -73,13 +73,6 @@ func TestFinalizerHandle(t *testing.T) {
 	for _, v := range getTestFinalizerSpecs() {
 
 		ok, err := HandleFinalizer(testObj, v)
-
-		//ok, _ := HandleFinalizer(testObj, getTestClientRepo())
-
-		// assert.Equal(expected, charts, "Structs should be equal.")
-		//assert.True(ok)
-
-		// assert.Equal(expected, charts, "Structs should be equal.")
 		assert.Equal(v.ReturnValue, ok)
 		assert.Equal(v.ReturnError, err)
 	}

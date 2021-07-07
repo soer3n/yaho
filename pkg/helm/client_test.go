@@ -56,13 +56,11 @@ func TestClient(t *testing.T) {
 	testObj := NewHelmClient(getTestClientRepo(), &clientMock, &httpMock)
 	repoObj := testObj.GetRepo("")
 
-	// assert.Equal(expected, charts, "Structs should be equal.")
 	assert.Nil(repoObj)
 
 	testObj = NewHelmClient(getTestClientRelease(), &clientMock, &httpMock)
 	releaseObj := testObj.GetRelease("", "")
 
-	// assert.Equal(expected, charts, "Structs should be equal.")
 	assert.Nil(releaseObj)
 }
 

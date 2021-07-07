@@ -10,6 +10,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/soer3n/apps-operator/internal/mocks"
+	inttypes "github.com/soer3n/apps-operator/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/chart"
@@ -53,10 +54,13 @@ func TestChartCreateTemplates(t *testing.T) {
 
 	assert := assert.New(t)
 
-	testObj := NewChart(getTestRepoChartVersions(), settings, "test", &clientMock, &httpMock, kube.Client{})
-	err := testObj.CreateTemplates()
+	for _, v := range getTestRepoChartVersions() {
+		ver := v.Input.([]*repo.ChartVersion)
+		testObj := NewChart(ver, settings, "test", &clientMock, &httpMock, kube.Client{})
+		err := testObj.CreateTemplates()
 
-	assert.Nil(err)
+		assert.Nil(err)
+	}
 }
 
 func TestChartCreateConfigMaps(t *testing.T) {
@@ -72,8 +76,6 @@ func TestChartCreateConfigMaps(t *testing.T) {
 		c.Spec = spec.Spec
 		c.ObjectMeta = spec.ObjectMeta
 	})
-
-	/*expected :=  getExpectedTestCharts(clientMock)*/
 
 	var payload []byte
 
@@ -92,10 +94,12 @@ func TestChartCreateConfigMaps(t *testing.T) {
 
 	assert := assert.New(t)
 
-	testObj := NewChart(getTestRepoChartVersions(), settings, "test", &clientMock, &httpMock, kube.Client{})
-	maps := testObj.CreateConfigMaps()
-
-	assert.NotNil(maps)
+	for _, v := range getTestRepoChartVersions() {
+		ver := v.Input.([]*repo.ChartVersion)
+		testObj := NewChart(ver, settings, "test", &clientMock, &httpMock, kube.Client{})
+		maps := testObj.CreateConfigMaps()
+		assert.NotNil(maps)
+	}
 }
 
 func TestChartAddOrUpdateMap(t *testing.T) {
@@ -112,79 +116,94 @@ func TestChartAddOrUpdateMap(t *testing.T) {
 		c.ObjectMeta = spec.ObjectMeta
 	})
 
-	/*expected :=  getExpectedTestCharts(clientMock)*/
-
 	assert := assert.New(t)
 
-	testObj := NewChart(getTestRepoChartVersions(), settings, "test", &clientMock, &httpMock, kube.Client{})
-	maps := testObj.AddOrUpdateChartMap(getTestHelmChartMapNotFound(), getTestChartRepo())
-	assert.Len(maps, 2)
-	maps = testObj.AddOrUpdateChartMap(getTestHelmChartMap(), getTestChartRepo())
-	assert.Len(maps, 1)
+	for _, v := range getTestHelmChartMaps() {
+		for _, i := range getTestRepoChartVersions() {
+			ver := i.Input.([]*repo.ChartVersion)
+			testObj := NewChart(ver, settings, "test", &clientMock, &httpMock, kube.Client{})
+			rel, _ := v.Input.(map[string]*helmv1alpha1.Chart)
+			maps := testObj.AddOrUpdateChartMap(rel, getTestChartRepo())
+			expectedLen, _ := v.ReturnValue.(int)
+			assert.Equal(len(maps), expectedLen)
+		}
+	}
 }
 
-func getTestRepoChartVersions() []*repo.ChartVersion {
-	return []*repo.ChartVersion{
+func getTestRepoChartVersions() []inttypes.TestCase {
+	return []inttypes.TestCase{
 		{
-			Metadata: &chart.Metadata{
-				Name:    "foo",
-				Version: "0.0.1",
-				Dependencies: []*chart.Dependency{
-					{
-						Name:       "dep",
-						Version:    "0.1.1",
-						Repository: "repo",
-					},
-				},
-			},
-			URLs: []string{"https://foo.bar/charts/foo-0.0.1.tgz"},
-		},
-	}
-}
-
-func getTestHelmChartMap() map[string]*helmv1alpha1.Chart {
-	return map[string]*helmv1alpha1.Chart{
-		"foo": {
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "bar",
-				Namespace: "",
-			},
-			Spec: helmv1alpha1.ChartSpec{
-				Name: "baz",
-				Versions: []helmv1alpha1.ChartVersion{
-					{
-						Name: "0.0.2",
-						URL:  "nodomain.com",
-					},
-				},
-			},
-		},
-	}
-}
-
-func getTestHelmChartMapNotFound() map[string]*helmv1alpha1.Chart {
-	return map[string]*helmv1alpha1.Chart{
-		"bar": {
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "bar",
-				Namespace: "",
-			},
-			Spec: helmv1alpha1.ChartSpec{
-				Name: "baz",
-				Versions: []helmv1alpha1.ChartVersion{
-					{
-						Name: "0.0.2",
-						URL:  "nodomain.com",
-						Dependencies: []helmv1alpha1.ChartDep{
+			Input: []*repo.ChartVersion{
+				{
+					Metadata: &chart.Metadata{
+						Name:    "foo",
+						Version: "0.0.1",
+						Dependencies: []*chart.Dependency{
 							{
-								Name:    "dep",
-								Repo:    "repo",
-								Version: "0.1.1",
+								Name:       "dep",
+								Version:    "0.1.1",
+								Repository: "repo",
+							},
+						},
+					},
+					URLs: []string{"https://foo.bar/charts/foo-0.0.1.tgz"},
+				},
+			},
+			ReturnValue: "",
+		},
+	}
+}
+
+func getTestHelmChartMaps() []inttypes.TestCase {
+	return []inttypes.TestCase{
+		{
+			Input: map[string]*helmv1alpha1.Chart{
+				"foo": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "bar",
+						Namespace: "",
+					},
+					Spec: helmv1alpha1.ChartSpec{
+						Name: "baz",
+						Versions: []helmv1alpha1.ChartVersion{
+							{
+								Name: "0.0.2",
+								URL:  "nodomain.com",
 							},
 						},
 					},
 				},
 			},
+			ReturnError: nil,
+			ReturnValue: 1,
+		},
+		{
+			Input: map[string]*helmv1alpha1.Chart{
+				"bar": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "bar",
+						Namespace: "",
+					},
+					Spec: helmv1alpha1.ChartSpec{
+						Name: "baz",
+						Versions: []helmv1alpha1.ChartVersion{
+							{
+								Name: "0.0.2",
+								URL:  "nodomain.com",
+								Dependencies: []helmv1alpha1.ChartDep{
+									{
+										Name:    "dep",
+										Repo:    "repo",
+										Version: "0.1.1",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			ReturnError: nil,
+			ReturnValue: 2,
 		},
 	}
 }

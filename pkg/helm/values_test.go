@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	inttypes "github.com/soer3n/apps-operator/internal/types"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,13 +15,16 @@ func TestValues(t *testing.T) {
 
 	assert := assert.New(t)
 
-	testObj := NewValueTemplate(getTestValueSpecs())
-	_, err := testObj.ManageValues()
+	for _, testcase := range getTestValueSpecs() {
+		vList := testcase.Input.([]*ValuesRef)
+		testObj := NewValueTemplate(vList)
+		_, err := testObj.ManageValues()
 
-	assert.Nil(err)
+		assert.Equal(testcase.ReturnError, err)
+	}
 }
 
-func getTestValueSpecs() []*ValuesRef {
+func getTestValueSpecs() []inttypes.TestCase {
 
 	firstVals := map[string]string{"foo": "bar"}
 	secVals := map[string]string{"foo": "bar"}
@@ -38,69 +42,74 @@ func getTestValueSpecs() []*ValuesRef {
 	thirdValsRaw, _ := json.Marshal(thirdVals)
 	fourthValsRaw, _ := json.Marshal(fourthVals)
 
-	return []*ValuesRef{
+	return []inttypes.TestCase{
 		{
-			Ref: &helmv1alpha1.Values{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foo",
-					Namespace: "",
+			Input: []*ValuesRef{
+				{
+					Ref: &helmv1alpha1.Values{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "foo",
+							Namespace: "",
+						},
+						Spec: helmv1alpha1.ValuesSpec{
+							ValuesMap: &runtime.RawExtension{
+								Raw: firstValsRaw,
+							},
+							Refs: map[string]string{
+								"bar": "second",
+								"boo": "third",
+							},
+						},
+					},
+					Parent: "base",
 				},
-				Spec: helmv1alpha1.ValuesSpec{
-					ValuesMap: &runtime.RawExtension{
-						Raw: firstValsRaw,
+				{
+					Ref: &helmv1alpha1.Values{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "second",
+							Namespace: "",
+						},
+						Spec: helmv1alpha1.ValuesSpec{
+							ValuesMap: &runtime.RawExtension{
+								Raw: secValsRaw,
+							},
+							Refs: map[string]string{
+								"boo": "fourth",
+							},
+						},
 					},
-					Refs: map[string]string{
-						"bar": "second",
-						"boo": "third",
+					Parent: "foo",
+				},
+				{
+					Ref: &helmv1alpha1.Values{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "third",
+							Namespace: "",
+						},
+						Spec: helmv1alpha1.ValuesSpec{
+							ValuesMap: &runtime.RawExtension{
+								Raw: thirdValsRaw,
+							},
+						},
 					},
+					Parent: "foo",
+				},
+				{
+					Ref: &helmv1alpha1.Values{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "fourth",
+							Namespace: "",
+						},
+						Spec: helmv1alpha1.ValuesSpec{
+							ValuesMap: &runtime.RawExtension{
+								Raw: fourthValsRaw,
+							},
+						},
+					},
+					Parent: "second",
 				},
 			},
-			Parent: "base",
-		},
-		{
-			Ref: &helmv1alpha1.Values{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "second",
-					Namespace: "",
-				},
-				Spec: helmv1alpha1.ValuesSpec{
-					ValuesMap: &runtime.RawExtension{
-						Raw: secValsRaw,
-					},
-					Refs: map[string]string{
-						"boo": "fourth",
-					},
-				},
-			},
-			Parent: "foo",
-		},
-		{
-			Ref: &helmv1alpha1.Values{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "third",
-					Namespace: "",
-				},
-				Spec: helmv1alpha1.ValuesSpec{
-					ValuesMap: &runtime.RawExtension{
-						Raw: thirdValsRaw,
-					},
-				},
-			},
-			Parent: "foo",
-		},
-		{
-			Ref: &helmv1alpha1.Values{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "fourth",
-					Namespace: "",
-				},
-				Spec: helmv1alpha1.ValuesSpec{
-					ValuesMap: &runtime.RawExtension{
-						Raw: fourthValsRaw,
-					},
-				},
-			},
-			Parent: "second",
+			ReturnError: nil,
 		},
 	}
 }
