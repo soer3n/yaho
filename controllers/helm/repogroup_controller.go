@@ -74,11 +74,6 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	spec := instance.Spec.Repos
-
-	//var wg sync.WaitGroup
-	//delOutput := make(chan string, 100)
-
 	// fetch owned repos
 	repos := &helmv1alpha1.RepoList{}
 	requirement, _ := labels.ParseToRequirements("repoGroup=" + instance.Spec.LabelSelector)
@@ -86,10 +81,23 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		LabelSelector: labels.NewSelector().Add(requirement[0]),
 	}
 
-	err = r.List(context.Background(), repos, opts)
+	if err = r.List(context.Background(), repos, opts); err != nil {
+		log.Infof("Error on listing repos for group %v", instance.Spec.LabelSelector)
+	}
 
+	r.removeUnwantedRepos(repos, instance)
+
+	log.Infof("Trying to install HelmRepoSpecs: %v", instance.Spec.Repos)
+
+	r.deployRepos(instance)
+
+	return ctrl.Result{}, nil
+}
+
+func (r *RepoGroupReconciler) removeUnwantedRepos(repos *helmv1alpha1.RepoList, instance *helmv1alpha1.RepoGroup) {
 	var wg sync.WaitGroup
 	c := make(chan string, 10)
+	spec := instance.Spec.Repos
 
 	log.Infof("Trying to delete unwanted HelmRepoSpecs: %v", spec)
 
@@ -109,7 +117,7 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 			if !exists {
 				c <- "Delete unwanted repo: " + repo.Name
-				if err = r.Delete(ctx, &helmv1alpha1.Repo{
+				if err := r.Delete(context.Background(), &helmv1alpha1.Repo{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      repo.Name,
 						Namespace: instance.Namespace,
@@ -130,10 +138,13 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	for i := range c {
 		log.Info(i)
 	}
+}
 
-	log.Infof("Trying to install HelmRepoSpecs: %v", spec)
+func (r *RepoGroupReconciler) deployRepos(instance *helmv1alpha1.RepoGroup) {
 
-	c = make(chan string, 10)
+	var wg sync.WaitGroup
+	c := make(chan string, 10)
+	spec := instance.Spec.Repos
 
 	for _, repository := range spec {
 		wg.Add(1)
@@ -198,8 +209,6 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	for i := range c {
 		log.Info(i)
 	}
-
-	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

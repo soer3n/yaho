@@ -79,8 +79,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	var hc *helmutils.Client
-	var helmRepo *helmutils.Repo
-	var chartList []*helmutils.Chart
 
 	g := http.Client{
 		Timeout: time.Second * 10,
@@ -91,7 +89,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	hc = helmutils.NewHelmClient(instance, r.Client, &g)
-	helmRepo = hc.GetRepo(instance.Spec.Name)
 
 	if instance.GetDeletionTimestamp() != nil {
 		if err := r.handleFinalizer(reqLogger, hc, instance); err != nil {
@@ -108,6 +105,31 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	}
 
+	r.deploy(instance, hc)
+
+	log.Infof("Repo %v deployed in namespace %v", instance.Spec.Name, instance.ObjectMeta.Namespace)
+	log.Info("Don't reconcile repos.")
+	return ctrl.Result{}, nil
+}
+
+func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Repo) error {
+	reqLogger.Info("Adding Finalizer for the Repo")
+	controllerutil.AddFinalizer(m, "finalizer.repo.helm.soer3n.info")
+
+	// Update CR
+	if err := r.Update(context.TODO(), m); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Client) {
+
+	var chartList []*helmutils.Chart
+	var err error
+
+	helmRepo := hc.GetRepo(instance.Spec.Name)
 	label, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
 	selector := map[string]string{"repo": helmRepo.Name}
 
@@ -117,10 +139,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	if chartList, err = helmRepo.GetCharts(hc.Repos.Settings, selector); err != nil {
 		log.Infof("Error on getting charts for repo %v", instance.Spec.Name)
-		return ctrl.Result{}, nil
 	}
-
-	log.Infof("HelmChartCount: %v", len(chartList))
 
 	chartObjMap := make(map[string]*helmv1alpha1.Chart)
 
@@ -182,22 +201,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	for i := range c {
 		log.Info(i)
 	}
-
-	log.Infof("Repo %v deployed in namespace %v", instance.Spec.Name, instance.ObjectMeta.Namespace)
-	log.Info("Don't reconcile repos.")
-	return ctrl.Result{}, nil
-}
-
-func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Repo) error {
-	reqLogger.Info("Adding Finalizer for the Repo")
-	controllerutil.AddFinalizer(m, "finalizer.repo.helm.soer3n.info")
-
-	// Update CR
-	if err := r.Update(context.TODO(), m); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.Client, instance *helmv1alpha1.Repo) error {

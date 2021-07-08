@@ -121,7 +121,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	helmRelease = hc.GetRelease(instance.Spec.Name, instance.Spec.Repo)
 
-	var refList, subRefList []*helmutils.ValuesRef
+	var refList []*helmutils.ValuesRef
 	var valuesList []*helmv1alpha1.Values
 
 	if instance.Spec.ValuesTemplate != nil && instance.Spec.ValuesTemplate.ValueRefs != nil {
@@ -130,23 +130,12 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	for _, valueObj := range valuesList {
-
-		if subRefList, err = r.collectValues(valueObj, 0, instance); err != nil {
-			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
-		}
-
-		if err = r.updateValuesAnnotations(valueObj, instance); err != nil {
-			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
-		}
-
-		for _, subValueObj := range subRefList {
-			refList = append(refList, subValueObj)
-		}
-	}
-
 	log.Infof("Trying HelmRelease %v", refList)
+	return r.update(helmRelease, valuesList, instance)
+}
 
+func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, valuesList []*helmv1alpha1.Values, instance *helmv1alpha1.Release) (ctrl.Result, error) {
+	refList, _ := r.getRefList(valuesList, instance)
 	helmRelease.ValuesTemplate = helmutils.NewValueTemplate(refList)
 	helmRelease.Namespace.Name = instance.ObjectMeta.Namespace
 	helmRelease.Version = instance.Spec.Version
@@ -154,16 +143,37 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	for _, configmap := range helmRelease.GetParsedConfigMaps() {
 		if err := r.deployConfigMap(configmap, controller); err != nil {
-			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
+			return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 		}
 	}
 
-	if err = helmRelease.Update(instance.Spec.Namespace); err != nil {
-		return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
+	if err := helmRelease.Update(instance.Spec.Namespace); err != nil {
+		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 	}
 
 	log.Info("Don't reconcile releases.")
 	return ctrl.Result{}, nil
+}
+
+func (r *ReleaseReconciler) getRefList(valuesList []*helmv1alpha1.Values, instance *helmv1alpha1.Release) ([]*helmutils.ValuesRef, error) {
+	var refList, subRefList []*helmutils.ValuesRef
+	var err error
+	for _, valueObj := range valuesList {
+
+		if subRefList, err = r.collectValues(valueObj, 0, instance); err != nil {
+			return refList, err
+		}
+
+		if err = r.updateValuesAnnotations(valueObj, instance); err != nil {
+			return refList, err
+		}
+
+		for _, subValueObj := range subRefList {
+			refList = append(refList, subValueObj)
+		}
+	}
+
+	return refList, nil
 }
 
 func (r *ReleaseReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Release) error {

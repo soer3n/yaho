@@ -22,7 +22,7 @@ type HTTPClientMock struct {
 	types.HTTPClientInterface
 }
 
-// HTTPResponseMock represents struct for mocking an http reponse
+// HTTPResponseMock represents struct for mocking an http response
 type HTTPResponseMock struct {
 	mock.Mock
 	http.ResponseWriter
