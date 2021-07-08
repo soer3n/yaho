@@ -1,4 +1,5 @@
 [![codecov](https://codecov.io/gh/soer3n/yaho/branch/master/graph/badge.svg?token=DCPVNPSIFF)](https://codecov.io/gh/soer3n/yaho)
+[![Go Report Card](https://goreportcard.com/badge/soer3n/yaho)](https://goreportcard.com/report/soer3n/yaho)
 
 # Yet Another Helm Operator 
 
