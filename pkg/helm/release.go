@@ -80,7 +80,7 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 	}
 
 	log.Debugf("configupdate: %v", hc.Config)
-	release, err = hc.getRelease()
+	release, _ = hc.getRelease()
 
 	if err = hc.setValues(); err != nil {
 		return err
@@ -160,10 +160,10 @@ func (hc Release) getValues() map[string]interface{} {
 func (hc *Release) setValues() error {
 
 	templateObj := hc.ValuesTemplate
-	values := make(map[string]interface{})
-	var err error
 
-	if values, err = templateObj.ManageValues(); err != nil {
+	values, err := templateObj.ManageValues()
+
+	if err != nil {
 		return err
 	}
 
@@ -241,7 +241,6 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	}
 
 	chartObj := &helmv1alpha1.Chart{}
-	files := []*chart.File{}
 
 	log.Debugf("namespace: %v", hc.Namespace.Name)
 
@@ -260,7 +259,7 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 		}
 	}
 
-	files = hc.getFiles(chartObj)
+	files := hc.getFiles(chartObj)
 
 	helmChart.Metadata.Name = chartName
 	helmChart.Metadata.Version = hc.Version

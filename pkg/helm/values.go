@@ -117,7 +117,6 @@ func (hv *ValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
 
 func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, parents ...string) map[string]interface{} {
 	valMap := make(map[string]interface{})
-	subMap := make(map[string]string)
 	var parentKey string
 
 	for _, parent := range parents {
@@ -154,7 +153,7 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 
 	for ck, cv := range childMap {
 		bytes := []byte(cv.(string))
-		subMap = hv.parseMap(parentKey+ck, bytes)
+		subMap := hv.parseMap(parentKey+ck, bytes)
 		for key, value := range subMap {
 			valMap[key] = value
 		}
