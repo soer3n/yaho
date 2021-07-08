@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -78,6 +79,65 @@ var _ = Context("Install a release", func() {
 			release = &helmv1alpha1.Release{}
 			releaseChart = &helmv1alpha1.Chart{}
 			configmap := &v1.ConfigMap{}
+
+			Eventually(
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: namespace}, deployment),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Eventually(
+				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: namespace}, repoChart),
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
+
+			Eventually(
+				GetReleaseFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: releaseKind.Namespace}, release),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Expect(*&release.ObjectMeta.Name).To(Equal("testresource"))
+
+			Eventually(
+				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner-operator", Namespace: releaseKind.Namespace}, releaseChart),
+				time.Second*20, time.Millisecond*1500).Should(BeTrue())
+
+			Eventually(
+				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-tmpl-submariner-operator-0.7.0", Namespace: releaseKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Expect(configmap.ObjectMeta.Name).To(Equal("helm-tmpl-submariner-operator-0.7.0"))
+
+			Eventually(
+				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-crds-submariner-operator-0.7.0", Namespace: releaseKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Expect(configmap.ObjectMeta.Name).To(Equal("helm-crds-submariner-operator-0.7.0"))
+
+			Eventually(
+				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-default-submariner-operator-0.7.0", Namespace: releaseKind.Namespace}, configmap),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Expect(configmap.ObjectMeta.Name).To(Equal("helm-default-submariner-operator-0.7.0"))
+
+			time.Sleep(3 * time.Second)
+
+			By("should update this Release resource with values reference")
+
+			existigRelease := &helmv1alpha1.Release{}
+			err = testClient.Get(context.Background(), types.NamespacedName{
+				Name:      "testresource",
+				Namespace: namespace,
+			}, existigRelease)
+			existigRelease.Spec.ValuesTemplate = &helmv1alpha1.ValueTemplate{
+				ValueRefs: []string{"notpresent"},
+			}
+			Expect(err).NotTo(HaveOccurred(), "failed to get test resource")
+
+			err = testClient.Update(context.Background(), existigRelease)
+			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
+
+			time.Sleep(5 * time.Second)
+
+			release = &helmv1alpha1.Release{}
+			releaseChart = &helmv1alpha1.Chart{}
+			configmap = &v1.ConfigMap{}
 
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource-123", Namespace: namespace}, deployment),
