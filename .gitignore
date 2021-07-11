@@ -26,3 +26,6 @@ coverage.txt
 *.swp
 *.swo
 *~
+
+okteto.yml
+.stignore
