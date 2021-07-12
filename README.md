@@ -101,7 +101,7 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 ## Roadmap
 
 - add assertions for tests; currently there are more or less only the normal cases covered by qa
-- running e2e tests with kind in kubernetes( [related issue](https://github.com/actions-runner-controller/actions-runner-controller/issues/640))
+- running e2e tests with kind in kubernetes( [related issue](https://github.com/kubernetes-sigs/kind/issues/303))
 - handle func calls with context.Context if actually needed
 - add details to contribution guideline
 - implement web user interface  (start of [backend server implementation](pkg/api/) is already present))
