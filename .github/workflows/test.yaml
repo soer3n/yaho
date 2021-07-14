@@ -43,9 +43,7 @@ jobs:
       fail-fast: false
       matrix:
         name:
-        - e2e-k8s-1-21
-        - e2e-k8s-1-20
-        - e2e-k8s-1-19
+        - e2e-k8s
         image:
         - kindest/node:v1.21.1
         - kindest/node:v1.20.7
