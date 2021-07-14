@@ -42,14 +42,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name:
-        - e2e-k8s
-        image:
-        - kindest/node:v1.21.1
-        - kindest/node:v1.20.7
-        - kindest/node:v1.19.11
+        version:
+        - v1.21.1
+        - v1.20.7
+        - v1.19.11
     runs-on: self-hosted
-    name: ${{ matrix.name }}
+    name: e2e-k8s-${{ matrix.version }}
     needs: lint
     steps:
     - uses: actions/checkout@v2
@@ -60,7 +58,7 @@ jobs:
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.2.0
       with:
-        node_image: ${{ matrix.image }}
+        node_image: kindest/node:${{ matrix.version }}
     - name: test controllers
       run: go test -v ./controllers/...
   
