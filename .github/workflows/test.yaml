@@ -93,7 +93,10 @@ jobs:
 
   build:
     runs-on: self-hosted
-    needs: test
+    needs:
+    - test-unit
+    - test-k8s-1-20
+    - test-k8s-1-21
     steps:
     - uses: actions/checkout@v2
     - name: set up Go
