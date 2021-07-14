@@ -31,24 +31,56 @@ jobs:
     needs: lint
     steps:
     - uses: actions/checkout@v2
-
     - name: set up Go
       uses: actions/setup-go@v2
       with:
         go-version: 1.15
-
     - name: test packages
       run: go test -v ./pkg/...
 
+  test-k8s-1-21:
+    runs-on: self-hosted
+    needs: lint
+    steps:
+    - uses: actions/checkout@v2
+    - name: set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.2.0
-
+      with:
+        node_image: v1.21.1
+    - name: test controllers
+      run: go test -v ./controllers/...
+  
+  test-k8s-1-20:
+    runs-on: self-hosted
+    needs: lint
+    steps:
+    - uses: actions/checkout@v2
+    - name: set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+    - name: create k8s Kind cluster
+      uses: helm/kind-action@v1.2.0
+      with:
+        node_image: v1.20.7
     - name: test controllers
       run: go test -v ./controllers/...
     
+  coverage:
+    runs-on: self-hosted
+    needs: test
+    steps:
+    - uses: actions/checkout@v2
+    - name: set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
     - name: run coverage
       run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
-    
     - name: report coverage
       uses: codecov/codecov-action@v1
       with:
@@ -61,11 +93,9 @@ jobs:
     needs: test
     steps:
     - uses: actions/checkout@v2
-
     - name: set up Go
       uses: actions/setup-go@v2
       with:
         go-version: 1.15
-
     - name: build
       run: go build -v ./...
