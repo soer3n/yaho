@@ -45,15 +45,6 @@ jobs:
       with:
         version: "v0.9.0"
 
-    - name: testing cluster connection
-      run: |
-       export GOBIN=$(go env GOPATH)/bin
-       export PATH=$PATH:$GOBIN
-       kubectl cluster-info
-       kubectl get pods -n kube-system
-       echo "current-context:" $(kubectl config current-context)
-       echo "environment-kubeconfig:" ${KUBECONFIG}
-
     - name: test controllers
       run: go test -v ./controllers/...
     
