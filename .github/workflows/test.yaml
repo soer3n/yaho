@@ -38,8 +38,20 @@ jobs:
     - name: test packages
       run: go test -v ./pkg/...
 
-  test-k8s-1-21:
+  test-k8s:
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+        - e2e-k8s-1-21
+        - e2e-k8s-1-20
+        - e2e-k8s-1-19
+        image:
+        - kindest/node:v1.21.1
+        - kindest/node:v1.20.7
+        - kindest/node:v1.19.11
     runs-on: self-hosted
+    name: ${{ matrix.name }}
     needs: lint
     steps:
     - uses: actions/checkout@v2
@@ -50,13 +62,15 @@ jobs:
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.2.0
       with:
-        node_image: kindest/node:v1.21.1
+        node_image: ${{ matrix.image }}
     - name: test controllers
       run: go test -v ./controllers/...
   
-  test-k8s-1-20:
+  coverage:
     runs-on: self-hosted
-    needs: lint
+    needs:
+    - test-unit
+    - test-k8s
     steps:
     - uses: actions/checkout@v2
     - name: set up Go
@@ -67,38 +81,6 @@ jobs:
       uses: helm/kind-action@v1.2.0
       with:
         node_image: kindest/node:v1.20.7
-    - name: test controllers
-      run: go test -v ./controllers/...
-
-  test-k8s-1-19:
-    runs-on: self-hosted
-    needs: lint
-    steps:
-    - uses: actions/checkout@v2
-    - name: set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.15
-    - name: create k8s Kind cluster
-      uses: helm/kind-action@v1.2.0
-      with:
-        node_image: kindest/node:v1.19.11
-    - name: test controllers
-      run: go test -v ./controllers/...
-
-  coverage:
-    runs-on: self-hosted
-    needs:
-    - test-unit
-    - test-k8s-1-19
-    - test-k8s-1-20
-    - test-k8s-1-21
-    steps:
-    - uses: actions/checkout@v2
-    - name: set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.15
     - name: run coverage
       run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
     - name: report coverage
@@ -112,9 +94,7 @@ jobs:
     runs-on: self-hosted
     needs:
     - test-unit
-    - test-k8s-1-19
-    - test-k8s-1-20
-    - test-k8s-1-21
+    - test-k8s
     steps:
     - uses: actions/checkout@v2
     - name: set up Go
