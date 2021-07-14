@@ -26,7 +26,7 @@ jobs:
           go get -u golang.org/x/lint/golint 
           golint -set_exit_status ./...
 
-  test:
+  test-unit:
     runs-on: self-hosted
     needs: lint
     steps:
@@ -50,7 +50,7 @@ jobs:
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.2.0
       with:
-        node_image: v1.21.1
+        node_image: kindest/node:v1.21.1
     - name: test controllers
       run: go test -v ./controllers/...
   
@@ -66,7 +66,7 @@ jobs:
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.2.0
       with:
-        node_image: v1.20.7
+        node_image: kindest/node;v1.20.7
     - name: test controllers
       run: go test -v ./controllers/...
     
