@@ -47,8 +47,10 @@ jobs:
         - v1.20.7
         - v1.19.11
     runs-on: self-hosted
-    name: e2e-k8s-${{ matrix.version }}
-    needs: lint
+    name: test-e2e-k8s-${{ matrix.version }}
+    needs:
+    - lint
+    - test-unit
     steps:
     - uses: actions/checkout@v2
     - name: set up Go
