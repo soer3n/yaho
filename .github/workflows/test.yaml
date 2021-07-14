@@ -40,13 +40,15 @@ jobs:
     - name: test packages
       run: go test -v ./pkg/...
 
-    - name: Create k8s Kind Cluster
+    - name: create k8s Kind cluster
       uses: engineerd/setup-kind@v0.5.0
       with:
         version: "v0.9.0"
 
-    - name: Testing
+    - name: testing cluster connection
       run: |
+       export GOBIN=$(go env GOPATH)/bin
+       export PATH=$PATH:$GOBIN
        kubectl cluster-info
        kubectl get pods -n kube-system
        echo "current-context:" $(kubectl config current-context)
