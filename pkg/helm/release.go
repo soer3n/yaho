@@ -254,11 +254,13 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 		return helmChart, err
 	}
 
-	repoSelector := map[string]string{"repo": hc.Repo}
+	repoSelector := make(map[string]string, 0)
 
 	if _, ok := chartObj.ObjectMeta.Labels["repoGroup"]; ok {
 		if len(chartObj.ObjectMeta.Labels["repoGroup"]) > 1 {
 			repoSelector["repoGroup"] = chartObj.ObjectMeta.Labels["repoGroup"]
+		} else {
+			repoSelector["repo"] = hc.Repo
 		}
 	}
 

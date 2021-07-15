@@ -1,13 +1,13 @@
 apiVersion: helm.soer3n.info/v1alpha1
 kind: Release
 metadata:
-  name: release-sample
+  name: release
   namespace: helm
 spec:
   name: nextcloud
   namespace:
     install: true
-    name: bar
+    name: boo
   repo: nextcloud
   chart: nextcloud
   version: 2.6.5

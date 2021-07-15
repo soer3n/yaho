@@ -103,7 +103,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if instance.GetDeletionTimestamp() != nil {
 
 		if err = r.handleFinalizer(hc, instance); err != nil {
-			log.Errorf("Handle finalizer for release %v failed.", helmRelease.Name)
+			log.Errorf("Handle finalizer for release %v failed.", hc.GetRelease(instance.Spec.Name, instance.Spec.Repo).Name)
 			return ctrl.Result{}, err
 		}
 
