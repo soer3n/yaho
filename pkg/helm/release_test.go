@@ -97,7 +97,7 @@ func TestReleaseUpdate(t *testing.T) {
 	settings := cli.New()
 	apiObjList := getTestReleaseSpecs()
 
-	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.MatchingLabels{"repo": "repo", "repoGroup": "group"}, client.InNamespace("")}).Return(nil).Run(func(args mock.Arguments) {
+	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.MatchingLabels{"repoGroup": "group"}, client.InNamespace("")}).Return(nil).Run(func(args mock.Arguments) {
 
 		c := args.Get(1).(*helmv1alpha1.ChartList)
 		spec := helmv1alpha1.ChartList{
