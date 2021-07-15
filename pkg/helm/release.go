@@ -3,6 +3,7 @@ package helm
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"reflect"
 
 	"github.com/prometheus/common/log"
@@ -64,6 +65,8 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 	var helmChart *chart.Chart
 	var err error
 	var ok bool
+
+	_ = os.Setenv("HELM_NAMESPACE", namespace.Name)
 
 	installConfig := hc.Config
 	client := action.NewInstall(installConfig)

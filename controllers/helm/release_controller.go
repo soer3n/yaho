@@ -147,7 +147,13 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, valuesList []
 		}
 	}
 
-	if err := helmRelease.Update(instance.Spec.Namespace); err != nil {
+	releaseNamespace := instance.Spec.Namespace
+
+	if releaseNamespace.Name == "" {
+		releaseNamespace.Name = instance.ObjectMeta.Namespace
+	}
+
+	if err := helmRelease.Update(releaseNamespace); err != nil {
 		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 	}
 

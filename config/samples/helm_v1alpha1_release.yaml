@@ -5,6 +5,9 @@ metadata:
   namespace: helm
 spec:
   name: nextcloud
+  namespace:
+    install: true
+    name: bar
   repo: nextcloud
   chart: nextcloud
   version: 2.6.5
