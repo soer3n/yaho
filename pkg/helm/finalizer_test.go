@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func TestFinalizerHandle(t *testing.T) {
+func TestFinalizerHandleRelease(t *testing.T) {
 
 	clientMock := mocks.K8SClientMock{}
 	httpMock := mocks.HTTPClientMock{}
@@ -70,7 +70,55 @@ func TestFinalizerHandle(t *testing.T) {
 			Print(err)
 	}
 
-	for _, v := range getTestFinalizerSpecs() {
+	for _, v := range getTestFinalizerSpecsRelease() {
+
+		ok, err := HandleFinalizer(testObj, v)
+		assert.Equal(v.ReturnValue, ok)
+		assert.Equal(v.ReturnError, err)
+	}
+
+}
+
+func TestFinalizerHandleRepo(t *testing.T) {
+
+	clientMock := mocks.K8SClientMock{}
+	httpMock := mocks.HTTPClientMock{}
+
+	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{
+		"label": "selector",
+	}}).Return(nil).Run(func(args mock.Arguments) {
+
+		_ = args.Get(1).(*helmv1alpha1.ChartList)
+	})
+
+	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{}}).Return(nil).Run(func(args mock.Arguments) {
+
+		_ = args.Get(1).(*helmv1alpha1.ChartList)
+	})
+
+	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{
+		"label": "notpresent",
+	}}).Return(nil).Run(func(args mock.Arguments) {
+
+		_ = args.Get(1).(*helmv1alpha1.ChartList)
+	})
+
+	/*expected :=  getExpectedTestCharts(clientMock)*/
+
+	indexFile := getTestFinalizerIndexFile()
+	rawIndexFile, _ := json.Marshal(indexFile)
+	httpResponse := &http.Response{
+		Body: ioutil.NopCloser(bytes.NewReader(rawIndexFile)),
+	}
+
+	httpMock.On("Get",
+		"https://foo.bar/charts/index.yaml").Return(httpResponse, nil)
+
+	assert := assert.New(t)
+
+	testObj := NewHelmClient(getTestFinalizerRepo(), &clientMock, &httpMock)
+
+	for _, v := range getTestFinalizerSpecsRepo() {
 
 		ok, err := HandleFinalizer(testObj, v)
 		assert.Equal(v.ReturnValue, ok)
@@ -138,12 +186,27 @@ func getTestFinalizerIndexFile() *repo.IndexFile {
 	}
 }
 
-func getTestFinalizerSpecs() []inttypes.TestCase {
+func getTestFinalizerSpecsRelease() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		{
 			ReturnError: nil,
 			ReturnValue: true,
 			Input:       getTestClientRelease(),
+		},
+		{
+			ReturnError: nil,
+			ReturnValue: true,
+			Input:       getTestClientRepo(),
+		},
+	}
+}
+
+func getTestFinalizerSpecsRepo() []inttypes.TestCase {
+	return []inttypes.TestCase{
+		{
+			ReturnError: nil,
+			ReturnValue: true,
+			Input:       getTestClientRepo(),
 		},
 	}
 }
