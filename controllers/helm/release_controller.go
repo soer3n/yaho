@@ -19,6 +19,7 @@ package helm
 import (
 	"context"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -98,6 +99,14 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		},
 	}
 
+	releaseNamespace := instance.Spec.Namespace
+
+	if releaseNamespace.Name == "" {
+		releaseNamespace.Name = instance.ObjectMeta.Namespace
+	}
+
+	_ = os.Setenv("HELM_NAMESPACE", releaseNamespace.Name)
+
 	hc = helmutils.NewHelmClient(instance, r.Client, &g)
 
 	if instance.GetDeletionTimestamp() != nil {
@@ -131,10 +140,10 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	log.Infof("Trying HelmRelease %v", refList)
-	return r.update(helmRelease, valuesList, instance)
+	return r.update(helmRelease, releaseNamespace, valuesList, instance)
 }
 
-func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, valuesList []*helmv1alpha1.Values, instance *helmv1alpha1.Release) (ctrl.Result, error) {
+func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamespace helmv1alpha1.Namespace, valuesList []*helmv1alpha1.Values, instance *helmv1alpha1.Release) (ctrl.Result, error) {
 	refList, _ := r.getRefList(valuesList, instance)
 	helmRelease.ValuesTemplate = helmutils.NewValueTemplate(refList)
 	helmRelease.Namespace.Name = instance.ObjectMeta.Namespace
@@ -145,12 +154,6 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, valuesList []
 		if err := r.deployConfigMap(configmap, controller); err != nil {
 			return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 		}
-	}
-
-	releaseNamespace := instance.Spec.Namespace
-
-	if releaseNamespace.Name == "" {
-		releaseNamespace.Name = instance.ObjectMeta.Namespace
 	}
 
 	if err := helmRelease.Update(releaseNamespace); err != nil {
