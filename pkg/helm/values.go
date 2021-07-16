@@ -147,12 +147,18 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 
 		log.Debugf("ConvertedMap: %v", convertedMap)
 
+		mapKey := ""
+
+		if len(parents) > 0 {
+			mapKey = parents[0]
+		}
+
 		if unstructed {
-			valMap = mergeUntypedMaps(valMap, convertedMap, parentKey)
+			valMap = mergeUntypedMaps(valMap, convertedMap, mapKey)
 		}
 
 		for key, val := range hv.parseFromUntypedMap(parentKey, convertedMap) {
-			valMap[key] = val
+			// valMap[key] = val
 			log.Debugf("Parsed key: %v; Parsed value: %v", key, val)
 		}
 	}
