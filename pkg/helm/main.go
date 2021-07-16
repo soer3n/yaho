@@ -85,6 +85,17 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 	return b
 }
 
+func mergeUntypedMaps(dest, source map[string]interface{}, key string) map[string]interface{} {
+
+	for k, v := range source {
+		source[key] = map[string]interface{}{
+			k: v,
+		}
+	}
+
+	return source
+}
+
 // GetEnvSettings represents func for returning helm cli settings which are needed for helm actions
 func (c Client) GetEnvSettings() *cli.EnvSettings {
 	settings := cli.New()

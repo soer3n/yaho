@@ -2,6 +2,7 @@ apiVersion: helm.soer3n.info/v1alpha1
 kind: Values
 metadata:
   name: values-sample-nested-2
+  namespace: helm
 spec:
   json:
     foo: bar

@@ -3,6 +3,7 @@ package helm
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 
 	"github.com/prometheus/common/log"
@@ -58,7 +59,7 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k
 // Update represents update or installation process of a release
 func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 
-	log.Debugf("configinstall: %v", hc.Config)
+	log.Debugf("config install: %v", fmt.Sprint(hc.Config))
 
 	var release *release.Release
 	var helmChart *chart.Chart
@@ -82,17 +83,20 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 	log.Debugf("configupdate: %v", hc.Config)
 	release, _ = hc.getRelease()
 
-	if err = hc.setValues(); err != nil {
+	var specValues map[string]interface{}
+
+	if specValues, err = hc.setValues(); err != nil {
 		return err
 	}
 
 	client.Namespace = namespace.Name
 	client.CreateNamespace = namespace.Install
-	vals := mergeMaps(hc.getValues(), helmChart.Values)
+	// specValues := hc.getValues()
+	vals := mergeMaps(specValues, helmChart.Values)
 
 	// Check if something changed regarding the existing release
 	if release != nil {
-		if ok, err = hc.valuesChanged(); err != nil {
+		if ok, err = hc.valuesChanged(vals); err != nil {
 			return err
 		}
 
@@ -150,27 +154,28 @@ func (hc Release) getValues() map[string]interface{} {
 
 	log.Debug("third check")
 
-	if mergedVals, err = vals.MergeValues(getter.All(hc.Settings)); err != nil {
+	/*if mergedVals, err = vals.MergeValues(getter.All(hc.Settings)); err != nil {
+		log.Info(err.Error())
 		return map[string]interface{}{}
-	}
+	}*/
 
 	return mergedVals
 }
 
-func (hc *Release) setValues() error {
+func (hc *Release) setValues() (map[string]interface{}, error) {
 
 	templateObj := hc.ValuesTemplate
 
-	values, err := templateObj.ManageValues()
+	returnValues, err := templateObj.ManageValues()
 
 	if err != nil {
-		return err
+		return templateObj.Values, err
 	}
 
-	hc.Values = values
+	hc.Values = templateObj.Values
 	hc.ValuesTemplate.ValuesMap = templateObj.ValuesMap
 
-	return nil
+	return returnValues, nil
 }
 
 func (hc Release) getValuesAsList(values map[string]string) []string {
@@ -193,7 +198,7 @@ func (hc Release) getInstalledValues() (map[string]interface{}, error) {
 	return client.Run(hc.Name)
 }
 
-func (hc Release) valuesChanged() (bool, error) {
+func (hc Release) valuesChanged(vals map[string]interface{}) (bool, error) {
 
 	var installedValues map[string]interface{}
 	var err error
@@ -204,8 +209,9 @@ func (hc Release) valuesChanged() (bool, error) {
 
 	log.Debugf("installed values: (%v)", installedValues)
 
-	defaultVals := hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
-	requestedValues := mergeMaps(hc.getValues(), defaultVals)
+	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
+	// specValues := hc.getValues()
+	requestedValues := mergeMaps(vals, defaultValues)
 
 	for key := range installedValues {
 		if _, ok := requestedValues[key]; !ok {

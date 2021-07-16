@@ -36,20 +36,22 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 
 		}
 
-		if hv.Values == nil {
+		/*if hv.Values == nil {
 			hv.Values = make(map[string]interface{})
-		}
+		}*/
 
-		merged = hv.transformToMap(ref.Ref, values)
+		merged = hv.transformToMap(ref.Ref, values, true)
 
-		if err = hv.mergeMaps(merged); err != nil {
+		/*if err = hv.mergeMaps(merged); err != nil {
 			return merged, err
-		}
+		}*/
 	}
 
-	for k, merge := range merged {
+	/*for k, merge := range merged {
 		hv.ValuesMap[k] = merge.(string)
-	}
+	}*/
+
+	// hv.Values = merged
 
 	return merged, nil
 }
@@ -73,7 +75,7 @@ func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface
 				}
 			}
 
-			merged = hv.transformToMap(v.Ref, merged, hv.getRefKeyByValue(v.Ref.Name, valueMap.Ref.Spec.Refs))
+			merged = hv.transformToMap(v.Ref, merged, true, hv.getRefKeyByValue(v.Ref.Name, valueMap.Ref.Spec.Refs))
 			valMap = mergeMaps(merged, valMap)
 		}
 
@@ -115,7 +117,7 @@ func (hv *ValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
 
 }
 
-func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, parents ...string) map[string]interface{} {
+func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, unstructed bool, parents ...string) map[string]interface{} {
 	valMap := make(map[string]interface{})
 	var parentKey string
 
@@ -145,19 +147,25 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 
 		log.Debugf("ConvertedMap: %v", convertedMap)
 
+		if unstructed {
+			valMap = mergeUntypedMaps(valMap, convertedMap, parentKey)
+		}
+
 		for key, val := range hv.parseFromUntypedMap(parentKey, convertedMap) {
 			valMap[key] = val
 			log.Debugf("Parsed key: %v; Parsed value: %v", key, val)
 		}
 	}
 
-	for ck, cv := range childMap {
+	/*for ck, cv := range childMap {
 		bytes := []byte(cv.(string))
 		subMap := hv.parseMap(parentKey+ck, bytes)
 		for key, value := range subMap {
 			valMap[key] = value
 		}
-	}
+	}*/
+
+	log.Info(fmt.Sprint(valMap))
 
 	return valMap
 }
@@ -198,12 +206,35 @@ func (hv ValueTemplate) parseFromUntypedMap(parentKey string, convertedMap map[s
 		if parentKey != "" {
 			returnKey = returnKey + "."
 		}
+
+		if entry == nil {
+			continue
+		}
+
 		returnKey = returnKey + ix
 		stringVal, ok := entry.(string)
+		boolVal, isBool := entry.(bool)
+		floatVal, isFloat := entry.(float64)
+		listVal, isList := entry.([]interface{})
 
 		if ok {
 			valMap[returnKey] = stringVal
 			returnKey = parentKey
+			continue
+		}
+
+		if isBool {
+			valMap[returnKey] = fmt.Sprint(boolVal)
+			continue
+		}
+
+		if isFloat {
+			valMap[returnKey] = fmt.Sprint(floatVal)
+			continue
+		}
+
+		if isList {
+			valMap[returnKey] = fmt.Sprint(listVal)
 			continue
 		}
 
