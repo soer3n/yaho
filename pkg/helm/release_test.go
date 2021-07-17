@@ -30,6 +30,7 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -193,6 +194,67 @@ func TestReleaseUpdate(t *testing.T) {
 			Install: false,
 		})
 		assert.Equal(err, apiObj.ReturnError)
+	}
+}
+
+func TestReleaseInitValuesTemplate(t *testing.T) {
+
+	clientMock := mocks.K8SClientMock{}
+	httpMock := mocks.HTTPClientMock{}
+	settings := cli.New()
+	apiObjList := getTestReleaseValueRefListSpec()
+	testRelease := &helmv1alpha1.Release{
+		Spec: helmv1alpha1.ReleaseSpec{
+			Name:    "test",
+			Chart:   "chart",
+			Repo:    "repo",
+			Version: "0.0.1",
+			ValuesTemplate: &helmv1alpha1.ValueTemplate{
+				ValueRefs: []string{"notpresent"},
+			},
+		},
+	}
+
+	assert := assert.New(t)
+
+	for _, apiObj := range apiObjList {
+
+		current := apiObj.Input.([]*ValuesRef)
+		testObj := NewHelmRelease(testRelease, settings, &clientMock, &httpMock, kube.Client{})
+		testObj.InitValuesTemplate(current, "namespace", "v0.0.1")
+		expect := apiObj.ReturnValue.(map[string]interface{})
+		assert.Equal(testObj.Values, expect)
+	}
+}
+
+func getTestReleaseValueRefListSpec() []inttypes.TestCase {
+	values := map[string]interface{}{
+		"values": "foo",
+		"key":    map[string]string{"bar": "fuz"},
+	}
+	castedValues, _ := json.Marshal(values)
+	var template map[string]interface{}
+
+	return []inttypes.TestCase{
+		{
+			ReturnValue: template,
+			ReturnError: nil,
+			Input: []*ValuesRef{
+				{
+					Ref: &helmv1alpha1.Values{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "values",
+						},
+						Spec: helmv1alpha1.ValuesSpec{
+							Refs: map[string]string{},
+							ValuesMap: &runtime.RawExtension{
+								Raw: castedValues,
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }
 

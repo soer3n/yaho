@@ -79,29 +79,6 @@ func (hv ValueTemplate) getRefKeyByValue(value string, refMap map[string]string)
 	return ""
 }
 
-func (hv ValueTemplate) getValuesAsList(values map[string]string) []string {
-
-	valueList := []string{}
-
-	for k := range values {
-		valueList = append(valueList, k)
-	}
-
-	return valueList
-}
-
-func (hv *ValueTemplate) mergeMaps(valueMap map[string]interface{}) error {
-	temp := mergeMaps(hv.Values, valueMap)
-	hv.ValuesMap = make(map[string]string)
-
-	for k, v := range temp {
-		hv.ValuesMap[k] = v.(string)
-	}
-
-	return nil
-
-}
-
 func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, unstructed bool, parents ...string) map[string]interface{} {
 	valMap := make(map[string]interface{})
 	var parentKey string

@@ -116,6 +116,12 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 	return nil
 }
 
+func (hc *Release) InitValuesTemplate(refList []*ValuesRef, version, namespace string) {
+	hc.ValuesTemplate = NewValueTemplate(refList)
+	hc.Namespace.Name = namespace
+	hc.Version = version
+}
+
 // Remove represents removing release related resource
 func (hc Release) Remove() error {
 	client := action.NewUninstall(hc.Config)
@@ -137,20 +143,6 @@ func (hc *Release) getValues() (map[string]interface{}, error) {
 	hc.ValuesTemplate.ValuesMap = templateObj.ValuesMap
 
 	return returnValues, nil
-}
-
-func (hc Release) getValuesAsList(values map[string]string) []string {
-
-	var valueList []string
-	var transformedVal string
-	valueList = []string{}
-
-	for k, v := range values {
-		transformedVal = k + "=" + v
-		valueList = append(valueList, transformedVal)
-	}
-
-	return valueList
 }
 
 func (hc Release) getInstalledValues() (map[string]interface{}, error) {

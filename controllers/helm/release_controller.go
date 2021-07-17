@@ -145,9 +145,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamespace helmv1alpha1.Namespace, valuesList []*helmv1alpha1.Values, instance *helmv1alpha1.Release) (ctrl.Result, error) {
 	refList, _ := r.getRefList(valuesList, instance)
-	helmRelease.ValuesTemplate = helmutils.NewValueTemplate(refList)
-	helmRelease.Namespace.Name = instance.ObjectMeta.Namespace
-	helmRelease.Version = instance.Spec.Version
+	helmRelease.InitValuesTemplate(refList, instance.Spec.Version, instance.ObjectMeta.Namespace)
 	controller, _ := r.getControllerRepo(instance.Spec.Repo, instance.ObjectMeta.Namespace)
 
 	for _, configmap := range helmRelease.GetParsedConfigMaps() {
