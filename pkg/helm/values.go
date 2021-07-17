@@ -163,13 +163,7 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 		}
 	}
 
-	/*for ck, cv := range childMap {
-		bytes := []byte(cv.(string))
-		subMap := hv.parseMap(parentKey+ck, bytes)
-		for key, value := range subMap {
-			valMap[key] = value
-		}
-	}*/
+	valMap = mergeUntypedMaps(valMap, childMap, parentKey)
 
 	log.Info(fmt.Sprint(valMap))
 
