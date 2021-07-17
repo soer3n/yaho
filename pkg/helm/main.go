@@ -73,55 +73,56 @@ func getChartURL(rc client.Client, chart, version, namespace string) (string, er
 	return utils.GetChartVersion(version, chartObj).URL, nil
 }
 
-func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
+func mergeMaps(source, dest map[string]interface{}) map[string]interface{} {
 
-	if a == nil || b == nil {
-		return b
+	if source == nil || dest == nil {
+		return dest
 	}
 
-	for k, v := range a {
+	for k, v := range source {
 		// when key already exists we have to compare also sub values
-		if temp, ok := a[k].(map[string]interface{}); ok {
-			merge, _ := v.(map[string]interface{})
-			temp = mergeMaps(temp, merge)
-			b[k] = temp
+		if temp, ok := v.(map[string]interface{}); ok {
+			merge, _ := dest[k].(map[string]interface{})
+			dest[k] = mergeMaps(merge, temp)
 			continue
 		}
 
-		b[k] = v
+		dest[k] = v
 	}
 
-	return b
+	return dest
 }
 
-func mergeUntypedMaps(source, dest map[string]interface{}, key string) map[string]interface{} {
+func mergeUntypedMaps(dest, source map[string]interface{}, key string) map[string]interface{} {
 
-	for k, v := range dest {
+	for k, v := range source {
 		if key == "" {
-			if temp, ok := source[k].(map[string]interface{}); ok {
+			if temp, ok := dest[k].(map[string]interface{}); ok {
 				temp = mergeUntypedMaps(temp, map[string]interface{}{
 					k: v,
 				}, key)
+				dest[k] = temp
 				continue
 			}
 
-			source[k] = v
+			dest[k] = v
 			continue
 		}
 
-		if temp, ok := source[k].(map[string]interface{}); ok {
+		if temp, ok := dest[k].(map[string]interface{}); ok {
 			temp = mergeUntypedMaps(temp, map[string]interface{}{
 				k: v,
 			}, key)
+			dest[k] = temp
 			continue
 		}
 
-		source[key] = map[string]interface{}{
+		dest[key] = map[string]interface{}{
 			k: v,
 		}
 	}
 
-	return source
+	return dest
 }
 
 // GetEnvSettings represents func for returning helm cli settings which are needed for helm actions

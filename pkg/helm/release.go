@@ -98,17 +98,17 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 		}
 
 		if ok {
-			return hc.upgrade(helmChart, vals, namespace.Name)
+			return hc.upgrade(helmChart, specValues, namespace.Name)
 		}
 
 		return nil
 	}
 
-	if err = chartutil.ProcessDependencies(helmChart, vals); err != nil {
+	if err = chartutil.ProcessDependencies(helmChart, specValues); err != nil {
 		return err
 	}
 
-	if release, err = client.Run(helmChart, vals); err != nil {
+	if release, err = client.Run(helmChart, specValues); err != nil {
 		return err
 	}
 
