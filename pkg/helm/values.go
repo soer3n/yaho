@@ -35,7 +35,7 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 
 		}
 
-		merged = hv.transformToMap(ref.Ref, values, true)
+		merged = mergeMaps(hv.transformToMap(ref.Ref, values, true), merged)
 	}
 
 	return merged, nil
