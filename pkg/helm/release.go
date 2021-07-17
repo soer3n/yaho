@@ -83,7 +83,7 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 
 	var specValues map[string]interface{}
 
-	if specValues, err = hc.setValues(); err != nil {
+	if specValues, err = hc.getValues(); err != nil {
 		return err
 	}
 
@@ -123,7 +123,7 @@ func (hc Release) Remove() error {
 	return err
 }
 
-func (hc *Release) setValues() (map[string]interface{}, error) {
+func (hc *Release) getValues() (map[string]interface{}, error) {
 
 	templateObj := hc.ValuesTemplate
 
