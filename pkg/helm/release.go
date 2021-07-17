@@ -11,8 +11,6 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/cli/values"
-	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
@@ -91,7 +89,6 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 
 	client.Namespace = namespace.Name
 	client.CreateNamespace = namespace.Install
-	// specValues := hc.getValues()
 	vals := mergeMaps(specValues, helmChart.Values)
 
 	// Check if something changed regarding the existing release
@@ -124,42 +121,6 @@ func (hc Release) Remove() error {
 	client := action.NewUninstall(hc.Config)
 	_, err := client.Run(hc.Name)
 	return err
-}
-
-func (hc Release) getValues() map[string]interface{} {
-
-	log.Debugf("init check (%v)", hc.ValuesTemplate)
-
-	var initVals, mergedVals map[string]interface{}
-	var err error
-
-	vals := &values.Options{}
-	if initVals, err = vals.MergeValues(getter.All(hc.Settings)); err != nil {
-		return map[string]interface{}{}
-	}
-
-	if hc.ValuesTemplate == nil {
-		return initVals
-	}
-
-	if hc.ValuesTemplate.ValueFiles != nil {
-		vals.ValueFiles = hc.ValuesTemplate.ValueFiles
-		log.Debugf("first check (%q)", hc.ValuesTemplate.ValueFiles)
-	}
-
-	if hc.ValuesTemplate.ValuesMap != nil {
-		vals.Values = hc.getValuesAsList(hc.ValuesTemplate.ValuesMap)
-		log.Debugf("second check (%q)", hc.ValuesTemplate.ValuesMap)
-	}
-
-	log.Debug("third check")
-
-	/*if mergedVals, err = vals.MergeValues(getter.All(hc.Settings)); err != nil {
-		log.Info(err.Error())
-		return map[string]interface{}{}
-	}*/
-
-	return mergedVals
 }
 
 func (hc *Release) setValues() (map[string]interface{}, error) {
@@ -210,7 +171,6 @@ func (hc Release) valuesChanged(vals map[string]interface{}) (bool, error) {
 	log.Debugf("installed values: (%v)", installedValues)
 
 	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
-	// specValues := hc.getValues()
 	requestedValues := mergeMaps(vals, defaultValues)
 
 	for key := range installedValues {

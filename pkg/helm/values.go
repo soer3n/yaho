@@ -6,7 +6,6 @@ import (
 
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	"sigs.k8s.io/yaml"
 )
 
 // NewValueTemplate represents initialization of internal struct for managing helm values
@@ -36,22 +35,8 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 
 		}
 
-		/*if hv.Values == nil {
-			hv.Values = make(map[string]interface{})
-		}*/
-
 		merged = hv.transformToMap(ref.Ref, values, true)
-
-		/*if err = hv.mergeMaps(merged); err != nil {
-			return merged, err
-		}*/
 	}
-
-	/*for k, merge := range merged {
-		hv.ValuesMap[k] = merge.(string)
-	}*/
-
-	// hv.Values = merged
 
 	return merged, nil
 }
@@ -156,100 +141,11 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 		if unstructed {
 			valMap = mergeUntypedMaps(valMap, convertedMap, mapKey)
 		}
-
-		for key, val := range hv.parseFromUntypedMap(parentKey, convertedMap) {
-			// valMap[key] = val
-			log.Debugf("Parsed key: %v; Parsed value: %v", key, val)
-		}
 	}
 
 	valMap = mergeUntypedMaps(valMap, childMap, parentKey)
 
 	log.Info(fmt.Sprint(valMap))
-
-	return valMap
-}
-
-func (hv ValueTemplate) parseMap(key string, payload []byte) map[string]string {
-
-	valMap := make(map[string]string)
-	subMap := make(map[string]string)
-	returnKey := key
-
-	if err := yaml.Unmarshal([]byte(payload), &subMap); err != nil {
-		log.Debugf("Error: %v", err)
-		valMap[key] = string(payload[:])
-		return valMap
-	}
-
-	for ix, entry := range subMap {
-		returnKey = returnKey + "." + ix
-		if err := yaml.Unmarshal([]byte(entry), &subMap); err != nil {
-			valMap[returnKey] = entry
-		} else {
-			return hv.parseMap(ix, []byte(entry))
-		}
-	}
-
-	return valMap
-
-}
-
-func (hv ValueTemplate) parseFromUntypedMap(parentKey string, convertedMap map[string]interface{}) map[string]string {
-
-	var targetMap map[string]string
-	valMap := make(map[string]string)
-	returnKey := parentKey
-
-	for ix, entry := range convertedMap {
-
-		if parentKey != "" {
-			returnKey = returnKey + "."
-		}
-
-		if entry == nil {
-			continue
-		}
-
-		returnKey = returnKey + ix
-		stringVal, ok := entry.(string)
-		boolVal, isBool := entry.(bool)
-		floatVal, isFloat := entry.(float64)
-		listVal, isList := entry.([]interface{})
-
-		if ok {
-			valMap[returnKey] = stringVal
-			returnKey = parentKey
-			continue
-		}
-
-		if isBool {
-			valMap[returnKey] = fmt.Sprint(boolVal)
-			continue
-		}
-
-		if isFloat {
-			valMap[returnKey] = fmt.Sprint(floatVal)
-			continue
-		}
-
-		if isList {
-			valMap[returnKey] = fmt.Sprint(listVal)
-			continue
-		}
-
-		stringVal = fmt.Sprintf("%v", entry)
-
-		if err := yaml.Unmarshal([]byte(stringVal), &targetMap); err != nil {
-			for k, v := range hv.parseFromUntypedMap(returnKey, entry.(map[string]interface{})) {
-				valMap[k] = v
-			}
-		} else {
-			valMap[returnKey] = entry.(string)
-		}
-
-		returnKey = parentKey
-	}
 
 	return valMap
 }
