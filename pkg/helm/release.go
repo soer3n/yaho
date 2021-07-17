@@ -89,26 +89,26 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 
 	client.Namespace = namespace.Name
 	client.CreateNamespace = namespace.Install
-	vals := mergeMaps(specValues, helmChart.Values)
+	specValues = mergeUntypedMaps(specValues, helmChart.Values, "")
 
 	// Check if something changed regarding the existing release
 	if release != nil {
-		if ok, err = hc.valuesChanged(vals); err != nil {
+		if ok, err = hc.valuesChanged(specValues); err != nil {
 			return err
 		}
 
 		if ok {
-			return hc.upgrade(helmChart, vals, namespace.Name)
+			return hc.upgrade(helmChart, specValues, namespace.Name)
 		}
 
 		return nil
 	}
 
-	if err = chartutil.ProcessDependencies(helmChart, vals); err != nil {
+	if err = chartutil.ProcessDependencies(helmChart, specValues); err != nil {
 		return err
 	}
 
-	if release, err = client.Run(helmChart, vals); err != nil {
+	if release, err = client.Run(helmChart, specValues); err != nil {
 		return err
 	}
 

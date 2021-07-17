@@ -80,8 +80,17 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 	}
 
 	for k, v := range a {
+		// when key already exists we have to compare also sub values
+		if temp, ok := a[k].(map[string]interface{}); ok {
+			merge, _ := v.(map[string]interface{})
+			temp = mergeMaps(temp, merge)
+			b[k] = temp
+			continue
+		}
+
 		b[k] = v
 	}
+
 	return b
 }
 
@@ -89,7 +98,21 @@ func mergeUntypedMaps(source, dest map[string]interface{}, key string) map[strin
 
 	for k, v := range dest {
 		if key == "" {
+			if temp, ok := source[k].(map[string]interface{}); ok {
+				temp = mergeUntypedMaps(temp, map[string]interface{}{
+					k: v,
+				}, key)
+				continue
+			}
+
 			source[k] = v
+			continue
+		}
+
+		if temp, ok := source[k].(map[string]interface{}); ok {
+			temp = mergeUntypedMaps(temp, map[string]interface{}{
+				k: v,
+			}, key)
 			continue
 		}
 
