@@ -116,6 +116,7 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 	return nil
 }
 
+// InitValuesTemplate represents initialization of value template by list of refs from kubernetes api
 func (hc *Release) InitValuesTemplate(refList []*ValuesRef, version, namespace string) {
 	hc.ValuesTemplate = NewValueTemplate(refList)
 	hc.Namespace.Name = namespace
