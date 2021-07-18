@@ -127,6 +127,14 @@ func TestReleaseUpdate(t *testing.T) {
 		c.ObjectMeta = spec.ObjectMeta
 	})
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "notfound", Namespace: ""}, &helmv1alpha1.Chart{}).Return(errors.New("chart not found"))
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-default-notfound-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
+
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := getTestReleaseDefaultValueConfigMap()
+		c.Data = spec.Data
+		c.ObjectMeta = spec.ObjectMeta
+	})
+
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-tmpl-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
 
 		c := args.Get(2).(*v1.ConfigMap)
@@ -192,7 +200,7 @@ func TestReleaseUpdate(t *testing.T) {
 		err := testObj.Update(helmv1alpha1.Namespace{
 			Name:    "",
 			Install: false,
-		})
+		}, map[string]helmv1alpha1.DependencyConfig{})
 		assert.Equal(err, apiObj.ReturnError)
 	}
 }

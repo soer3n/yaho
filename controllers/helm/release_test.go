@@ -23,7 +23,7 @@ var _ = Context("Install a release", func() {
 
 	Describe("when no existing resources exist", func() {
 
-		It("should start with creating dependencies", func() {
+		FIt("should start with creating dependencies", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
 

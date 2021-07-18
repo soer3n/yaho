@@ -65,6 +65,19 @@ spec:
                 description: ValueTemplate represents data for install process of
                   a release
                 properties:
+                  deps:
+                    items:
+                      description: DependencyConfig represents data for a chart dependency
+                        in a release
+                      properties:
+                        enabled:
+                          type: boolean
+                        name:
+                          type: string
+                        values:
+                          type: string
+                      type: object
+                    type: array
                   valueRefs:
                     items:
                       type: string

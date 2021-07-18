@@ -154,7 +154,7 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamesp
 		}
 	}
 
-	if err := helmRelease.Update(releaseNamespace); err != nil {
+	if err := helmRelease.Update(releaseNamespace, instance.Spec.ValuesTemplate.DependenciesConfig); err != nil {
 		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 	}
 

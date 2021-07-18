@@ -2,7 +2,6 @@ package helm
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -120,9 +119,5 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 		}
 	}
 
-	valMap = mergeUntypedMaps(valMap, childMap, parentKey)
-
-	log.Info(fmt.Sprint(valMap))
-
-	return valMap
+	return mergeUntypedMaps(valMap, childMap, parentKey)
 }

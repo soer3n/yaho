@@ -1,0 +1,40 @@
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Values
+metadata:
+  name: values-redis
+  namespace: helm
+spec:
+  json:
+    redis:
+      enabled: true
+      global:
+        redis:
+          password: foobar
+        storageClass: "openebs-hostpath"
+      usePassword: true
+      usePasswordFile: true
+      # password: foobar
+      existingSecret: redis-secret
+      existingSecretPasswordKey: redis-password
+      sentinel:
+        enabed: false
+        usePassword: true
+      master:
+        persistence:
+          enabled: true
+          storageClass: "openebs-hostpath"
+          accessMode: ReadWriteOnce
+      slave:
+        persistence:
+          enabled: true
+          storageClass: "openebs-hostpath"
+          accessMode: ReadWriteOnce
+      metrics:
+        enabled: true
+      serviceMonitor:
+        enabled: false
+      rbac:
+        create: true
+      serviceAccount:
+        create: true
+      clusterDomain: cluster.local

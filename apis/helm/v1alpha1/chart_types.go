@@ -65,9 +65,10 @@ type ChartSpec struct {
 
 // ChartDep represents data for parsing a chart dependency
 type ChartDep struct {
-	Name    string `json:"name,omitempty"`
-	Version string `json:"version,omitempty"`
-	Repo    string `json:"repo,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Version   string `json:"version,omitempty"`
+	Repo      string `json:"repo,omitempty"`
+	Condition string `json:"condition,omitempty"`
 }
 
 // ChartVersion repesents data for parsing a chart

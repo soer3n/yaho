@@ -55,7 +55,7 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k
 }
 
 // Update represents update or installation process of a release
-func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
+func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig map[string]helmv1alpha1.DependencyConfig) error {
 
 	log.Debugf("config install: %v", fmt.Sprint(hc.Config))
 
@@ -69,27 +69,29 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 	client.ReleaseName = hc.Name
 	hc.Client = client
 
-	options := &action.ChartPathOptions{
-		Version:               hc.Version,
-		InsecureSkipTLSverify: false,
-		Verify:                false,
-	}
-	if helmChart, err = hc.getChart(hc.Chart, options); err != nil {
-		return err
-	}
-
-	log.Debugf("configupdate: %v", hc.Config)
-	release, _ = hc.getRelease()
-
 	var specValues map[string]interface{}
 
 	if specValues, err = hc.getValues(); err != nil {
 		return err
 	}
 
+	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
 	client.Namespace = namespace.Name
 	client.CreateNamespace = namespace.Install
+
+	options := &action.ChartPathOptions{
+		Version:               hc.Version,
+		InsecureSkipTLSverify: false,
+		Verify:                false,
+	}
+	if helmChart, err = hc.getChart(hc.Chart, options, dependenciesConfig, mergeMaps(defaultValues, specValues)); err != nil {
+		return err
+	}
+
 	vals := mergeMaps(helmChart.Values, specValues)
+
+	log.Debugf("configupdate: %v", hc.Config)
+	release, _ = hc.getRelease()
 
 	// Check if something changed regarding the existing release
 	if release != nil {
@@ -98,17 +100,13 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 		}
 
 		if ok {
-			return hc.upgrade(helmChart, specValues, namespace.Name)
+			return hc.upgrade(helmChart, vals, namespace.Name)
 		}
 
 		return nil
 	}
 
-	if err = chartutil.ProcessDependencies(helmChart, specValues); err != nil {
-		return err
-	}
-
-	if release, err = client.Run(helmChart, specValues); err != nil {
+	if release, err = client.Run(helmChart, vals); err != nil {
 		return err
 	}
 
@@ -190,7 +188,7 @@ func (hc Release) getRelease() (*release.Release, error) {
 	return client.Run(hc.Name)
 }
 
-func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathOptions) (*chart.Chart, error) {
+func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathOptions, dependenciesConfig map[string]helmv1alpha1.DependencyConfig, vals map[string]interface{}) (*chart.Chart, error) {
 
 	helmChart := &chart.Chart{
 		Metadata:  &chart.Metadata{},
@@ -227,11 +225,11 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
 	helmChart.Files = files
 	helmChart.Templates = hc.appendFilesFromConfigMap("helm-tmpl-"+hc.Chart+"-"+hc.Version, helmChart.Templates)
-	helmChart.Values = hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
+	helmChart.Values = vals
 
 	versionObj := utils.GetChartVersion(chartPathOptions.Version, chartObj)
 
-	if err := hc.addDependencies(helmChart, versionObj.Dependencies, repoSelector); err != nil {
+	if err := hc.addDependencies(helmChart, versionObj.Dependencies, dependenciesConfig, repoSelector); err != nil {
 		return helmChart, err
 	}
 
@@ -252,7 +250,7 @@ func (hc Release) getFiles(helmChart *helmv1alpha1.Chart) []*chart.File {
 	return files
 }
 
-func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartDep, selectors map[string]string) error {
+func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartDep, dependenciesConfig map[string]helmv1alpha1.DependencyConfig, selectors map[string]string) error {
 
 	var chartList helmv1alpha1.ChartList
 	var err error
@@ -275,8 +273,10 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartD
 				options.RepoURL = dep.Repo
 				options.Version = dep.Version
 
-				subChart, _ := hc.getChart(item.Spec.Name, options)
-				chart.AddDependency(subChart)
+				if dependenciesConfig[dep.Name].Enabled {
+					subChart, _ := hc.getChart(item.Spec.Name, options, dependenciesConfig, chart.Values)
+					chart.AddDependency(subChart)
+				}
 			}
 		}
 	}
@@ -397,10 +397,6 @@ func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values, namespa
 
 	client := action.NewUpgrade(hc.Config)
 	client.Namespace = namespace
-
-	if err = chartutil.ProcessDependencies(helmChart, vals); err != nil {
-		return err
-	}
 
 	if rel, err = client.Run(hc.Name, helmChart, vals); err != nil {
 		return err

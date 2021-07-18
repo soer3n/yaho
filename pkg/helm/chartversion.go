@@ -70,9 +70,10 @@ func (chartVersion ChartVersion) createDependenciesList(chartMeta *chart.Metadat
 
 	for _, dep := range chartMeta.Dependencies {
 		deps = append(deps, helmv1alpha1.ChartDep{
-			Name:    dep.Name,
-			Version: dep.Version,
-			Repo:    dep.Repository,
+			Name:      dep.Name,
+			Version:   dep.Version,
+			Repo:      dep.Repository,
+			Condition: dep.Name + ".enabled",
 		})
 	}
 

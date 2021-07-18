@@ -38,7 +38,14 @@ type ReleaseSpec struct {
 
 // ValueTemplate represents data for install process of a release
 type ValueTemplate struct {
-	ValueRefs []string `json:"valueRefs,omitempty"`
+	ValueRefs          []string                    `json:"valueRefs,omitempty"`
+	DependenciesConfig map[string]DependencyConfig `json:"deps,omitempty"`
+}
+
+// DependencyConfig represents data for a chart dependency in a release
+type DependencyConfig struct {
+	Enabled bool   `json:"enabled,omitempty"`
+	Values  string `json:"values,omitempty"`
 }
 
 // Namespace represents struct for release namespace data
