@@ -148,7 +148,7 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamesp
 	helmRelease.InitValuesTemplate(refList, instance.Spec.Version, instance.ObjectMeta.Namespace)
 	controller, _ := r.getControllerRepo(instance.Spec.Repo, instance.ObjectMeta.Namespace)
 
-	for _, configmap := range helmRelease.GetParsedConfigMaps() {
+	for _, configmap := range helmRelease.GetParsedConfigMaps(instance.ObjectMeta.Namespace) {
 		if err := r.deployConfigMap(configmap, controller); err != nil {
 			return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 		}

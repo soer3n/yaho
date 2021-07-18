@@ -84,7 +84,7 @@ func TestReleaseConfigMaps(t *testing.T) {
 		}
 
 		testObj.Version = current.Spec.Version
-		configList := testObj.GetParsedConfigMaps()
+		configList := testObj.GetParsedConfigMaps("")
 		expect, _ := apiObj.ReturnValue.([]v1.ConfigMap)
 
 		assert.Equal(expect, configList)

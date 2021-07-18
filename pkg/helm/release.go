@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/prometheus/common/log"
 	"helm.sh/helm/v3/pkg/action"
@@ -15,6 +17,7 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -273,9 +276,8 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartD
 				options.RepoURL = dep.Repo
 				options.Version = dep.Version
 
-				subValues, _ := chart.Values[dep.Name].(map[string]interface{})
 				if dependenciesConfig[dep.Name].Enabled {
-					subChart, _ := hc.getChart(item.Spec.Name, options, dependenciesConfig, subValues)
+					subChart, _ := hc.getChart(item.Spec.Name, options, dependenciesConfig, mergeMaps(hc.getDefaultValuesFromConfigMap("helm-default-"+dep.Name+"-"+dep.Version), hc.Values))
 					chart.AddDependency(subChart)
 				}
 			}
@@ -346,7 +348,7 @@ func (hc Release) getRepo() (helmv1alpha1.Repo, error) {
 }
 
 // GetParsedConfigMaps represents parsing and returning of chart related data for a release
-func (hc *Release) GetParsedConfigMaps() []v1.ConfigMap {
+func (hc *Release) GetParsedConfigMaps(namespace string) []v1.ConfigMap {
 
 	var chartRequested *chart.Chart
 	var repoObj helmv1alpha1.Repo
@@ -388,7 +390,47 @@ func (hc *Release) GetParsedConfigMaps() []v1.ConfigMap {
 	chartVersion.CRDs = chartRequested.CRDs()
 	chartVersion.DefaultValues = chartRequested.Values
 
-	return chartVersion.createConfigMaps(hc.Namespace.Name)
+	configmapList = chartVersion.createConfigMaps(hc.Namespace.Name)
+
+	chartObj := &helmv1alpha1.Chart{}
+	if err := hc.k8sClient.Get(context.Background(), types.NamespacedName{
+		Name:      hc.Chart,
+		Namespace: namespace,
+	}, chartObj); err != nil {
+		return configmapList
+	}
+
+	cv := utils.GetChartVersion(hc.Version, chartObj)
+
+	for _, dep := range cv.Dependencies {
+		immutable := new(bool)
+		*immutable = true
+		objectMeta := metav1.ObjectMeta{
+			Name:      "helm-default-" + dep.Name + "-" + dep.Version,
+			Namespace: namespace,
+		}
+		configmap := v1.ConfigMap{
+			Immutable:  immutable,
+			ObjectMeta: objectMeta,
+			Data:       make(map[string]string),
+		}
+
+		g := http.Client{
+			Timeout: time.Second * 10,
+			CheckRedirect: func(r *http.Request, via []*http.Request) error {
+				r.URL.Opaque = r.URL.Path
+				return nil
+			},
+		}
+
+		chartURL, _ := getChartURL(hc.k8sClient, dep.Name, dep.Version, namespace)
+		chart, _ := getChartByURL(chartURL, &g)
+		castedValues, _ := json.Marshal(chart.Values)
+		configmap.Data["values"] = string(castedValues)
+		configmapList = append(configmapList, configmap)
+	}
+
+	return configmapList
 }
 
 func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values, namespace string) error {
