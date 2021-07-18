@@ -4,9 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"reflect"
-	"time"
 
 	"github.com/prometheus/common/log"
 	"helm.sh/helm/v3/pkg/action"
@@ -17,7 +15,6 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -106,10 +103,6 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 		}
 
 		return nil
-	}
-
-	if err = chartutil.ProcessDependencies(helmChart, vals); err != nil {
-		return err
 	}
 
 	if release, err = client.Run(helmChart, vals); err != nil {
@@ -232,7 +225,7 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 
 	versionObj := utils.GetChartVersion(chartPathOptions.Version, chartObj)
 
-	if err := hc.addDependencies(helmChart, versionObj.Dependencies, dependenciesConfig, repoSelector); err != nil {
+	if err := hc.addDependencies(helmChart, versionObj.Dependencies, vals, dependenciesConfig, repoSelector); err != nil {
 		return helmChart, err
 	}
 
@@ -253,7 +246,7 @@ func (hc Release) getFiles(helmChart *helmv1alpha1.Chart) []*chart.File {
 	return files
 }
 
-func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartDep, dependenciesConfig map[string]helmv1alpha1.DependencyConfig, selectors map[string]string) error {
+func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartDep, vals map[string]interface{}, dependenciesConfig map[string]helmv1alpha1.DependencyConfig, selectors map[string]string) error {
 
 	var chartList helmv1alpha1.ChartList
 	var err error
@@ -277,7 +270,7 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartD
 				options.Version = dep.Version
 
 				if dependenciesConfig[dep.Name].Enabled {
-					subChart, _ := hc.getChart(item.Spec.Name, options, dependenciesConfig, mergeMaps(hc.getDefaultValuesFromConfigMap("helm-default-"+dep.Name+"-"+dep.Version), hc.Values))
+					subChart, _ := hc.getChart(item.Spec.Name, options, dependenciesConfig, vals)
 					chart.AddDependency(subChart)
 				}
 			}
@@ -392,44 +385,6 @@ func (hc *Release) GetParsedConfigMaps(namespace string) []v1.ConfigMap {
 
 	configmapList = chartVersion.createConfigMaps(hc.Namespace.Name)
 
-	chartObj := &helmv1alpha1.Chart{}
-	if err := hc.k8sClient.Get(context.Background(), types.NamespacedName{
-		Name:      hc.Chart,
-		Namespace: namespace,
-	}, chartObj); err != nil {
-		return configmapList
-	}
-
-	cv := utils.GetChartVersion(hc.Version, chartObj)
-
-	for _, dep := range cv.Dependencies {
-		immutable := new(bool)
-		*immutable = true
-		objectMeta := metav1.ObjectMeta{
-			Name:      "helm-default-" + dep.Name + "-" + dep.Version,
-			Namespace: namespace,
-		}
-		configmap := v1.ConfigMap{
-			Immutable:  immutable,
-			ObjectMeta: objectMeta,
-			Data:       make(map[string]string),
-		}
-
-		g := http.Client{
-			Timeout: time.Second * 10,
-			CheckRedirect: func(r *http.Request, via []*http.Request) error {
-				r.URL.Opaque = r.URL.Path
-				return nil
-			},
-		}
-
-		chartURL, _ := getChartURL(hc.k8sClient, dep.Name, dep.Version, namespace)
-		chart, _ := getChartByURL(chartURL, &g)
-		castedValues, _ := json.Marshal(chart.Values)
-		configmap.Data["values"] = string(castedValues)
-		configmapList = append(configmapList, configmap)
-	}
-
 	return configmapList
 }
 
@@ -441,11 +396,8 @@ func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values, namespa
 	client := action.NewUpgrade(hc.Config)
 	client.Namespace = namespace
 
-	if err = chartutil.ProcessDependencies(helmChart, vals); err != nil {
-		return err
-	}
-
 	if rel, err = client.Run(hc.Name, helmChart, vals); err != nil {
+		log.Info(err.Error())
 		return err
 	}
 
