@@ -76,6 +76,7 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 	}
 
 	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
+	vals := mergeMaps(defaultValues, specValues)
 	client.Namespace = namespace.Name
 	client.CreateNamespace = namespace.Install
 
@@ -84,11 +85,9 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 		InsecureSkipTLSverify: false,
 		Verify:                false,
 	}
-	if helmChart, err = hc.getChart(hc.Chart, options, dependenciesConfig, mergeMaps(defaultValues, specValues)); err != nil {
+	if helmChart, err = hc.getChart(hc.Chart, options, dependenciesConfig, vals); err != nil {
 		return err
 	}
-
-	vals := mergeMaps(helmChart.Values, specValues)
 
 	log.Debugf("configupdate: %v", hc.Config)
 	release, _ = hc.getRelease()
@@ -161,20 +160,17 @@ func (hc Release) valuesChanged(vals map[string]interface{}) (bool, error) {
 
 	log.Debugf("installed values: (%v)", installedValues)
 
-	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
-	requestedValues := mergeMaps(vals, defaultValues)
-
 	for key := range installedValues {
-		if _, ok := requestedValues[key]; !ok {
+		if _, ok := vals[key]; !ok {
 			log.Errorf("missing key %v", key)
 		}
 	}
 
-	if len(requestedValues) < 1 && len(installedValues) < 1 {
+	if len(vals) < 1 && len(installedValues) < 1 {
 		return false, nil
 	}
 
-	if reflect.DeepEqual(installedValues, requestedValues) {
+	if reflect.DeepEqual(installedValues, vals) {
 		return false, nil
 	}
 

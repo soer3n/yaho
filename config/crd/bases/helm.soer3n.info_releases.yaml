@@ -66,18 +66,16 @@ spec:
                   a release
                 properties:
                   deps:
-                    items:
+                    additionalProperties:
                       description: DependencyConfig represents data for a chart dependency
                         in a release
                       properties:
                         enabled:
                           type: boolean
-                        name:
-                          type: string
                         values:
                           type: string
                       type: object
-                    type: array
+                    type: object
                   valueRefs:
                     items:
                       type: string
