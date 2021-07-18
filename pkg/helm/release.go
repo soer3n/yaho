@@ -105,6 +105,10 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 		return nil
 	}
 
+	if err = chartutil.ProcessDependencies(helmChart, vals); err != nil {
+		return err
+	}
+
 	if release, err = client.Run(helmChart, vals); err != nil {
 		return err
 	}
@@ -269,8 +273,9 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartD
 				options.RepoURL = dep.Repo
 				options.Version = dep.Version
 
+				subValues, _ := chart.Values[dep.Name].(map[string]interface{})
 				if dependenciesConfig[dep.Name].Enabled {
-					subChart, _ := hc.getChart(item.Spec.Name, options, dependenciesConfig, chart.Values)
+					subChart, _ := hc.getChart(item.Spec.Name, options, dependenciesConfig, subValues)
 					chart.AddDependency(subChart)
 				}
 			}
@@ -393,6 +398,10 @@ func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values, namespa
 
 	client := action.NewUpgrade(hc.Config)
 	client.Namespace = namespace
+
+	if err = chartutil.ProcessDependencies(helmChart, vals); err != nil {
+		return err
+	}
 
 	if rel, err = client.Run(hc.Name, helmChart, vals); err != nil {
 		return err

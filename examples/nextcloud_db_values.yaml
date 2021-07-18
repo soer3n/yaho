@@ -6,18 +6,18 @@ metadata:
 spec:
   json:
     internalDatabase:
-      enabled: false
+      enabled: true
       name: nextcloud
 
     externalDatabase:
-      enabled: true
+      enabled: false
       type: postgresql
       host: nextcloud-psql.postgres
       user: nextcloud
       password: qf5ZG7PfWzrsTvFGpsbMI7CdxHM4TXVFf5CXwInAgkuGMAljgO90nrUxApoPpGVp
       database: nextcloud
       existingSecret:
-        enabled: true
+        enabled: false
         secretName: nextcloud.nextcloud-psql.credentials.postgresql.acid.zalan.do
         usernameKey: username
         passwordKey: password
@@ -46,7 +46,7 @@ spec:
           size: 8Gi
 
     postgresql:
-      enabled: false
+      enabled: true
       global:
         postgresql:
           postgresqlUsername: nextcloud
