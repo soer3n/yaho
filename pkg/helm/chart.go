@@ -98,7 +98,7 @@ func (chart Chart) CreateConfigMaps() []v1.ConfigMap {
 	returnList := []v1.ConfigMap{}
 
 	for _, version := range chart.Versions {
-		versionConfigMaps := version.createConfigMaps(chart.Settings.Namespace())
+		versionConfigMaps := version.createConfigMaps(chart.Settings.Namespace(), nil)
 
 		for _, configmap := range versionConfigMaps {
 			returnList = append(returnList, configmap)

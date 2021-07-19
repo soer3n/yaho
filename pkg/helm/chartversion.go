@@ -80,7 +80,7 @@ func (chartVersion ChartVersion) createDependenciesList(chartMeta *chart.Metadat
 	return deps
 }
 
-func (chartVersion ChartVersion) createConfigMaps(namespace string) []v1.ConfigMap {
+func (chartVersion ChartVersion) createConfigMaps(namespace string, deps []*chart.Chart) []v1.ConfigMap {
 	returnList := []v1.ConfigMap{}
 
 	returnList = append(returnList, chartVersion.createTemplateConfigMap("tmpl", namespace, chartVersion.Templates))
@@ -88,6 +88,62 @@ func (chartVersion ChartVersion) createConfigMaps(namespace string) []v1.ConfigM
 	returnList = append(returnList, chartVersion.createDefaultValueConfigMap(namespace, chartVersion.DefaultValues))
 
 	return returnList
+}
+
+func (chartVersion ChartVersion) createDependenciesConfigMaps(name string, namespace string, deps []*chart.Chart) []v1.ConfigMap {
+
+	cmList := []v1.ConfigMap{}
+	immutable := new(bool)
+	*immutable = true
+
+	for _, dep := range deps {
+		binaryData := make(map[string][]byte)
+
+		for _, entry := range dep.Files {
+			path := strings.SplitAfter(entry.Name, "/")
+			binaryData[path[len(path)-1]] = entry.Data
+		}
+
+		cmList = append(cmList, v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "helm-tmpl-" + dep.Name() + "-" + dep.Metadata.Version,
+				Namespace: namespace,
+			},
+			Immutable:  immutable,
+			BinaryData: binaryData,
+		})
+
+		binaryData = make(map[string][]byte)
+
+		for _, entry := range dep.CRDs() {
+			path := strings.SplitAfter(entry.Name, "/")
+			binaryData[path[len(path)-1]] = entry.Data
+		}
+
+		cmList = append(cmList, v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "helm-crds-" + dep.Name() + "-" + dep.Metadata.Version,
+				Namespace: namespace,
+			},
+			Immutable:  immutable,
+			BinaryData: binaryData,
+		})
+
+		castedValues, _ := json.Marshal(dep.Values)
+
+		cmList = append(cmList, v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "helm-default-" + dep.Name() + "-" + dep.Metadata.Version,
+				Namespace: namespace,
+			},
+			Immutable: immutable,
+			Data: map[string]string{
+				"values": string(castedValues),
+			},
+		})
+	}
+
+	return cmList
 }
 
 func (chartVersion ChartVersion) createTemplateConfigMap(name string, namespace string, list []*chart.File) v1.ConfigMap {
@@ -107,7 +163,7 @@ func (chartVersion ChartVersion) createTemplateConfigMap(name string, namespace 
 
 	for _, entry := range list {
 		path := strings.SplitAfter(entry.Name, "/")
-		binaryData[path[1]] = entry.Data
+		binaryData[path[len(path)-1]] = entry.Data
 	}
 
 	configmap.BinaryData = binaryData

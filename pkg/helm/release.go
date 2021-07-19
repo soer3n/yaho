@@ -199,7 +199,7 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 
 	if err := hc.k8sClient.Get(context.Background(), types.NamespacedName{
 		Namespace: hc.Namespace.Name,
-		Name:      hc.Chart,
+		Name:      chartName,
 	}, chartObj); err != nil {
 		return helmChart, err
 	}
@@ -217,7 +217,7 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	files := hc.getFiles(chartObj)
 
 	helmChart.Metadata.Name = chartName
-	helmChart.Metadata.Version = hc.Version
+	helmChart.Metadata.Version = chartObj.Spec.APIVersion
 	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
 	helmChart.Files = files
 	helmChart.Templates = hc.appendFilesFromConfigMap("helm-tmpl-"+hc.Chart+"-"+hc.Version, helmChart.Templates)
@@ -383,7 +383,7 @@ func (hc *Release) GetParsedConfigMaps(namespace string) []v1.ConfigMap {
 	chartVersion.CRDs = chartRequested.CRDs()
 	chartVersion.DefaultValues = chartRequested.Values
 
-	configmapList = chartVersion.createConfigMaps(hc.Namespace.Name)
+	configmapList = chartVersion.createConfigMaps(hc.Namespace.Name, chartRequested.Dependencies())
 
 	return configmapList
 }
