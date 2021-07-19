@@ -105,7 +105,14 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 		return nil
 	}
 
+	/*var valueObj chartutil.Values
+
+	if valueObj, err = chartutil.ToRenderValues(helmChart, vals, chartutil.ReleaseOptions{}, nil); err != nil {
+		return err
+	}*/
+
 	if release, err = client.Run(helmChart, vals); err != nil {
+		log.Info(err.Error())
 		return err
 	}
 
@@ -214,16 +221,15 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 		}
 	}
 
-	files := hc.getFiles(chartObj)
+	versionObj := utils.GetChartVersion(chartPathOptions.Version, chartObj)
+	files := hc.getFiles(chartName, versionObj.Name, chartObj)
 
 	helmChart.Metadata.Name = chartName
 	helmChart.Metadata.Version = chartObj.Spec.APIVersion
 	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
 	helmChart.Files = files
-	helmChart.Templates = hc.appendFilesFromConfigMap("helm-tmpl-"+hc.Chart+"-"+hc.Version, helmChart.Templates)
-	helmChart.Values = vals
-
-	versionObj := utils.GetChartVersion(chartPathOptions.Version, chartObj)
+	helmChart.Templates = hc.appendFilesFromConfigMap("helm-tmpl-" + chartName + "-" + versionObj.Name)
+	helmChart.Values = mergeMaps(hc.getDefaultValuesFromConfigMap("helm-default-"+chartName+"-"+versionObj.Name), vals)
 
 	if err := hc.addDependencies(helmChart, versionObj.Dependencies, vals, dependenciesConfig, repoSelector); err != nil {
 		return helmChart, err
@@ -236,12 +242,18 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	return helmChart, nil
 }
 
-func (hc Release) getFiles(helmChart *helmv1alpha1.Chart) []*chart.File {
+func (hc Release) getFiles(chartName, chartVersion string, helmChart *helmv1alpha1.Chart) []*chart.File {
 
 	files := []*chart.File{}
 
-	files = hc.appendFilesFromConfigMap("helm-tmpl-"+hc.Chart+"-"+hc.Version, files)
-	files = hc.appendFilesFromConfigMap("helm-crds-"+hc.Chart+"-"+hc.Version, files)
+	for _, temp := range hc.appendFilesFromConfigMap("helm-tmpl-" + chartName + "-" + chartVersion) {
+		files = append(files, temp)
+	}
+
+	for _, temp := range hc.appendFilesFromConfigMap("helm-crds-" + chartName + "-" + chartVersion) {
+		files = append(files, temp)
+
+	}
 
 	return files
 }
@@ -270,7 +282,17 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartD
 				options.Version = dep.Version
 
 				if dependenciesConfig[dep.Name].Enabled {
-					subChart, _ := hc.getChart(item.Spec.Name, options, dependenciesConfig, vals)
+					subVals, _ := vals[dep.Name].(map[string]interface{})
+					subChart, _ := hc.getChart(item.Spec.Name, options, dependenciesConfig, subVals)
+					valueObj := chartutil.Values{}
+					if valueObj, err = chartutil.ToRenderValues(subChart, subVals, chartutil.ReleaseOptions{}, nil); err != nil {
+						return err
+					}
+
+					foo := valueObj.AsMap()["Values"]
+					bar, _ := foo.(chartutil.Values)
+					subChart.Values = bar
+					log.Info(fmt.Sprint(subChart.Values["common"]))
 					chart.AddDependency(subChart)
 				}
 			}
@@ -280,7 +302,7 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartD
 	return nil
 }
 
-func (hc Release) appendFilesFromConfigMap(name string, list []*chart.File) []*chart.File {
+func (hc Release) appendFilesFromConfigMap(name string) []*chart.File {
 
 	var err error
 
@@ -395,6 +417,8 @@ func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values, namespa
 
 	client := action.NewUpgrade(hc.Config)
 	client.Namespace = namespace
+
+	log.Info(fmt.Sprint(helmChart.Dependencies()[0].Values))
 
 	if rel, err = client.Run(hc.Name, helmChart, vals); err != nil {
 		log.Info(err.Error())

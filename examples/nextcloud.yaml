@@ -24,3 +24,5 @@ spec:
         enabled: true
       redis:
         enabled: false
+      common:
+        enabled: true

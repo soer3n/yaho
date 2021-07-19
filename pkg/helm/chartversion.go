@@ -87,10 +87,14 @@ func (chartVersion ChartVersion) createConfigMaps(namespace string, deps []*char
 	returnList = append(returnList, chartVersion.createTemplateConfigMap("crds", namespace, chartVersion.CRDs))
 	returnList = append(returnList, chartVersion.createDefaultValueConfigMap(namespace, chartVersion.DefaultValues))
 
+	for _, cm := range chartVersion.createDependenciesConfigMaps(namespace, deps) {
+		returnList = append(returnList, cm)
+	}
+
 	return returnList
 }
 
-func (chartVersion ChartVersion) createDependenciesConfigMaps(name string, namespace string, deps []*chart.Chart) []v1.ConfigMap {
+func (chartVersion ChartVersion) createDependenciesConfigMaps(namespace string, deps []*chart.Chart) []v1.ConfigMap {
 
 	cmList := []v1.ConfigMap{}
 	immutable := new(bool)
@@ -99,7 +103,7 @@ func (chartVersion ChartVersion) createDependenciesConfigMaps(name string, names
 	for _, dep := range deps {
 		binaryData := make(map[string][]byte)
 
-		for _, entry := range dep.Files {
+		for _, entry := range dep.Templates {
 			path := strings.SplitAfter(entry.Name, "/")
 			binaryData[path[len(path)-1]] = entry.Data
 		}
@@ -141,6 +145,12 @@ func (chartVersion ChartVersion) createDependenciesConfigMaps(name string, names
 				"values": string(castedValues),
 			},
 		})
+
+		subConfigMaps := chartVersion.createDependenciesConfigMaps(namespace, dep.Dependencies())
+
+		for _, cm := range subConfigMaps {
+			cmList = append(cmList, cm)
+		}
 	}
 
 	return cmList
