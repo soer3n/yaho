@@ -73,11 +73,11 @@ type ChartDep struct {
 
 // ChartVersion repesents data for parsing a chart
 type ChartVersion struct {
-	Name         string     `json:"name"`
-	Templates    string     `json:"templateRef"`
-	CRDs         string     `json:"crdRef,omitempty"`
-	Dependencies []ChartDep `json:"deps,omitempty"`
-	URL          string     `json:"url,omitempty"`
+	Name         string      `json:"name"`
+	Templates    string      `json:"templateRef"`
+	CRDs         string      `json:"crdRef,omitempty"`
+	Dependencies []*ChartDep `json:"deps,omitempty"`
+	URL          string      `json:"url,omitempty"`
 }
 
 // ChartStatus defines the observed state of Chart

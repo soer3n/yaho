@@ -190,7 +190,7 @@ func getTestHelmChartMaps() []inttypes.TestCase {
 							{
 								Name: "0.0.2",
 								URL:  "nodomain.com",
-								Dependencies: []helmv1alpha1.ChartDep{
+								Dependencies: []*helmv1alpha1.ChartDep{
 									{
 										Name:    "dep",
 										Repo:    "repo",

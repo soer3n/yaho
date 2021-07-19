@@ -185,7 +185,7 @@ func (in *ChartVersion) DeepCopyInto(out *ChartVersion) {
 	*out = *in
 	if in.Dependencies != nil {
 		in, out := &in.Dependencies, &out.Dependencies
-		*out = make([]ChartDep, len(*in))
+		*out = make([]*ChartDep, len(*in))
 		copy(*out, *in)
 	}
 }

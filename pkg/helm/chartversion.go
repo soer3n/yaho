@@ -64,12 +64,12 @@ func (chartVersion ChartVersion) AddOrUpdateChartMap(chartObjMap map[string]*hel
 	return chartObjMap, nil
 }
 
-func (chartVersion ChartVersion) createDependenciesList(chartMeta *chart.Metadata) []helmv1alpha1.ChartDep {
+func (chartVersion ChartVersion) createDependenciesList(chartMeta *chart.Metadata) []*helmv1alpha1.ChartDep {
 
-	deps := make([]helmv1alpha1.ChartDep, 0)
+	deps := make([]*helmv1alpha1.ChartDep, 0)
 
 	for _, dep := range chartMeta.Dependencies {
-		deps = append(deps, helmv1alpha1.ChartDep{
+		deps = append(deps, &helmv1alpha1.ChartDep{
 			Name:      dep.Name,
 			Version:   dep.Version,
 			Repo:      dep.Repository,

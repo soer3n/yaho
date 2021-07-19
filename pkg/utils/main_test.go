@@ -115,7 +115,7 @@ func TestConvertChartVersions(t *testing.T) {
 				},
 				{
 					Name: "0.0.3",
-					Dependencies: []v1alpha1.ChartDep{
+					Dependencies: []*v1alpha1.ChartDep{
 						{
 							Name:    "dep",
 							Repo:    "dep",

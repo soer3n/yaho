@@ -147,8 +147,15 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamesp
 	refList, _ := r.getRefList(valuesList, instance)
 	helmRelease.InitValuesTemplate(refList, instance.Spec.Version, instance.ObjectMeta.Namespace)
 	controller, _ := r.getControllerRepo(instance.Spec.Repo, instance.ObjectMeta.Namespace)
+	cm, c := helmRelease.GetParsedConfigMaps(instance.ObjectMeta.Namespace)
 
-	for _, configmap := range helmRelease.GetParsedConfigMaps(instance.ObjectMeta.Namespace) {
+	for _, chart := range c {
+		if err := r.updateChart(chart, controller); err != nil {
+			return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
+		}
+	}
+
+	for _, configmap := range cm {
 		if err := r.deployConfigMap(configmap, controller); err != nil {
 			return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 		}
@@ -255,6 +262,34 @@ func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *he
 				return err
 			}
 		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *ReleaseReconciler) updateChart(chart helmv1alpha1.Chart, instance *helmv1alpha1.Repo) error {
+
+	/*if err := controllerutil.SetControllerReference(instance, &chart, r.Scheme); err != nil {
+		return err
+	}*/
+
+	current := &helmv1alpha1.Chart{}
+	err := r.Client.Get(context.Background(), client.ObjectKey{
+		Namespace: chart.ObjectMeta.Namespace,
+		Name:      chart.ObjectMeta.Name,
+	}, current)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			if err = r.Client.Create(context.TODO(), &chart); err != nil {
+				return err
+			}
+		}
+		return err
+	}
+
+	if err = r.Client.Update(context.TODO(), &chart); err != nil {
 		return err
 	}
 

@@ -222,6 +222,15 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	}
 
 	versionObj := utils.GetChartVersion(chartPathOptions.Version, chartObj)
+	/*
+		d := chartObj.Dependencies()
+
+		for _, v := range d {
+			if v.Name() == dep.Name {
+				options.Version = v.Metadata.APIVersion
+			}
+		}
+	*/
 	files := hc.getFiles(chartName, versionObj.Name, chartObj)
 
 	helmChart.Metadata.Name = chartName
@@ -258,7 +267,7 @@ func (hc Release) getFiles(chartName, chartVersion string, helmChart *helmv1alph
 	return files
 }
 
-func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartDep, vals map[string]interface{}, dependenciesConfig map[string]helmv1alpha1.DependencyConfig, selectors map[string]string) error {
+func (hc Release) addDependencies(chart *chart.Chart, deps []*helmv1alpha1.ChartDep, vals map[string]interface{}, dependenciesConfig map[string]helmv1alpha1.DependencyConfig, selectors map[string]string) error {
 
 	var chartList helmv1alpha1.ChartList
 	var err error
@@ -285,6 +294,7 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []helmv1alpha1.ChartD
 					subVals, _ := vals[dep.Name].(map[string]interface{})
 					subChart, _ := hc.getChart(item.Spec.Name, options, dependenciesConfig, subVals)
 					valueObj := chartutil.Values{}
+
 					if valueObj, err = chartutil.ToRenderValues(subChart, subVals, chartutil.ReleaseOptions{}, nil); err != nil {
 						return err
 					}
@@ -363,10 +373,12 @@ func (hc Release) getRepo() (helmv1alpha1.Repo, error) {
 }
 
 // GetParsedConfigMaps represents parsing and returning of chart related data for a release
-func (hc *Release) GetParsedConfigMaps(namespace string) []v1.ConfigMap {
+func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []helmv1alpha1.Chart) {
 
 	var chartRequested *chart.Chart
 	var repoObj helmv1alpha1.Repo
+	var chartObj, subChartObj helmv1alpha1.Chart
+	chartObjList := []helmv1alpha1.Chart{}
 	var chartURL string
 	var err error
 
@@ -380,10 +392,10 @@ func (hc *Release) GetParsedConfigMaps(namespace string) []v1.ConfigMap {
 	log.Debugf("configinstall: %v", hc.Config)
 
 	if repoObj, err = hc.getRepo(); err != nil {
-		return configmapList
+		return configmapList, chartObjList
 	}
 	if chartURL, err = getChartURL(hc.k8sClient, hc.Chart, hc.Version, hc.Namespace.Name); err != nil {
-		return configmapList
+		return configmapList, chartObjList
 	}
 
 	releaseClient.ReleaseName = hc.Name
@@ -391,7 +403,14 @@ func (hc *Release) GetParsedConfigMaps(namespace string) []v1.ConfigMap {
 	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.URL
 
 	if chartRequested, err = getChartByURL(chartURL, hc.getter); err != nil {
-		return configmapList
+		return configmapList, chartObjList
+	}
+
+	if err = hc.k8sClient.Get(context.Background(), types.NamespacedName{
+		Namespace: namespace,
+		Name:      hc.Chart,
+	}, &chartObj); err != nil {
+		return configmapList, chartObjList
 	}
 
 	chartVersion.Version = &repo.ChartVersion{
@@ -404,10 +423,40 @@ func (hc *Release) GetParsedConfigMaps(namespace string) []v1.ConfigMap {
 	chartVersion.Templates = chartRequested.Templates
 	chartVersion.CRDs = chartRequested.CRDs()
 	chartVersion.DefaultValues = chartRequested.Values
+	deps := chartRequested.Dependencies()
+	version := utils.GetChartVersion(hc.Version, &chartObj)
 
-	configmapList = chartVersion.createConfigMaps(hc.Namespace.Name, chartRequested.Dependencies())
+	for _, v := range version.Dependencies {
 
-	return configmapList
+		for _, d := range deps {
+
+			if v.Name == d.Name() && v.Version != d.Metadata.Version {
+				v.Version = d.Metadata.Version
+				chartObjList = append(chartObjList, chartObj)
+			}
+
+			if err = hc.k8sClient.Get(context.Background(), types.NamespacedName{
+				Namespace: namespace,
+				Name:      v.Name,
+			}, &subChartObj); err != nil {
+				return configmapList, chartObjList
+			}
+
+			subVersion := utils.GetChartVersion(v.Version, &subChartObj)
+			for _, sv := range subVersion.Dependencies {
+				for _, sd := range d.Dependencies() {
+					if sv.Name == sd.Name() && sv.Version != sd.Metadata.Version {
+						sv.Version = sd.Metadata.Version
+						chartObjList = append(chartObjList, subChartObj)
+					}
+				}
+			}
+		}
+	}
+
+	configmapList = chartVersion.createConfigMaps(hc.Namespace.Name, deps)
+
+	return configmapList, chartObjList
 }
 
 func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values, namespace string) error {

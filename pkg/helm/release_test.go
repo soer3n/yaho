@@ -84,7 +84,7 @@ func TestReleaseConfigMaps(t *testing.T) {
 		}
 
 		testObj.Version = current.Spec.Version
-		configList := testObj.GetParsedConfigMaps("")
+		configList, _ := testObj.GetParsedConfigMaps("")
 		expect, _ := apiObj.ReturnValue.([]v1.ConfigMap)
 
 		assert.Equal(expect, configList)
@@ -362,7 +362,7 @@ func getTestChartSpec() helmv1alpha1.Chart {
 				{
 					Name: "0.0.1",
 					URL:  "https://foo.bar/charts/foo-0.0.1.tgz",
-					Dependencies: []helmv1alpha1.ChartDep{
+					Dependencies: []*helmv1alpha1.ChartDep{
 						{
 							Name:    "dep",
 							Version: "0.1.0",
