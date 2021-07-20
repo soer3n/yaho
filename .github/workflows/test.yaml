@@ -61,6 +61,7 @@ jobs:
       uses: helm/kind-action@v1.2.0
       with:
         node_image: kindest/node:${{ matrix.version }}
+        cluster_name:  cluster-${{ matrix.version }}
     - name: test controllers
       run: go test -v ./controllers/...
   
