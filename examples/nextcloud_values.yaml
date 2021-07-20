@@ -34,13 +34,13 @@ spec:
       paths:
       - /
       hosts:
-      - nextcloud.apps.soer3n.info
+      - nextcloud.apps.domain.com
       tls:
       - secretName: nextcloud-dashboard-tls
         hosts:
-        - nextcloud.apps.soer3n.info
+        - nextcloud.apps.domain.com
     nextcloud:
-      host: nextcloud.apps.soer3n.info
+      host: nextcloud.apps.domain.com
       username: admin
       password: changeme
       update: 0
@@ -51,9 +51,9 @@ spec:
       mail:
         enabled: false
         fromAddress: admin
-        domain: nextcloud.apps.soer3n.info
+        domain: nextcloud.apps.domain.com
         smtp:
-          host: nextcloud.apps.soer3n.info
+          host: nextcloud.apps.domain.com
           secure: ssl
           port: 465
           authtype: LOGIN

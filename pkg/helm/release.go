@@ -274,11 +274,11 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []*helmv1alpha1.Chart
 			if item.Spec.Name == dep.Name {
 				options.RepoURL = dep.Repo
 				options.Version = dep.Version
+				var valueObj chartutil.Values
 
 				if dependenciesConfig[dep.Name].Enabled {
 					subVals, _ := vals[dep.Name].(map[string]interface{})
 					subChart, _ := hc.getChart(item.Spec.Name, options, dependenciesConfig, subVals)
-					valueObj := chartutil.Values{}
 
 					if valueObj, err = chartutil.ToRenderValues(subChart, subVals, chartutil.ReleaseOptions{}, nil); err != nil {
 						return err

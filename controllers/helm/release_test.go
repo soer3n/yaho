@@ -23,7 +23,7 @@ var _ = Context("Install a release", func() {
 
 	Describe("when no existing resources exist", func() {
 
-		FIt("should start with creating dependencies", func() {
+		It("should start with creating dependencies", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
 
@@ -67,7 +67,7 @@ var _ = Context("Install a release", func() {
 					Name: "deployment-name",
 					Namespace: helmv1alpha1.Namespace{
 						Name:    namespace,
-						Install: false,
+						Install: true,
 					},
 					Chart:   "submariner-operator",
 					Repo:    "testresource-123",

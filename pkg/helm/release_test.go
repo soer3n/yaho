@@ -120,6 +120,12 @@ func TestReleaseUpdate(t *testing.T) {
 		c.Spec = spec.Spec
 		c.ObjectMeta = spec.ObjectMeta
 	})
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "dep", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Chart)
+		spec := getTestChartDepSpec()
+		c.Spec = spec.Spec
+		c.ObjectMeta = spec.ObjectMeta
+	})
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "release", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
 		c := args.Get(2).(*helmv1alpha1.Chart)
 		spec := getTestChartSpec()
@@ -150,6 +156,28 @@ func TestReleaseUpdate(t *testing.T) {
 		c.ObjectMeta = spec.ObjectMeta
 	})
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-default-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
+
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := getTestReleaseDefaultValueConfigMap()
+		c.Data = spec.Data
+		c.ObjectMeta = spec.ObjectMeta
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-tmpl-dep-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
+
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := getTestReleaseTemplateConfigMap()
+		c.BinaryData = spec.BinaryData
+		c.ObjectMeta = spec.ObjectMeta
+	})
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-crds-dep-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
+
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := getTestReleaseCRDConfigMap()
+		c.BinaryData = spec.BinaryData
+		c.ObjectMeta = spec.ObjectMeta
+	})
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-default-dep-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
 
 		c := args.Get(2).(*v1.ConfigMap)
 		spec := getTestReleaseDefaultValueConfigMap()
@@ -200,7 +228,9 @@ func TestReleaseUpdate(t *testing.T) {
 		err := testObj.Update(helmv1alpha1.Namespace{
 			Name:    "",
 			Install: false,
-		}, map[string]helmv1alpha1.DependencyConfig{})
+		}, map[string]helmv1alpha1.DependencyConfig{
+			"dep": {Enabled: true},
+		})
 		assert.Equal(err, apiObj.ReturnError)
 	}
 }
@@ -320,6 +350,11 @@ func getTestReleaseSpecs() []inttypes.TestCase {
 					Version: "0.0.1",
 					ValuesTemplate: &helmv1alpha1.ValueTemplate{
 						ValueRefs: []string{"notpresent"},
+						DependenciesConfig: map[string]helmv1alpha1.DependencyConfig{
+							"subMeta": {
+								Enabled: true,
+							},
+						},
 					},
 				},
 			},
@@ -365,7 +400,7 @@ func getTestChartSpec() helmv1alpha1.Chart {
 					Dependencies: []*helmv1alpha1.ChartDep{
 						{
 							Name:    "dep",
-							Version: "0.1.0",
+							Version: "0.0.1",
 							Repo:    "repo",
 						},
 					},
@@ -375,16 +410,54 @@ func getTestChartSpec() helmv1alpha1.Chart {
 	}
 }
 
+func getTestChartDepSpec() helmv1alpha1.Chart {
+	return helmv1alpha1.Chart{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "dep",
+			Labels: map[string]string{
+				"repoGroup": "group",
+			},
+		},
+		Spec: helmv1alpha1.ChartSpec{
+			Name:       "chart",
+			APIVersion: "0.0.1",
+			Versions: []helmv1alpha1.ChartVersion{
+				{
+					Name: "0.0.1",
+					URL:  "https://foo.bar/charts/foo-0.0.1.tgz",
+				},
+			},
+		},
+	}
+}
+
 func getTestHelmChart() *chart.Chart {
-	return &chart.Chart{
+	c := &chart.Chart{
 		Templates: []*chart.File{},
 		Values:    map[string]interface{}{},
 		Metadata: &chart.Metadata{
 			Name:       "meta",
 			Version:    "0.0.1",
 			APIVersion: "0.0.1",
+			Dependencies: []*chart.Dependency{
+				{
+					Name:    "subMeta",
+					Version: "0.0.1",
+				},
+			},
 		},
 	}
+
+	c.AddDependency(&chart.Chart{
+		Templates: []*chart.File{},
+		Values:    map[string]interface{}{},
+		Metadata: &chart.Metadata{
+			Name:       "subMeta",
+			Version:    "0.0.1",
+			APIVersion: "0.0.1",
+		},
+	})
+	return c
 }
 
 var verbose = flag.Bool("test.log", false, "enable test logging")
