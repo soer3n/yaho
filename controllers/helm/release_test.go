@@ -71,7 +71,7 @@ var _ = Context("Install a release", func() {
 					},
 					Chart:   "submariner-operator",
 					Repo:    "testresource-123",
-					Version: "0.7.0",
+					Version: "0.7.x",
 				},
 			}
 

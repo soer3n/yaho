@@ -418,6 +418,7 @@ func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []*hel
 		}
 	}
 
+	chartVersion.Version.Metadata.Version = version.Name
 	configmapList = chartVersion.createConfigMaps(hc.Namespace.Name, deps)
 
 	return configmapList, chartObjList
@@ -459,8 +460,6 @@ func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values, namespa
 
 	client := action.NewUpgrade(hc.Config)
 	client.Namespace = namespace
-
-	log.Info(fmt.Sprint(helmChart.Dependencies()[0].Values))
 
 	if rel, err = client.Run(hc.Name, helmChart, vals); err != nil {
 		log.Info(err.Error())

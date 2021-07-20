@@ -84,10 +84,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", metav1.ConditionTrue) {
-		return r.syncStatus(ctx, instance, metav1.ConditionTrue, "reconciling", "reconcileSuccess")
-	}
-
 	var hc *helmutils.Client
 	var helmRelease *helmutils.Release
 
@@ -159,6 +155,10 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamesp
 		if err := r.deployConfigMap(configmap, controller); err != nil {
 			return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 		}
+	}
+
+	if instance.Spec.ValuesTemplate == nil {
+		instance.Spec.ValuesTemplate = &helmv1alpha1.ValueTemplate{}
 	}
 
 	if err := helmRelease.Update(releaseNamespace, instance.Spec.ValuesTemplate.DependenciesConfig); err != nil {
@@ -269,10 +269,6 @@ func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *he
 }
 
 func (r *ReleaseReconciler) updateChart(chart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo) error {
-
-	/*if err := controllerutil.SetControllerReference(instance, &chart, r.Scheme); err != nil {
-		return err
-	}*/
 
 	current := &helmv1alpha1.Chart{}
 	err := r.Client.Get(context.Background(), client.ObjectKey{
