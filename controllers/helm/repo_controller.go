@@ -180,9 +180,7 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Clien
 
 			installedChart.Spec = helmChart.Spec
 
-			if err = r.Client.Update(context.TODO(), installedChart); err != nil {
-				log.Info(err.Error())
-			}
+			err = r.Client.Update(context.TODO(), installedChart)
 
 			if err != nil {
 				c <- err.Error()

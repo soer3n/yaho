@@ -426,20 +426,20 @@ func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []*hel
 
 func (hc Release) validateChartSpec(deps []*chart.Chart, version *helmv1alpha1.ChartDep, chartObjList []*helmv1alpha1.Chart) error {
 
-	var chartObj, subChartObj *helmv1alpha1.Chart
+	subChartObj := &helmv1alpha1.Chart{}
 
 	for _, d := range deps {
-
-		if version.Name == d.Name() && version.Version != d.Metadata.Version {
-			version.Version = d.Metadata.Version
-			chartObjList = append(chartObjList, chartObj)
-		}
 
 		if err := hc.k8sClient.Get(context.Background(), types.NamespacedName{
 			Namespace: hc.Namespace.Name,
 			Name:      version.Name,
 		}, subChartObj); err != nil {
 			return err
+		}
+
+		if version.Name == d.Name() && version.Version != d.Metadata.Version {
+			version.Version = d.Metadata.Version
+			chartObjList = append(chartObjList, subChartObj)
 		}
 
 		subVersion := utils.GetChartVersion(version.Version, subChartObj)
