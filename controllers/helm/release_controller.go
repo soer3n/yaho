@@ -268,7 +268,7 @@ func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *he
 	return nil
 }
 
-func (r *ReleaseReconciler) updateChart(chart helmv1alpha1.Chart, instance *helmv1alpha1.Repo) error {
+func (r *ReleaseReconciler) updateChart(chart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo) error {
 
 	/*if err := controllerutil.SetControllerReference(instance, &chart, r.Scheme); err != nil {
 		return err
@@ -282,14 +282,14 @@ func (r *ReleaseReconciler) updateChart(chart helmv1alpha1.Chart, instance *helm
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			if err = r.Client.Create(context.TODO(), &chart); err != nil {
+			if err = r.Client.Create(context.TODO(), chart); err != nil {
 				return err
 			}
 		}
 		return err
 	}
 
-	if err = r.Client.Update(context.TODO(), &chart); err != nil {
+	if err = r.Client.Update(context.TODO(), chart); err != nil {
 		return err
 	}
 

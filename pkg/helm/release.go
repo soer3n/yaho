@@ -105,12 +105,6 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 		return nil
 	}
 
-	/*var valueObj chartutil.Values
-
-	if valueObj, err = chartutil.ToRenderValues(helmChart, vals, chartutil.ReleaseOptions{}, nil); err != nil {
-		return err
-	}*/
-
 	if release, err = client.Run(helmChart, vals); err != nil {
 		log.Info(err.Error())
 		return err
@@ -222,15 +216,6 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	}
 
 	versionObj := utils.GetChartVersion(chartPathOptions.Version, chartObj)
-	/*
-		d := chartObj.Dependencies()
-
-		for _, v := range d {
-			if v.Name() == dep.Name {
-				options.Version = v.Metadata.APIVersion
-			}
-		}
-	*/
 	files := hc.getFiles(chartName, versionObj.Name, chartObj)
 
 	helmChart.Metadata.Name = chartName
@@ -299,10 +284,11 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []*helmv1alpha1.Chart
 						return err
 					}
 
-					foo := valueObj.AsMap()["Values"]
-					bar, _ := foo.(chartutil.Values)
-					subChart.Values = bar
-					log.Info(fmt.Sprint(subChart.Values["common"]))
+					// get values as interface{}
+					valueMap := valueObj.AsMap()["Values"]
+					// cast to struct
+					castedMap, _ := valueMap.(chartutil.Values)
+					subChart.Values = castedMap
 					chart.AddDependency(subChart)
 				}
 			}
@@ -373,12 +359,12 @@ func (hc Release) getRepo() (helmv1alpha1.Repo, error) {
 }
 
 // GetParsedConfigMaps represents parsing and returning of chart related data for a release
-func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []helmv1alpha1.Chart) {
+func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []*helmv1alpha1.Chart) {
 
 	var chartRequested *chart.Chart
 	var repoObj helmv1alpha1.Repo
-	var chartObj, subChartObj helmv1alpha1.Chart
-	chartObjList := []helmv1alpha1.Chart{}
+	var chartObj helmv1alpha1.Chart
+	chartObjList := []*helmv1alpha1.Chart{}
 	var chartURL string
 	var err error
 
@@ -427,36 +413,43 @@ func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []helm
 	version := utils.GetChartVersion(hc.Version, &chartObj)
 
 	for _, v := range version.Dependencies {
-
-		for _, d := range deps {
-
-			if v.Name == d.Name() && v.Version != d.Metadata.Version {
-				v.Version = d.Metadata.Version
-				chartObjList = append(chartObjList, chartObj)
-			}
-
-			if err = hc.k8sClient.Get(context.Background(), types.NamespacedName{
-				Namespace: namespace,
-				Name:      v.Name,
-			}, &subChartObj); err != nil {
-				return configmapList, chartObjList
-			}
-
-			subVersion := utils.GetChartVersion(v.Version, &subChartObj)
-			for _, sv := range subVersion.Dependencies {
-				for _, sd := range d.Dependencies() {
-					if sv.Name == sd.Name() && sv.Version != sd.Metadata.Version {
-						sv.Version = sd.Metadata.Version
-						chartObjList = append(chartObjList, subChartObj)
-					}
-				}
-			}
+		if err := hc.validateChartSpec(deps, v, chartObjList); err != nil {
+			return configmapList, chartObjList
 		}
 	}
 
 	configmapList = chartVersion.createConfigMaps(hc.Namespace.Name, deps)
 
 	return configmapList, chartObjList
+}
+
+func (hc Release) validateChartSpec(deps []*chart.Chart, version *helmv1alpha1.ChartDep, chartObjList []*helmv1alpha1.Chart) error {
+
+	var chartObj, subChartObj *helmv1alpha1.Chart
+
+	for _, d := range deps {
+
+		if version.Name == d.Name() && version.Version != d.Metadata.Version {
+			version.Version = d.Metadata.Version
+			chartObjList = append(chartObjList, chartObj)
+		}
+
+		if err := hc.k8sClient.Get(context.Background(), types.NamespacedName{
+			Namespace: hc.Namespace.Name,
+			Name:      version.Name,
+		}, subChartObj); err != nil {
+			return err
+		}
+
+		subVersion := utils.GetChartVersion(version.Version, subChartObj)
+		for _, sv := range subVersion.Dependencies {
+			if err := hc.validateChartSpec(d.Dependencies(), sv, chartObjList); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values, namespace string) error {
