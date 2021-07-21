@@ -54,7 +54,7 @@ There is an more complex configuration sample in [these](examples/) directory. Y
 $ kubectl apply -f config/samples/helm_v1alpha1_repo.yaml
 $ kubectl apply -f config/samples/helm_v1alpha1_repogroup.yaml
 
-$ kubectl get repos.helm.soer3n.info -n helm
+$ kubectl get repoes.helm.soer3n.info -n helm
 
 NAME         GROUP   CREATED_AT
 bitnami      foo     2021-06-16T13:38:52Z
@@ -63,7 +63,7 @@ submariner           2021-06-16T13:38:57Z
 
 # you can also filter by group label
 
-$ kubectl get repos.helm.soer3n.info -n helm -l repoGroup=foo
+$ kubectl get repoes.helm.soer3n.info -n helm -l repoGroup=foo
 
 NAME        GROUP   CREATED_AT
 bitnami     foo     2021-06-16T13:38:52Z
@@ -86,7 +86,6 @@ nextcloud   foo     nextcloud   2021-06-16T13:38:52Z
 # and also for releases:
 
 $ kubectl apply -f config/samples/helm_v1alpha1_release.yaml
-$ kubectl apply -n helm -f config/samples/helm_v1alpha1_release2.yaml
 
 
 $ kubectl get releases.helm.soer3n.info -n helm -l chart=submariner-operator,repo=submariner
@@ -100,7 +99,7 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 
 ## Roadmap
 
-- add assertions for tests; currently there are more or less only the normal cases covered by qa
+- add assertions for tests; currently there are more or less only the normal cases covered
 - handle func calls with context.Context if actually needed
 - add details to contribution guideline
 - implement web user interface  (start of [backend server implementation](pkg/api/) is already present))
@@ -109,7 +108,7 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 - translate cli flags to release spec
 - auto-sync for new chart versions from repository (for sure with enabled flag)
 - black- and whitelisting for charts when auto-sync for repository is enabled
-- loading charts from volume or git
+- loading charts from git repository
 
 ## Known Issues / Troubleshooting
 

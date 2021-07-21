@@ -109,17 +109,19 @@ func mergeUntypedMaps(dest, source map[string]interface{}, key string) map[strin
 			continue
 		}
 
-		if temp, ok := dest[k].(map[string]interface{}); ok {
-			temp = mergeUntypedMaps(temp, map[string]interface{}{
-				k: v,
-			}, key)
-			dest[k] = temp
-			continue
+		if dest == nil {
+			dest = make(map[string]interface{})
 		}
 
-		dest[key] = map[string]interface{}{
-			k: v,
+		sub, ok := dest[key].(map[string]interface{})
+
+		if !ok {
+			dest[key] = make(map[string]interface{})
+			sub = make(map[string]interface{})
 		}
+
+		sub[k] = v
+		dest[key] = sub
 	}
 
 	return dest

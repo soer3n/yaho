@@ -115,9 +115,9 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 		}
 
 		if unstructed {
-			valMap = mergeUntypedMaps(valMap, convertedMap, mapKey)
+			valMap = mergeUntypedMaps(convertedMap, valMap, mapKey)
 		}
 	}
 
-	return mergeUntypedMaps(valMap, childMap, parentKey)
+	return mergeUntypedMaps(childMap, valMap, parentKey)
 }

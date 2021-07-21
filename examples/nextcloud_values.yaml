@@ -4,7 +4,7 @@ metadata:
   name: values-nextcloud
   namespace: helm
 spec:
-  ref:
+  refs:
     ingress: values-nextcloud-ing
     cronjob: values-nextcloud-cron
   json:
