@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sync"
+	"unsafe"
 
 	"github.com/prometheus/common/log"
 	"helm.sh/helm/v3/pkg/action"
@@ -75,8 +77,31 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 		return err
 	}
 
+	// parsing values; goroutines are nessecarry due to tail recursion in called funcs
 	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
-	vals := mergeMaps(defaultValues, specValues)
+
+	// we have to wait until each goroutine is finished for merging values
+	var wg sync.WaitGroup
+
+	vals := make(map[string]interface{}, VALUES_MAP_SIZE)
+	log.Info(unsafe.Sizeof(specValues))
+	log.Info(unsafe.Alignof(specValues))
+
+	// iterate through first level keys and call func for merging as a goroutine to avoid memory leaks
+	for k, v := range specValues {
+
+		wg.Add(1)
+
+		go func(k string, v interface{}, vals, defaultValues map[string]interface{}) {
+			defer wg.Done()
+			temp, _ := v.(map[string]interface{})
+			tempDefault, _ := defaultValues[k].(map[string]interface{})
+			vals[k] = mergeMaps(temp, tempDefault)
+		}(k, v, vals, defaultValues)
+
+	}
+
+	wg.Wait()
 	client.Namespace = namespace.Name
 	client.CreateNamespace = namespace.Install
 

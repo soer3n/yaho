@@ -22,6 +22,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const VALUES_MAP_SIZE = 30
+
 func initActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configuration, error) {
 
 	/*
@@ -73,6 +75,7 @@ func getChartURL(rc client.Client, chart, version, namespace string) (string, er
 	return utils.GetChartVersion(version, chartObj).URL, nil
 }
 
+// have to be called as a goroutine to avoid memory leaks
 func mergeMaps(source, dest map[string]interface{}) map[string]interface{} {
 
 	if source == nil || dest == nil {
@@ -93,6 +96,7 @@ func mergeMaps(source, dest map[string]interface{}) map[string]interface{} {
 	return dest
 }
 
+// have to be called as a goroutine to avoid memory leaks
 func mergeUntypedMaps(dest, source map[string]interface{}, key string) map[string]interface{} {
 
 	for k, v := range source {

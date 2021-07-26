@@ -12,14 +12,14 @@ spec:
       repository: nextcloud
       tag: production-fpm
       pullPolicy: IfNotPresent
-    nameOverride: ""
-    fullnameOverride: ""
+    nameOverride: "foo"
+    fullnameOverride: "foo"
     replicaCount: 1
 
     nextcloud:
       host: nextcloud.apps.domain.com
       username: admin
-      password: changeme
+      password: changemenot
       update: 0
       datadir: /var/www/html/data
       tableprefix:

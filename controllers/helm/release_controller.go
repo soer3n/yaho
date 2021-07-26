@@ -166,7 +166,7 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamesp
 	}
 
 	log.Info("Don't reconcile releases.")
-	return ctrl.Result{}, nil
+	return r.syncStatus(context.Background(), instance, metav1.ConditionTrue, "success", "all up to date")
 }
 
 func (r *ReleaseReconciler) getRefList(valuesList []*helmv1alpha1.Values, instance *helmv1alpha1.Release) ([]*helmutils.ValuesRef, error) {
