@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"sync"
-	"unsafe"
 
 	"github.com/prometheus/common/log"
 	"helm.sh/helm/v3/pkg/action"
@@ -81,34 +79,9 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
 
 	// we have to wait until each goroutine is finished for merging values
-	var wg sync.WaitGroup
-	c := make(chan map[string]interface{})
 	vals := make(map[string]interface{}, VALUES_MAP_SIZE)
-	log.Info(unsafe.Sizeof(specValues))
-	log.Info(unsafe.Alignof(specValues))
+	vals = mergeValues(specValues, defaultValues)
 
-	// iterate through first level keys and call func for merging as a goroutine to avoid memory leaks
-	for k, v := range specValues {
-
-		wg.Add(1)
-
-		go func(k string, v interface{}, c chan map[string]interface{}, defaultValues map[string]interface{}) {
-			defer wg.Done()
-			temp, _ := v.(map[string]interface{})
-			tempDefault, _ := defaultValues[k].(map[string]interface{})
-			c <- mergeUntypedMaps(tempDefault, temp, k)
-		}(k, v, c, defaultValues)
-
-	}
-
-	go func() {
-		wg.Wait()
-		close(c)
-	}()
-
-	for i := range c {
-		vals = mergeMaps(i, vals)
-	}
 	client.Namespace = namespace.Name
 	client.CreateNamespace = namespace.Install
 
@@ -256,7 +229,8 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	helmChart.Files = files
 	helmChart.Templates = hc.appendFilesFromConfigMap("helm-tmpl-" + chartName + "-" + versionObj.Name)
 
-	helmChart.Values = mergeMaps(hc.getDefaultValuesFromConfigMap("helm-default-"+chartName+"-"+versionObj.Name), vals)
+	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + chartName + "-" + versionObj.Name)
+	helmChart.Values = mergeValues(vals, defaultValues)
 
 	if err := hc.addDependencies(helmChart, versionObj.Dependencies, vals, dependenciesConfig, repoSelector); err != nil {
 		return helmChart, err
