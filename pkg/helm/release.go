@@ -82,7 +82,7 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 
 	// we have to wait until each goroutine is finished for merging values
 	var wg sync.WaitGroup
-
+	c := make(chan map[string]interface{})
 	vals := make(map[string]interface{}, VALUES_MAP_SIZE)
 	log.Info(unsafe.Sizeof(specValues))
 	log.Info(unsafe.Alignof(specValues))
@@ -92,16 +92,23 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 
 		wg.Add(1)
 
-		go func(k string, v interface{}, vals, defaultValues map[string]interface{}) {
+		go func(k string, v interface{}, c chan map[string]interface{}, defaultValues map[string]interface{}) {
 			defer wg.Done()
 			temp, _ := v.(map[string]interface{})
 			tempDefault, _ := defaultValues[k].(map[string]interface{})
-			vals[k] = mergeMaps(temp, tempDefault)
-		}(k, v, vals, defaultValues)
+			c <- mergeUntypedMaps(tempDefault, temp, k)
+		}(k, v, c, defaultValues)
 
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+
+	for i := range c {
+		vals = mergeMaps(i, vals)
+	}
 	client.Namespace = namespace.Name
 	client.CreateNamespace = namespace.Install
 
@@ -248,6 +255,7 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
 	helmChart.Files = files
 	helmChart.Templates = hc.appendFilesFromConfigMap("helm-tmpl-" + chartName + "-" + versionObj.Name)
+
 	helmChart.Values = mergeMaps(hc.getDefaultValuesFromConfigMap("helm-default-"+chartName+"-"+versionObj.Name), vals)
 
 	if err := hc.addDependencies(helmChart, versionObj.Dependencies, vals, dependenciesConfig, repoSelector); err != nil {
