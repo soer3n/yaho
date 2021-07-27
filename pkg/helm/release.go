@@ -125,6 +125,7 @@ func (hc *Release) setInstallFlags(client *action.Install) {
 
 	if hc.Flags == nil {
 		log.Debugf("no flags set for release %v", hc.Name)
+		return
 	}
 
 	client.Atomic = hc.Flags.Atomic
@@ -142,6 +143,7 @@ func (hc *Release) setUpgradeFlags(client *action.Upgrade) {
 
 	if hc.Flags == nil {
 		log.Debugf("no flags set for release %v", hc.Name)
+		return
 	}
 
 	client.Atomic = hc.Flags.Atomic
