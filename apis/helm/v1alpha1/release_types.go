@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,12 +36,28 @@ type ReleaseSpec struct {
 	Chart          string         `json:"chart"`
 	Version        string         `json:"version,omitempty"`
 	ValuesTemplate *ValueTemplate `json:"releaseSpec,omitempty"`
+	Flags          Flags          `json:"flags,omitempty"`
 }
 
 // ValueTemplate represents data for install process of a release
 type ValueTemplate struct {
 	ValueRefs          []string                    `json:"valueRefs,omitempty"`
 	DependenciesConfig map[string]DependencyConfig `json:"deps,omitempty"`
+}
+
+// Flags represents data for parsing flags for creating release resources
+type Flags struct {
+	Atomic                   bool          `json:"atomic,omitempty"`
+	SkipCRDs                 bool          `json:"skipCRDs,omitempty"`
+	SubNotes                 bool          `json:"subNotes,omitempty"`
+	DisableOpenAPIValidation bool          `json:"disableOpenAPIValidation,omitempty"`
+	DryRun                   bool          `json:"dryRun,omitempty"`
+	DisableHooks             bool          `json:"disableHooks,omitempty"`
+	Wait                     bool          `json:"wait,omitempty"`
+	WaitForJobs              bool          `json:"waitForJobs,omitempty"`
+	Timeout                  time.Duration `json:"timeout,omitempty"`
+	Force                    bool          `json:"force,omitempty"`
+	Description              string        `json:"description,omitempty"`
 }
 
 // DependencyConfig represents data for a chart dependency in a release

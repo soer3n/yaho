@@ -26,3 +26,15 @@ spec:
         enabled: false
       common:
         enabled: true
+  flags:
+    atomic: false
+    skipCRDs: false
+    subNotes: true
+    disableOpenAPIValidation: false
+    dryRun: false
+    disableHooks: false
+    wait: false
+    waitForJobs: false
+    timeout: ""
+    force: false
+    description: "foo"
