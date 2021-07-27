@@ -23,7 +23,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const VALUES_MAP_SIZE = 100
+// VALUES_MAP_SIZE represents limit for keys on first level in values
+const valuesMapSize = 100
 
 func initActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configuration, error) {
 

@@ -75,12 +75,6 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 		return err
 	}
 
-	// parsing values; goroutines are nessecarry due to tail recursion in called funcs
-	// defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
-
-	// we have to wait until each goroutine is finished for merging values
-	vals := make(map[string]interface{}, VALUES_MAP_SIZE)
-
 	client.Namespace = namespace.Name
 	client.CreateNamespace = namespace.Install
 
@@ -93,7 +87,7 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 		return err
 	}
 
-	vals = helmChart.Values
+	vals := helmChart.Values
 
 	log.Debugf("configupdate: %v", hc.Config)
 	release, _ = hc.getRelease()
