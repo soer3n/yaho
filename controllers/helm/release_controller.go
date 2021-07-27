@@ -373,7 +373,7 @@ func (r *ReleaseReconciler) updateValuesAnnotations(obj *helmv1alpha1.Values, re
 
 func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Release, stats metav1.ConditionStatus, reason, message string) (ctrl.Result, error) {
 
-	if meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", stats) {
+	if meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", stats) && instance.Status.Conditions[0].Message == message {
 		return ctrl.Result{}, nil
 	}
 

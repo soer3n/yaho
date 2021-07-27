@@ -2,6 +2,7 @@ package helm
 
 import (
 	"encoding/json"
+	"sync"
 
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
@@ -27,6 +28,8 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 		Filter(hv.valuesRef)
 
 	merged = make(map[string]interface{})
+	var wg sync.WaitGroup
+	c := make(chan map[string]interface{}, 1)
 
 	for _, ref := range base {
 		if values, err = hv.manageStruct(ref); err != nil {
@@ -34,7 +37,27 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 
 		}
 
-		merged = mergeMaps(hv.transformToMap(ref.Ref, values, true), merged)
+		refValues := ref.Ref
+		wg.Add(1)
+
+		go func(refValues *helmv1alpha1.Values, values map[string]interface{}, c chan<- map[string]interface{}) {
+			defer wg.Done()
+			c <- hv.transformToMap(refValues, values, true)
+		}(refValues, values, c)
+	}
+
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+
+	d := make(chan map[string]interface{}, 1)
+
+	for i := range c {
+		go func(d chan map[string]interface{}, i, merged map[string]interface{}) {
+			d <- mergeMaps(i, merged)
+		}(d, i, merged)
+		merged = <-d
 	}
 
 	return merged, nil
@@ -43,6 +66,7 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface{}, error) {
 	valMap := make(map[string]interface{})
 	var merged map[string]interface{}
+	c := make(chan map[string]interface{}, 1)
 
 	if valueMap.Ref.Spec.Refs != nil {
 		temp := NewOptions(
@@ -59,10 +83,14 @@ func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface
 				}
 			}
 
-			merged = hv.transformToMap(v.Ref, merged, true, hv.getRefKeyByValue(v.Ref.Name, valueMap.Ref.Spec.Refs))
-			valMap = mergeMaps(merged, valMap)
-		}
+			refKey := hv.getRefKeyByValue(v.Ref.Name, valueMap.Ref.Spec.Refs)
 
+			go func(v *ValuesRef, merged, valMap map[string]interface{}, refKey string, c chan<- map[string]interface{}) {
+				merged = hv.transformToMap(v.Ref, merged, true, refKey)
+				c <- mergeMaps(merged, valMap)
+			}(v, merged, valMap, refKey, c)
+			valMap = <-c
+		}
 	}
 
 	return valMap, nil

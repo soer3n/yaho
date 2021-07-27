@@ -76,11 +76,10 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 	}
 
 	// parsing values; goroutines are nessecarry due to tail recursion in called funcs
-	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
+	// defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Chart + "-" + hc.Version)
 
 	// we have to wait until each goroutine is finished for merging values
 	vals := make(map[string]interface{}, VALUES_MAP_SIZE)
-	vals = mergeValues(specValues, defaultValues)
 
 	client.Namespace = namespace.Name
 	client.CreateNamespace = namespace.Install
@@ -90,9 +89,11 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 		InsecureSkipTLSverify: false,
 		Verify:                false,
 	}
-	if helmChart, err = hc.getChart(hc.Chart, options, dependenciesConfig, vals); err != nil {
+	if helmChart, err = hc.getChart(hc.Chart, options, dependenciesConfig, specValues); err != nil {
 		return err
 	}
+
+	vals = helmChart.Values
 
 	log.Debugf("configupdate: %v", hc.Config)
 	release, _ = hc.getRelease()
@@ -230,9 +231,11 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	helmChart.Templates = hc.appendFilesFromConfigMap("helm-tmpl-" + chartName + "-" + versionObj.Name)
 
 	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + chartName + "-" + versionObj.Name)
-	helmChart.Values = mergeValues(vals, defaultValues)
+	helmChart.Values = defaultValues
+	cv := mergeValues(vals, helmChart)
+	helmChart.Values = cv
 
-	if err := hc.addDependencies(helmChart, versionObj.Dependencies, vals, dependenciesConfig, repoSelector); err != nil {
+	if err := hc.addDependencies(helmChart, versionObj.Dependencies, cv, dependenciesConfig, repoSelector); err != nil {
 		return helmChart, err
 	}
 
@@ -259,7 +262,7 @@ func (hc Release) getFiles(chartName, chartVersion string, helmChart *helmv1alph
 	return files
 }
 
-func (hc Release) addDependencies(chart *chart.Chart, deps []*helmv1alpha1.ChartDep, vals map[string]interface{}, dependenciesConfig map[string]helmv1alpha1.DependencyConfig, selectors map[string]string) error {
+func (hc Release) addDependencies(chart *chart.Chart, deps []*helmv1alpha1.ChartDep, vals chartutil.Values, dependenciesConfig map[string]helmv1alpha1.DependencyConfig, selectors map[string]string) error {
 
 	var chartList helmv1alpha1.ChartList
 	var err error

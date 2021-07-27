@@ -4,7 +4,6 @@ import (
 	"context"
 	actionlog "log"
 	"net/http"
-	"sync"
 
 	"github.com/prometheus/common/log"
 	"k8s.io/apimachinery/pkg/types"
@@ -15,6 +14,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/storage"
@@ -76,42 +76,18 @@ func getChartURL(rc client.Client, chart, version, namespace string) (string, er
 	return utils.GetChartVersion(version, chartObj).URL, nil
 }
 
-func mergeValues(specValues, defaultValues map[string]interface{}) map[string]interface{} {
+func mergeValues(specValues map[string]interface{}, helmChart *chart.Chart) map[string]interface{} {
 	// parsing values; goroutines are nessecarry due to tail recursion in called funcs
-	// we have to wait until each goroutine is finished for merging values
-	var wg sync.WaitGroup
-	c := make(chan map[string]interface{})
-	vals := make(map[string]interface{}, VALUES_MAP_SIZE)
-	for k, v := range defaultValues {
-		vals[k] = v
-	}
+	// init buffered channel for coalesce values
+	c := make(chan map[string]interface{}, 1)
 
-	// iterate through first level keys and call func for merging as a goroutine to avoid memory leaks
-	for k, v := range specValues {
+	// run coalesce values in separate goroutine to avoid memory leak in main goroutine
+	go func(c chan map[string]interface{}, specValues map[string]interface{}, helmChart *chart.Chart) {
+		cv, _ := chartutil.CoalesceValues(helmChart, specValues)
+		c <- cv
+	}(c, specValues, helmChart)
 
-		wg.Add(1)
-
-		go func(k string, v interface{}, c chan map[string]interface{}, defaultValues map[string]interface{}) {
-			defer wg.Done()
-			temp, _ := v.(map[string]interface{})
-			tempDefault, _ := defaultValues[k].(map[string]interface{})
-			c <- mergeUntypedMaps(tempDefault, temp, k)
-		}(k, v, c, defaultValues)
-
-	}
-
-	go func() {
-		wg.Wait()
-		close(c)
-	}()
-
-	for i := range c {
-		for k, v := range i {
-			vals[k] = v
-		}
-	}
-
-	return vals
+	return <-c
 }
 
 // have to be called as a goroutine to avoid memory leaks
