@@ -161,6 +161,9 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamesp
 		instance.Spec.ValuesTemplate = &helmv1alpha1.ValueTemplate{}
 	}
 
+	// set flags for helm action from spec
+	helmRelease.Flags = instance.Spec.Flags
+
 	if err := helmRelease.Update(releaseNamespace, instance.Spec.ValuesTemplate.DependenciesConfig); err != nil {
 		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 	}

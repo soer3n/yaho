@@ -61,35 +61,29 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 
 	var release *release.Release
 	var helmChart *chart.Chart
+	var specValues map[string]interface{}
 	var err error
 	var ok bool
 
 	installConfig := hc.Config
-	client := action.NewInstall(installConfig)
-	client.ReleaseName = hc.Name
-	hc.Client = client
-
-	var specValues map[string]interface{}
 
 	if specValues, err = hc.getValues(); err != nil {
 		return err
 	}
-
-	client.Namespace = namespace.Name
-	client.CreateNamespace = namespace.Install
 
 	options := &action.ChartPathOptions{
 		Version:               hc.Version,
 		InsecureSkipTLSverify: false,
 		Verify:                false,
 	}
+
 	if helmChart, err = hc.getChart(hc.Chart, options, dependenciesConfig, specValues); err != nil {
 		return err
 	}
 
-	vals := helmChart.Values
-
 	log.Debugf("configupdate: %v", hc.Config)
+
+	vals := helmChart.Values
 	release, _ = hc.getRelease()
 
 	// Check if something changed regarding the existing release
@@ -105,6 +99,12 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 		return nil
 	}
 
+	client := action.NewInstall(installConfig)
+	client.ReleaseName = hc.Name
+	client.Namespace = namespace.Name
+	client.CreateNamespace = namespace.Install
+	hc.setInstallFlags(client)
+
 	if release, err = client.Run(helmChart, vals); err != nil {
 		log.Info(err.Error())
 		return err
@@ -119,6 +119,42 @@ func (hc *Release) InitValuesTemplate(refList []*ValuesRef, version, namespace s
 	hc.ValuesTemplate = NewValueTemplate(refList)
 	hc.Namespace.Name = namespace
 	hc.Version = version
+}
+
+func (hc *Release) setInstallFlags(client *action.Install) {
+
+	if hc.Flags == nil {
+		log.Debugf("no flags set for release %v", hc.Name)
+	}
+
+	client.Atomic = hc.Flags.Atomic
+	client.DisableHooks = hc.Flags.DisableHooks
+	client.DisableOpenAPIValidation = hc.Flags.DisableOpenAPIValidation
+	client.DryRun = hc.Flags.DryRun
+	client.SkipCRDs = hc.Flags.SkipCRDs
+	client.SubNotes = hc.Flags.SubNotes
+	client.Timeout = hc.Flags.Timeout
+	client.Wait = hc.Flags.Wait
+
+}
+
+func (hc *Release) setUpgradeFlags(client *action.Upgrade) {
+
+	if hc.Flags == nil {
+		log.Debugf("no flags set for release %v", hc.Name)
+	}
+
+	client.Atomic = hc.Flags.Atomic
+	client.DisableHooks = hc.Flags.DisableHooks
+	client.DisableOpenAPIValidation = hc.Flags.DisableOpenAPIValidation
+	client.DryRun = hc.Flags.DryRun
+	client.SkipCRDs = hc.Flags.SkipCRDs
+	client.SubNotes = hc.Flags.SubNotes
+	client.Timeout = hc.Flags.Timeout
+	client.Wait = hc.Flags.Wait
+	client.Force = hc.Flags.Force
+	client.Recreate = hc.Flags.Recreate
+	client.CleanupOnFail = hc.Flags.CleanupOnFail
 }
 
 // Remove represents removing release related resource
@@ -464,6 +500,7 @@ func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values, namespa
 
 	client := action.NewUpgrade(hc.Config)
 	client.Namespace = namespace
+	hc.setUpgradeFlags(client)
 
 	if rel, err = client.Run(hc.Name, helmChart, vals); err != nil {
 		log.Info(err.Error())

@@ -35,6 +35,7 @@ type Release struct {
 	ValuesTemplate *ValueTemplate
 	Values         map[string]interface{}
 	Namespace      Namespace
+	Flags          *helmv1alpha1.Flags
 	Config         *action.Configuration
 	Settings       *cli.EnvSettings
 	Client         *action.Install

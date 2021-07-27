@@ -34,7 +34,8 @@ spec:
     dryRun: false
     disableHooks: false
     wait: false
-    waitForJobs: false
-    timeout: ""
+    cleanupOnFail: false
+    recreate: false
+    timeout: 3600s
     force: false
-    description: "foo"
+    description: "test description"

@@ -36,7 +36,7 @@ type ReleaseSpec struct {
 	Chart          string         `json:"chart"`
 	Version        string         `json:"version,omitempty"`
 	ValuesTemplate *ValueTemplate `json:"releaseSpec,omitempty"`
-	Flags          Flags          `json:"flags,omitempty"`
+	Flags          *Flags         `json:"flags,omitempty"`
 }
 
 // ValueTemplate represents data for install process of a release
@@ -54,10 +54,11 @@ type Flags struct {
 	DryRun                   bool          `json:"dryRun,omitempty"`
 	DisableHooks             bool          `json:"disableHooks,omitempty"`
 	Wait                     bool          `json:"wait,omitempty"`
-	WaitForJobs              bool          `json:"waitForJobs,omitempty"`
 	Timeout                  time.Duration `json:"timeout,omitempty"`
 	Force                    bool          `json:"force,omitempty"`
 	Description              string        `json:"description,omitempty"`
+	Recreate                 bool          `json:"recreate,omitempty"`
+	CleanupOnFail            bool          `json:"cleanupOnFail,omitempty"`
 }
 
 // DependencyConfig represents data for a chart dependency in a release

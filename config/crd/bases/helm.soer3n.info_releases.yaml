@@ -51,6 +51,39 @@ spec:
             properties:
               chart:
                 type: string
+              flags:
+                description: Flags represents data for parsing flags for creating
+                  release resources
+                properties:
+                  atomic:
+                    type: boolean
+                  cleanupOnFail:
+                    type: boolean
+                  description:
+                    type: string
+                  disableHooks:
+                    type: boolean
+                  disableOpenAPIValidation:
+                    type: boolean
+                  dryRun:
+                    type: boolean
+                  force:
+                    type: boolean
+                  recreate:
+                    type: boolean
+                  skipCRDs:
+                    type: boolean
+                  subNotes:
+                    type: boolean
+                  timeout:
+                    description: A Duration represents the elapsed time between two
+                      instants as an int64 nanosecond count. The representation limits
+                      the largest representable duration to approximately 290 years.
+                    format: int64
+                    type: integer
+                  wait:
+                    type: boolean
+                type: object
               name:
                 type: string
               namespace:
