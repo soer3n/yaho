@@ -63,7 +63,7 @@ func (chart *Chart) CreateTemplates() error {
 			return err
 		}
 
-		if chartRequested, err = getChartByURL(chartURL, g); err != nil {
+		if chartRequested, err = getChartByURL(chartURL, nil, g); err != nil {
 			return err
 		}
 

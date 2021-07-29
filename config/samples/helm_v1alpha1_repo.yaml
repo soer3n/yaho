@@ -1,8 +1,11 @@
 apiVersion: helm.soer3n.info/v1alpha1
 kind: Repo
 metadata:
-  name: submariner
+  name: testing
   namespace: helm
 spec:
-  name: submariner
-  url: https://submariner-io.github.io/submariner-charts/charts
+  name: testing
+  url: https://hub.soer3n.info/chartrepo/public
+  auth:
+    user: soer3n
+    pw: Ju?3ahsi

@@ -47,7 +47,7 @@ func initActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configu
 	return conf, nil
 }
 
-func getChartByURL(url string, g inttypes.HTTPClientInterface) (*chart.Chart, error) {
+func getChartByURL(url string, opts *helmv1alpha1.Auth, g inttypes.HTTPClientInterface) (*chart.Chart, error) {
 
 	var resp *http.Response
 	var err error
@@ -55,7 +55,19 @@ func getChartByURL(url string, g inttypes.HTTPClientInterface) (*chart.Chart, er
 	// Put content to buffer
 	log.Infof("url: %v", url)
 
-	if resp, err = g.Get(url); err != nil {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+
+	if err != nil {
+		return &chart.Chart{}, err
+	}
+
+	if opts != nil {
+		if opts.User != "" && opts.Password != "" {
+			req.SetBasicAuth(opts.User, opts.Password)
+		}
+	}
+
+	if resp, err = g.Do(req); err != nil {
 		return &chart.Chart{}, err
 	}
 

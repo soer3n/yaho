@@ -58,6 +58,17 @@ func TestRepoGetCharts(t *testing.T) {
 	httpMock.On("Get",
 		"https://foo.bar/charts/index.yaml").Return(httpResponse, nil)
 
+	req, _ := http.NewRequest(http.MethodGet, "https://foo.bar/charts/index.yaml", nil)
+
+	httpMock.On("Do",
+		req).Return(httpResponse, nil)
+
+	reqAuth, _ := http.NewRequest(http.MethodGet, "https://bar.foo/charts/index.yaml", nil)
+	reqAuth.SetBasicAuth("foo", "encrypted")
+
+	httpMock.On("Do",
+		reqAuth).Return(httpResponse, nil)
+
 	assert := assert.New(t)
 
 	for _, apiObj := range apiObjList {
@@ -145,7 +156,7 @@ func getTestRepoSpecs() []inttypes.TestCase {
 				},
 				Spec: helmv1alpha1.RepoSpec{
 					Name: "test",
-					URL:  "https://foo.bar/charts",
+					URL:  "https://bar.foo/charts",
 					Auth: &helmv1alpha1.Auth{
 						User:     "foo",
 						Password: "encrypted",

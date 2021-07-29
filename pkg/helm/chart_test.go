@@ -52,6 +52,19 @@ func TestChartCreateTemplates(t *testing.T) {
 		Body: ioutil.NopCloser(bytes.NewReader(payload)),
 	}, nil)
 
+	req, _ := http.NewRequest(http.MethodGet, "https://foo.bar/charts/foo-0.0.1.tgz", nil)
+
+	httpMock.On("Do",
+		req).Return(&http.Response{
+		Body: ioutil.NopCloser(bytes.NewReader(payload)),
+	}, nil)
+
+	reqEmpty, _ := http.NewRequest(http.MethodGet, "https://foo.bar/charts/foo-0.0.2.tgz", nil)
+	httpMock.On("Do",
+		reqEmpty).Return(&http.Response{
+		Body: ioutil.NopCloser(bytes.NewReader(payload)),
+	}, nil)
+
 	assert := assert.New(t)
 
 	for _, v := range getTestRepoChartVersions() {
@@ -89,6 +102,19 @@ func TestChartCreateConfigMaps(t *testing.T) {
 	}, nil)
 	httpMock.On("Get",
 		"https://foo.bar/charts/foo-0.0.2.tgz").Return(&http.Response{
+		Body: ioutil.NopCloser(bytes.NewReader(payload)),
+	}, nil)
+
+	req, _ := http.NewRequest(http.MethodGet, "https://foo.bar/charts/foo-0.0.1.tgz", nil)
+
+	httpMock.On("Do",
+		req).Return(&http.Response{
+		Body: ioutil.NopCloser(bytes.NewReader(payload)),
+	}, nil)
+
+	reqEmpty, _ := http.NewRequest(http.MethodGet, "https://foo.bar/charts/foo-0.0.2.tgz", nil)
+	httpMock.On("Do",
+		reqEmpty).Return(&http.Response{
 		Body: ioutil.NopCloser(bytes.NewReader(payload)),
 	}, nil)
 

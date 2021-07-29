@@ -64,6 +64,11 @@ func TestReleaseConfigMaps(t *testing.T) {
 	httpMock.On("Get",
 		"https://foo.bar/charts/foo-0.0.1.tgz").Return(httpResponse, nil)
 
+	req, _ := http.NewRequest(http.MethodGet, "https://foo.bar/charts/foo-0.0.1.tgz", nil)
+
+	httpMock.On("Do",
+		req).Return(httpResponse, nil)
+
 	httpMock.On("Get",
 		"").Return(&http.Response{}, errors.New("no valid url"))
 
@@ -198,6 +203,11 @@ func TestReleaseUpdate(t *testing.T) {
 
 	httpMock.On("Get",
 		"https://foo.bar/charts/foo-0.0.1.tgz").Return(httpResponse, nil)
+
+	req, _ := http.NewRequest(http.MethodGet, "https://foo.bar/charts/foo-0.0.1.tgz", nil)
+
+	httpMock.On("Do",
+		req).Return(httpResponse, nil)
 
 	assert := assert.New(t)
 

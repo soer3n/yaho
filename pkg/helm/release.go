@@ -422,6 +422,7 @@ func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []*hel
 	if repoObj, err = hc.getRepo(); err != nil {
 		return configmapList, chartObjList
 	}
+
 	if chartURL, err = getChartURL(hc.k8sClient, hc.Chart, hc.Version, hc.Namespace.Name); err != nil {
 		return configmapList, chartObjList
 	}
@@ -430,7 +431,7 @@ func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []*hel
 	releaseClient.Version = hc.Version
 	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.URL
 
-	if chartRequested, err = getChartByURL(chartURL, hc.getter); err != nil {
+	if chartRequested, err = getChartByURL(chartURL, repoObj.Spec.Auth, hc.getter); err != nil {
 		return configmapList, chartObjList
 	}
 

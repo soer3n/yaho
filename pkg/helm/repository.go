@@ -78,8 +78,19 @@ func (hr Repo) getIndexByURL() (*repo.IndexFile, error) {
 
 	parsedURL.RawPath = path.Join(parsedURL.RawPath, "index.yaml")
 	parsedURL.Path = path.Join(parsedURL.Path, "index.yaml")
+	req, err := http.NewRequest(http.MethodGet, parsedURL.String(), nil)
 
-	if res, err = hr.getter.Get(parsedURL.String()); err != nil {
+	if err != nil {
+		return obj, err
+	}
+
+	if hr.Auth != nil {
+		if hr.Auth.User != "" && hr.Auth.Password != "" {
+			req.SetBasicAuth(hr.Auth.User, hr.Auth.Password)
+		}
+	}
+
+	if res, err = hr.getter.Do(req); err != nil {
 		return obj, err
 	}
 

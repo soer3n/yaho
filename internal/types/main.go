@@ -15,6 +15,7 @@ type ClientInterface interface {
 // HTTPClientInterface represents interface for mocking an http client
 type HTTPClientInterface interface {
 	Get(url string) (*http.Response, error)
+	Do(req *http.Request) (*http.Response, error)
 }
 
 // TestCase represents a struct with setup structs, expected return structs and errors of tested funcs
