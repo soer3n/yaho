@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,7 +24,7 @@ var _ = Context("Install a release", func() {
 
 	Describe("when no existing resources exist", func() {
 
-		It("should start with creating dependencies", func() {
+		FIt("should start with creating dependencies", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
 
@@ -235,7 +236,15 @@ var _ = Context("Install a release", func() {
 
 func GetReleaseFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Release) func() error {
 	return func() error {
-		return testClient.Get(ctx, key, obj)
+		if err := testClient.Get(ctx, key, obj); err != nil {
+			return err
+		}
+
+		if len(obj.Status.Conditions) > 0 {
+			return nil
+		}
+
+		return &errors.StatusError{}
 	}
 }
 
