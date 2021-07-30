@@ -6,6 +6,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -15,12 +16,18 @@ func (chartVersion ChartVersion) AddOrUpdateChartMap(chartObjMap map[string]*hel
 
 	chartMeta := chartVersion.Version.Metadata
 	_, ok := chartObjMap[chartMeta.Name]
+	chartURL, err := repo.ResolveReferenceURL(instance.Spec.URL, chartVersion.Version.URLs[0])
+
+	if err != nil {
+		return chartObjMap, err
+	}
+
 	version := helmv1alpha1.ChartVersion{
 		Name:         chartMeta.Version,
 		Templates:    "helm-tmpl-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 		CRDs:         "helm-crds-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 		Dependencies: chartVersion.createDependenciesList(chartMeta),
-		URL:          chartVersion.Version.URLs[0],
+		URL:          chartURL,
 	}
 
 	if ok {

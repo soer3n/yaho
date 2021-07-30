@@ -36,12 +36,13 @@ var _ = Context("Install a repository", func() {
 			By("creating a new repository resource with the specified name and specified url")
 			repoKind = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "testresource",
+					Name:      testRepoName,
 					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepoSpec{
 					Name: "deployment-name",
-					URL:  "https://submariner-io.github.io/submariner-charts/charts",
+					URL:  testRepoURL,
+					Auth: testRepoAuth,
 				},
 			}
 
@@ -54,11 +55,11 @@ var _ = Context("Install a repository", func() {
 			repoChart = &helmv1alpha1.Chart{}
 
 			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: repoKind.Namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert, Namespace: repoKind.Namespace}, repoChart),
 				time.Second*20, time.Millisecond*1500).Should(BeTrue())
 
 			By("should remove this repository resource with the specified name and specified url")
@@ -69,11 +70,11 @@ var _ = Context("Install a repository", func() {
 			time.Sleep(5 * time.Second)
 
 			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: repoKind.Namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: repoKind.Namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: "submariner", Namespace: repoKind.Namespace}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert, Namespace: repoKind.Namespace}, repoChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
 
 			By("by deletion of namespace test should finish successfully")

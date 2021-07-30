@@ -52,6 +52,25 @@ var stopCh context.Context
 var err error
 var testEnv *envtest.Environment
 
+const testRepoName = "testresource"
+const testRepoURL = "https://hub.soer3n.info/chartrepo/testing_a"
+const testRepoNameSecond = "testresource-2"
+const testRepoURLSecond = "https://hub.soer3n.info/chartrepo/testing_b"
+const testRepoChartNameAssert = "testing"
+const testRepoChartSecondNameAssert = "testing-dep"
+
+const testReleaseName = "testresource"
+const testReleaseChartName = "testing"
+const testReleaseChartVersion = "0.1.0"
+const testReleaseNameSecond = "testresource-2"
+const testReleaseChartNameSecond = "testing-dep"
+const testReleaseChartVersionSecond = "0.1.0"
+
+var testRepoAuth = &helmv1alpha1.Auth{
+	User:     "soer3n",
+	Password: "Ju?3ahsi",
+}
+
 //var repoNeeded bool
 
 func TestAPIs(t *testing.T) {
