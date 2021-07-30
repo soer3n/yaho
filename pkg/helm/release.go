@@ -2,9 +2,11 @@ package helm
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/prometheus/common/log"
 	"helm.sh/helm/v3/pkg/action"
@@ -430,8 +432,13 @@ func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []*hel
 	releaseClient.ReleaseName = hc.Name
 	releaseClient.Version = hc.Version
 	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.URL
+	credentials := &Auth{}
 
-	if chartRequested, err = getChartByURL(chartURL, repoObj.Spec.Auth, hc.getter); err != nil {
+	if repoObj.Spec.AuthSecret != "" {
+		credentials = hc.getCredentials(repoObj.Spec.AuthSecret)
+	}
+
+	if chartRequested, err = getChartByURL(chartURL, credentials, hc.getter); err != nil {
 		return configmapList, chartObjList
 	}
 
@@ -465,6 +472,31 @@ func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []*hel
 	configmapList = chartVersion.createConfigMaps(hc.Namespace.Name, deps)
 
 	return configmapList, chartObjList
+}
+
+func (hc Release) getCredentials(secret string) *Auth {
+
+	secretObj := &v1.Secret{}
+	creds := &Auth{}
+
+	if err := hc.k8sClient.Get(context.Background(), types.NamespacedName{Namespace: hc.Namespace.Name, Name: secret}, secretObj); err != nil {
+		return nil
+	}
+
+	if _, ok := secretObj.Data["user"]; !ok {
+		log.Info("Username empty for repo auth")
+	}
+
+	if _, ok := secretObj.Data["password"]; !ok {
+		log.Info("Password empty for repo auth")
+	}
+
+	username, _ := b64.StdEncoding.DecodeString(string(secretObj.Data["user"]))
+	pw, _ := b64.StdEncoding.DecodeString(string(secretObj.Data["password"]))
+	creds.User = strings.TrimSuffix(string(username), "\n")
+	creds.Password = strings.TrimSuffix(string(pw), "\n")
+
+	return creds
 }
 
 func (hc Release) validateChartSpec(deps []*chart.Chart, version *helmv1alpha1.ChartDep, chartObjList []*helmv1alpha1.Chart) error {

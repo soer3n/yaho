@@ -46,9 +46,9 @@ var _ = Context("Install a release with values", func() {
 					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepoSpec{
-					Name: testRepoName,
-					URL:  testRepoURL,
-					Auth: testRepoAuth,
+					Name:       testRepoName,
+					URL:        testRepoURL,
+					AuthSecret: testRepoAuth,
 				},
 			}
 
@@ -61,9 +61,9 @@ var _ = Context("Install a release with values", func() {
 					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepoSpec{
-					Name: testRepoNameSecond,
-					URL:  testRepoURLSecond,
-					Auth: testRepoAuth,
+					Name:       testRepoNameSecond,
+					URL:        testRepoURLSecond,
+					AuthSecret: testRepoAuth,
 				},
 			}
 

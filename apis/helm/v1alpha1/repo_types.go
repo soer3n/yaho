@@ -30,16 +30,7 @@ type RepoSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	Name string `json:"name"`
 	URL  string `json:"url"`
-	Auth *Auth  `json:"auth,omitempty"`
-}
-
-// Auth represents data for authentication for a repository
-type Auth struct {
-	User     string `json:"user,omitempty"`
-	Password string `json:"pw,omitempty"`
-	Cert     string `json:"cert,omitempty"`
-	Key      string `json:"key,omitempty"`
-	Ca       string `json:"ca,omitempty"`
+	AuthSecret string  `json:"authSecret,omitempty"`
 }
 
 // RepoStatus defines the observed state of Repo

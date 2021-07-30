@@ -170,14 +170,8 @@ func (r *RepoGroupReconciler) deployRepos(instance *helmv1alpha1.RepoGroup) {
 				},
 			}
 
-			if repository.Auth != nil {
-				helmRepo.Spec.Auth = &helmv1alpha1.Auth{
-					User:     repository.Auth.User,
-					Password: repository.Auth.Password,
-					Cert:     repository.Auth.Cert,
-					Key:      repository.Auth.Key,
-					Ca:       repository.Auth.Ca,
-				}
+			if repository.AuthSecret != "" {
+				helmRepo.Spec.AuthSecret = repository.AuthSecret
 			}
 
 			if err := controllerutil.SetControllerReference(instance, helmRepo, r.Scheme); err != nil {

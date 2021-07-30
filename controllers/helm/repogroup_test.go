@@ -42,9 +42,9 @@ var _ = Context("Install a repository group", func() {
 					LabelSelector: "foo",
 					Repos: []helmv1alpha1.RepoSpec{
 						{
-							Name: "deployment-name-2",
-							URL:  testRepoURL,
-							Auth: testRepoAuth,
+							Name:       "deployment-name-2",
+							URL:        testRepoURL,
+							AuthSecret: testRepoAuth,
 						},
 					},
 				},
@@ -61,9 +61,9 @@ var _ = Context("Install a repository group", func() {
 			By("update group by adding another repository resource with the specified name and specified url")
 
 			repoGroupKind.Spec.Repos = append(repoGroupKind.Spec.Repos, helmv1alpha1.RepoSpec{
-				Name: "deployment-name-3",
-				URL:  testRepoURLSecond,
-				Auth: testRepoAuth,
+				Name:       "deployment-name-3",
+				URL:        testRepoURLSecond,
+				AuthSecret: testRepoAuth,
 			})
 
 			err = testClient.Update(context.Background(), repoGroupKind)
@@ -81,9 +81,9 @@ var _ = Context("Install a repository group", func() {
 
 			repoGroupKind.Spec.Repos = []helmv1alpha1.RepoSpec{
 				{
-					Name: "deployment-name-3",
-					URL:  testRepoURLSecond,
-					Auth: testRepoAuth,
+					Name:       "deployment-name-3",
+					URL:        testRepoURLSecond,
+					AuthSecret: testRepoAuth,
 				},
 			}
 

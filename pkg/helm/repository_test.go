@@ -155,15 +155,9 @@ func getTestRepoSpecs() []inttypes.TestCase {
 					},
 				},
 				Spec: helmv1alpha1.RepoSpec{
-					Name: "test",
-					URL:  "https://bar.foo/charts",
-					Auth: &helmv1alpha1.Auth{
-						User:     "foo",
-						Password: "encrypted",
-						Cert:     "certContent",
-						Key:      "keyContent",
-						Ca:       "certCa",
-					},
+					Name:       "test",
+					URL:        "https://bar.foo/charts",
+					AuthSecret: "",
 				},
 			},
 			ReturnValue: "",

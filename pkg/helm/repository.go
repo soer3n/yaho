@@ -2,26 +2,30 @@ package helm
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	"github.com/soer3n/apps-operator/internal/types"
+	inttypes "github.com/soer3n/apps-operator/internal/types"
 	"github.com/soer3n/apps-operator/pkg/utils"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/repo"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
 // NewHelmRepo represents initialization of internal repo struct
-func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.Client, g types.HTTPClientInterface, c kube.Client) *Repo {
+func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.Client, g inttypes.HTTPClientInterface, c kube.Client) *Repo {
 
 	var helmRepo *Repo
 
@@ -40,13 +44,30 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 		helmClient: c,
 	}
 
-	if instance.Spec.Auth != nil {
+	if instance.Spec.AuthSecret != "" {
+		secretObj := &v1.Secret{}
+		creds := &Auth{}
+
+		if err := k8sclient.Get(context.Background(), types.NamespacedName{Namespace: instance.ObjectMeta.Namespace, Name: instance.Spec.AuthSecret}, secretObj); err != nil {
+			return nil
+		}
+
+		if _, ok := secretObj.Data["user"]; !ok {
+			log.Info("Username empty for repo auth")
+		}
+
+		if _, ok := secretObj.Data["password"]; !ok {
+			log.Info("Password empty for repo auth")
+		}
+
+		username, _ := b64.StdEncoding.DecodeString(string(secretObj.Data["user"]))
+		pw, _ := b64.StdEncoding.DecodeString(string(secretObj.Data["pw"]))
+		creds.User = string(username)
+		creds.Password = string(pw)
+
 		helmRepo.Auth = &Auth{
-			User:     instance.Spec.Auth.User,
-			Password: instance.Spec.Auth.Password,
-			Cert:     instance.Spec.Auth.Cert,
-			Key:      instance.Spec.Auth.Key,
-			Ca:       instance.Spec.Auth.Ca,
+			User:     strings.TrimSuffix(string(username), "\n"),
+			Password: strings.TrimSuffix(string(pw), "\n"),
 		}
 	}
 

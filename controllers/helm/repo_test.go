@@ -20,7 +20,7 @@ var repoChart *helmv1alpha1.Chart
 var _ = Context("Install a repository", func() {
 
 	Describe("when no existing resource exist", func() {
-		It("should start with creating dependencies", func() {
+		FIt("should start with creating dependencies", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
 
@@ -40,9 +40,9 @@ var _ = Context("Install a repository", func() {
 					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepoSpec{
-					Name: "deployment-name",
-					URL:  testRepoURL,
-					Auth: testRepoAuth,
+					Name:       "deployment-name",
+					URL:        testRepoURL,
+					AuthSecret: testRepoAuth,
 				},
 			}
 

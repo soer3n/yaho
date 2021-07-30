@@ -47,7 +47,7 @@ func initActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configu
 	return conf, nil
 }
 
-func getChartByURL(url string, opts *helmv1alpha1.Auth, g inttypes.HTTPClientInterface) (*chart.Chart, error) {
+func getChartByURL(url string, opts *Auth, g inttypes.HTTPClientInterface) (*chart.Chart, error) {
 
 	var resp *http.Response
 	var err error

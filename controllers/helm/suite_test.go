@@ -46,9 +46,6 @@ var cfg *rest.Config
 var k8sClient, testClient client.Client
 var stopCh context.Context
 
-//var namespace string
-
-// var ns *v1.Namespace
 var err error
 var testEnv *envtest.Environment
 
@@ -66,12 +63,7 @@ const testReleaseNameSecond = "testresource-2"
 const testReleaseChartNameSecond = "testing-dep"
 const testReleaseChartVersionSecond = "0.1.0"
 
-var testRepoAuth = &helmv1alpha1.Auth{
-	User:     "soer3n",
-	Password: "Ju?3ahsi",
-}
-
-//var repoNeeded bool
+const testRepoAuth = "test-secret"
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
