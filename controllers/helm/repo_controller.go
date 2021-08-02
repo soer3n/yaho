@@ -19,7 +19,9 @@ package helm
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,6 +31,8 @@ import (
 	helmutils "github.com/soer3n/apps-operator/pkg/helm"
 	oputils "github.com/soer3n/apps-operator/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -106,11 +110,11 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	}
 
-	r.deploy(instance, hc)
+	err = r.deploy(instance, hc)
 
 	log.Infof("Repo %v deployed in namespace %v", instance.Spec.Name, instance.ObjectMeta.Namespace)
 	log.Info("Don't reconcile repos.")
-	return ctrl.Result{}, nil
+	return r.syncStatus(context.Background(), instance, err)
 }
 
 func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Repo) error {
@@ -125,7 +129,7 @@ func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Rep
 	return nil
 }
 
-func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Client) {
+func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Client) error {
 
 	var chartList []*helmutils.Chart
 	var err error
@@ -151,7 +155,7 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Clien
 	// this is use just for using channels, goroutines and waitGroup
 	// could be senseful here if we have to deal with big repositories
 	var wg sync.WaitGroup
-	c := make(chan string, 10)
+	c := make(chan string, 1)
 
 	for _, chartObj := range chartObjMap {
 		wg.Add(1)
@@ -175,8 +179,12 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Clien
 
 					if err = r.Client.Create(context.TODO(), helmChart); err != nil {
 						log.Info(err.Error())
+						c <- installedChart.Spec.Name
 					}
 				}
+
+				c <- ""
+				return
 			}
 
 			installedChart.Spec = helmChart.Spec
@@ -184,9 +192,10 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Clien
 			err = r.Client.Update(context.TODO(), installedChart)
 
 			if err != nil {
-				c <- err.Error()
+				c <- installedChart.Spec.Name
 			} else {
-				c <- "Successfully installed chart " + installedChart.Spec.Name
+				log.Infof("chart %v is up to date", installedChart.Spec.Name)
+				c <- ""
 			}
 
 		}(chartObj, instance, c)
@@ -197,9 +206,45 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Clien
 		close(c)
 	}()
 
+	failedChartList := []string{}
+
 	for i := range c {
-		log.Info(i)
+		if i != "" {
+			failedChartList = append(failedChartList, i)
+		}
 	}
+
+	log.Infof("chart parsing for %s completed.", instance.ObjectMeta.Name)
+
+	if len(failedChartList) > 0 {
+		return fmt.Errorf("Problems with charts: %v", strings.Join(failedChartList, ","))
+	}
+
+	return nil
+}
+
+func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Repo, err error) (ctrl.Result, error) {
+
+	stats := metav1.ConditionTrue
+	message := ""
+	reason := "install"
+
+	if err != nil {
+		stats = metav1.ConditionFalse
+		message = err.Error()
+	}
+
+	if meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", stats) && instance.Status.Conditions[0].Message == message {
+		return ctrl.Result{}, nil
+	}
+
+	condition := metav1.Condition{Type: "synced", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
+	meta.SetStatusCondition(&instance.Status.Conditions, condition)
+
+	_ = r.Status().Update(ctx, instance)
+
+	log.Info("Don't reconcile repo after status sync.")
+	return ctrl.Result{}, nil
 }
 
 func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.Client, instance *helmv1alpha1.Repo) error {

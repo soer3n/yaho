@@ -61,7 +61,7 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 		}
 
 		username, _ := b64.StdEncoding.DecodeString(string(secretObj.Data["user"]))
-		pw, _ := b64.StdEncoding.DecodeString(string(secretObj.Data["pw"]))
+		pw, _ := b64.StdEncoding.DecodeString(string(secretObj.Data["password"]))
 		creds.User = string(username)
 		creds.Password = string(pw)
 

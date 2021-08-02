@@ -28,16 +28,17 @@ import (
 type RepoSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Name string `json:"name"`
-	URL  string `json:"url"`
-	AuthSecret string  `json:"authSecret,omitempty"`
+	Name       string `json:"name"`
+	URL        string `json:"url"`
+	AuthSecret string `json:"authSecret,omitempty"`
 }
 
 // RepoStatus defines the observed state of Repo
 type RepoStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Phase string `json:"phase,omitempty"`
+	Phase      string             `json:"phase,omitempty"`
+	Conditions []metav1.Condition `json:"conditions"`
 }
 
 // +kubebuilder:object:root=true
