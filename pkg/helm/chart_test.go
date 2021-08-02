@@ -21,61 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestChartCreateTemplates(t *testing.T) {
-
-	clientMock := mocks.K8SClientMock{}
-	httpMock := mocks.HTTPClientMock{}
-	settings := cli.New()
-
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "foo", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
-
-		c := args.Get(2).(*helmv1alpha1.Chart)
-		spec := getTestChartSpec()
-		c.Spec = spec.Spec
-		c.ObjectMeta = spec.ObjectMeta
-	})
-
-	/*expected :=  getExpectedTestCharts(clientMock)*/
-
-	var payload []byte
-
-	raw, _ := os.Open("../../testutils/busybox-0.1.0.tgz")
-	defer raw.Close()
-	payload, _ = ioutil.ReadAll(raw)
-
-	httpMock.On("Get",
-		"https://foo.bar/charts/foo-0.0.1.tgz").Return(&http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(payload)),
-	}, nil)
-	httpMock.On("Get",
-		"https://foo.bar/charts/foo-0.0.2.tgz").Return(&http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(payload)),
-	}, nil)
-
-	req, _ := http.NewRequest(http.MethodGet, "https://foo.bar/charts/foo-0.0.1.tgz", nil)
-
-	httpMock.On("Do",
-		req).Return(&http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(payload)),
-	}, nil)
-
-	reqEmpty, _ := http.NewRequest(http.MethodGet, "https://foo.bar/charts/foo-0.0.2.tgz", nil)
-	httpMock.On("Do",
-		reqEmpty).Return(&http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(payload)),
-	}, nil)
-
-	assert := assert.New(t)
-
-	for _, v := range getTestRepoChartVersions() {
-		ver := v.Input.([]*repo.ChartVersion)
-		testObj := NewChart(ver, settings, "test", &clientMock, &httpMock, kube.Client{})
-		err := testObj.CreateTemplates()
-
-		assert.Nil(err)
-	}
-}
-
 func TestChartCreateConfigMaps(t *testing.T) {
 
 	clientMock := mocks.K8SClientMock{}

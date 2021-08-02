@@ -287,43 +287,6 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	return helmChart, nil
 }
 
-func (hc Release) buildChart(configmaps []v1.ConfigMap) (*chart.Chart, error) {
-
-	helmChart := &chart.Chart{
-		Metadata:  &chart.Metadata{},
-		Files:     []*chart.File{},
-		Templates: []*chart.File{},
-		Values:    make(map[string]interface{}),
-	}
-
-	for _, configmap := range configmaps {
-		switch configmap.ObjectMeta.Name {
-		case "helm-default-" + hc.Name + "-" + hc.Version:
-			helmChart.Values = hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Name + "-" + hc.Version)
-		case "helm-tmpl-" + hc.Name + "-" + hc.Version:
-
-			files := []*chart.File{}
-
-			for _, temp := range hc.appendFilesFromConfigMap("helm-tmpl-" + hc.Name + "-" + hc.Version) {
-				files = append(files, temp)
-			}
-
-			helmChart.Templates = files
-		case "helm-crds-" + hc.Name + "-" + hc.Version:
-
-			files := []*chart.File{}
-
-			for _, temp := range hc.appendFilesFromConfigMap("helm-crds-" + hc.Chart + "-" + hc.Version) {
-				files = append(files, temp)
-			}
-
-			helmChart.Files = files
-		}
-	}
-
-	return helmChart, nil
-}
-
 func (hc Release) getFiles(chartName, chartVersion string, helmChart *helmv1alpha1.Chart) []*chart.File {
 
 	files := []*chart.File{}

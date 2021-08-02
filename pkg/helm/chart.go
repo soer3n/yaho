@@ -5,7 +5,6 @@ import (
 	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"github.com/soer3n/apps-operator/internal/types"
 	"helm.sh/helm/v3/pkg/action"
-	helmchart "helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/repo"
@@ -41,43 +40,6 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 		k8sClient: k8sclient,
 		getter:    g,
 	}
-}
-
-// CreateTemplates represents func to parse compress chart data into configmaps
-func (chart *Chart) CreateTemplates() error {
-
-	var name, chartURL string
-	var chartRequested *helmchart.Chart
-	var err error
-
-	client := chart.Client
-	k8sClient := chart.k8sClient
-	g := chart.getter
-
-	for _, chart := range chart.Versions {
-
-		client.ReleaseName = name
-		client.Version = chart.Version.Version
-
-		if chartURL, err = getChartURL(k8sClient, chart.Version.Name, chart.Version.Version, client.Namespace); err != nil {
-			return err
-		}
-
-		if chartRequested, err = getChartByURL(chartURL, nil, g); err != nil {
-			return err
-		}
-
-		log.Debugf("Templates: %v", chartRequested.Templates)
-		chart.Templates = chartRequested.Templates
-
-		log.Debugf("CRDs: %v", chartRequested.CRDs())
-		chart.CRDs = chartRequested.CRDs()
-
-		log.Debugf("Default Values: %v", chartRequested.Values)
-		chart.DefaultValues = chartRequested.Values
-	}
-
-	return nil
 }
 
 // AddOrUpdateChartMap represents update of a map of chart structs if needed
