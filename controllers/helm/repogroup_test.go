@@ -34,19 +34,6 @@ var _ = Context("Install a repository group", func() {
 			err = testClient.Create(ctx, repoGroupNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			By("install a new namespace")
-			repoSecret := &v1.Secret{
-				TypeMeta:   metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{Name: testRepoAuth, Namespace: namespace},
-				Data: map[string][]byte{
-					"password": []byte("SnU/M2Foc2kK"),
-					"user":     []byte("c29lcjNuCg=="),
-				},
-			}
-
-			err = testClient.Create(ctx, repoSecret)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test secret resource")
-
 			By("creating a new repository group resource with the specified names and specified urls")
 			repoGroupKind = &helmv1alpha1.RepoGroup{
 				TypeMeta:   metav1.TypeMeta{},
@@ -55,9 +42,8 @@ var _ = Context("Install a repository group", func() {
 					LabelSelector: "foo",
 					Repos: []helmv1alpha1.RepoSpec{
 						{
-							Name:       testRepoName,
-							URL:        testRepoURL,
-							AuthSecret: testRepoAuth,
+							Name: testRepoName,
+							URL:  testRepoURL,
 						},
 					},
 				},
@@ -72,9 +58,8 @@ var _ = Context("Install a repository group", func() {
 			By("update group by adding another repository resource with the specified name and specified url")
 
 			repoGroupKind.Spec.Repos = append(repoGroupKind.Spec.Repos, helmv1alpha1.RepoSpec{
-				Name:       testRepoNameSecond,
-				URL:        testRepoURLSecond,
-				AuthSecret: testRepoAuth,
+				Name: testRepoNameSecond,
+				URL:  testRepoURLSecond,
 			})
 
 			err = testClient.Update(context.Background(), repoGroupKind)
@@ -103,9 +88,8 @@ var _ = Context("Install a repository group", func() {
 
 			repoGroupKind.Spec.Repos = []helmv1alpha1.RepoSpec{
 				{
-					Name:       testRepoNameSecond,
-					URL:        testRepoURLSecond,
-					AuthSecret: testRepoAuth,
+					Name: testRepoNameSecond,
+					URL:  testRepoURLSecond,
 				},
 			}
 

@@ -39,19 +39,6 @@ var _ = Context("Install a release with values", func() {
 			err = testClient.Create(ctx, releaseNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			By("install a new namespace")
-			repoSecret := &v1.Secret{
-				TypeMeta:   metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{Name: testRepoAuth, Namespace: namespace},
-				Data: map[string][]byte{
-					"password": []byte("SnU/M2Foc2kK"),
-					"user":     []byte("c29lcjNuCg=="),
-				},
-			}
-
-			err = testClient.Create(ctx, repoSecret)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test secret resource")
-
 			By("should create a new Repository resources with the specified name and specified url")
 			valuesReleaseRepo = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
@@ -59,9 +46,8 @@ var _ = Context("Install a release with values", func() {
 					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepoSpec{
-					Name:       testRepoName,
-					URL:        testRepoURL,
-					AuthSecret: testRepoAuth,
+					Name: testRepoName,
+					URL:  testRepoURL,
 				},
 			}
 
@@ -74,9 +60,8 @@ var _ = Context("Install a release with values", func() {
 					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepoSpec{
-					Name:       testRepoNameSecond,
-					URL:        testRepoURLSecond,
-					AuthSecret: testRepoAuth,
+					Name: testRepoNameSecond,
+					URL:  testRepoURLSecond,
 				},
 			}
 

@@ -122,4 +122,3 @@ But everyone can feel welcome to mention ideas and adding features which makes s
 
 ## License
 [LICENSE](LICENSE)
-
