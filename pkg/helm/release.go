@@ -4,6 +4,7 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -258,6 +259,10 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	versionObj := utils.GetChartVersion(chartPathOptions.Version, chartObj)
 	files := hc.getFiles(chartName, versionObj.Name, chartObj)
 
+	if len(files) < 1 {
+		return helmChart, errors.New("no files detected for chart resource")
+	}
+
 	helmChart.Metadata.Name = chartName
 	helmChart.Metadata.Version = chartObj.Spec.APIVersion
 	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
@@ -269,12 +274,51 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	cv := mergeValues(vals, helmChart)
 	helmChart.Values = cv
 
-	if err := hc.addDependencies(helmChart, versionObj.Dependencies, cv, dependenciesConfig, repoSelector); err != nil {
-		return helmChart, err
+	if len(versionObj.Dependencies) > 0 {
+		if err := hc.addDependencies(helmChart, versionObj.Dependencies, cv, dependenciesConfig, repoSelector); err != nil {
+			return helmChart, err
+		}
 	}
 
 	if err := helmChart.Validate(); err != nil {
 		return helmChart, err
+	}
+
+	return helmChart, nil
+}
+
+func (hc Release) buildChart(configmaps []v1.ConfigMap) (*chart.Chart, error) {
+
+	helmChart := &chart.Chart{
+		Metadata:  &chart.Metadata{},
+		Files:     []*chart.File{},
+		Templates: []*chart.File{},
+		Values:    make(map[string]interface{}),
+	}
+
+	for _, configmap := range configmaps {
+		switch configmap.ObjectMeta.Name {
+		case "helm-default-" + hc.Name + "-" + hc.Version:
+			helmChart.Values = hc.getDefaultValuesFromConfigMap("helm-default-" + hc.Name + "-" + hc.Version)
+		case "helm-tmpl-" + hc.Name + "-" + hc.Version:
+
+			files := []*chart.File{}
+
+			for _, temp := range hc.appendFilesFromConfigMap("helm-tmpl-" + hc.Name + "-" + hc.Version) {
+				files = append(files, temp)
+			}
+
+			helmChart.Templates = files
+		case "helm-crds-" + hc.Name + "-" + hc.Version:
+
+			files := []*chart.File{}
+
+			for _, temp := range hc.appendFilesFromConfigMap("helm-crds-" + hc.Chart + "-" + hc.Version) {
+				files = append(files, temp)
+			}
+
+			helmChart.Files = files
+		}
 	}
 
 	return helmChart, nil
@@ -403,7 +447,7 @@ func (hc Release) getRepo() (helmv1alpha1.Repo, error) {
 }
 
 // GetParsedConfigMaps represents parsing and returning of chart related data for a release
-func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []*helmv1alpha1.Chart) {
+func (hc *Release) GetParsedConfigMaps(namespace string, dependenciesConfig map[string]helmv1alpha1.DependencyConfig) ([]v1.ConfigMap, []*helmv1alpha1.Chart) {
 
 	var chartRequested *chart.Chart
 	var repoObj helmv1alpha1.Repo
@@ -425,21 +469,28 @@ func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []*hel
 		return configmapList, chartObjList
 	}
 
-	if chartURL, err = getChartURL(hc.k8sClient, hc.Chart, hc.Version, hc.Namespace.Name); err != nil {
-		return configmapList, chartObjList
-	}
+	options := &action.ChartPathOptions{}
+	options.RepoURL = hc.Repo
+	options.Version = hc.Version
 
-	releaseClient.ReleaseName = hc.Name
-	releaseClient.Version = hc.Version
-	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.URL
-	credentials := &Auth{}
+	if chartRequested, err = hc.getChart(hc.Chart, options, dependenciesConfig, hc.Values); err != nil {
 
-	if repoObj.Spec.AuthSecret != "" {
-		credentials = hc.getCredentials(repoObj.Spec.AuthSecret)
-	}
+		if chartURL, err = getChartURL(hc.k8sClient, hc.Chart, hc.Version, hc.Namespace.Name); err != nil {
+			return configmapList, chartObjList
+		}
 
-	if chartRequested, err = getChartByURL(chartURL, credentials, hc.getter); err != nil {
-		return configmapList, chartObjList
+		releaseClient.ReleaseName = hc.Name
+		releaseClient.Version = hc.Version
+		releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.URL
+		credentials := &Auth{}
+
+		if repoObj.Spec.AuthSecret != "" {
+			credentials = hc.getCredentials(repoObj.Spec.AuthSecret)
+		}
+
+		if chartRequested, err = getChartByURL(chartURL, credentials, hc.getter); err != nil {
+			return configmapList, chartObjList
+		}
 	}
 
 	if err = hc.k8sClient.Get(context.Background(), types.NamespacedName{

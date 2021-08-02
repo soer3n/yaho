@@ -39,6 +39,19 @@ var _ = Context("Install a release with values", func() {
 			err = testClient.Create(ctx, releaseNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
+			By("install a new namespace")
+			repoSecret := &v1.Secret{
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{Name: testRepoAuth, Namespace: namespace},
+				Data: map[string][]byte{
+					"password": []byte("SnU/M2Foc2kK"),
+					"user":     []byte("c29lcjNuCg=="),
+				},
+			}
+
+			err = testClient.Create(ctx, repoSecret)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test secret resource")
+
 			By("should create a new Repository resources with the specified name and specified url")
 			valuesReleaseRepo = &helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
@@ -69,11 +82,6 @@ var _ = Context("Install a release with values", func() {
 
 			err = testClient.Create(context.Background(), valuesReleaseRepoSecond)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
-
-			time.Sleep(3 * time.Second)
-
-			deployment := &helmv1alpha1.Repo{}
-			valuesReleaseChart = &helmv1alpha1.Chart{}
 
 			By("should create a new values resource with specified")
 
@@ -161,6 +169,19 @@ var _ = Context("Install a release with values", func() {
 
 			By("should create a new Release resource with specified")
 
+			deployment := &helmv1alpha1.Repo{}
+			valuesReleaseChart = &helmv1alpha1.Chart{}
+			valuesRelease = &helmv1alpha1.Release{}
+			configmap := &v1.ConfigMap{}
+
+			Eventually(
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: namespace}, deployment),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Eventually(
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: namespace}, valuesReleaseChart),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
 			valuesReleaseKind = &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testReleaseName,
@@ -183,20 +204,6 @@ var _ = Context("Install a release with values", func() {
 			err = testClient.Create(context.Background(), valuesReleaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			time.Sleep(5 * time.Second)
-
-			valuesRelease = &helmv1alpha1.Release{}
-			valuesReleaseChart = &helmv1alpha1.Chart{}
-			configmap := &v1.ConfigMap{}
-
-			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: namespace}, deployment),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: namespace}, valuesReleaseChart),
-				time.Second*20, time.Millisecond*1500).Should(BeTrue())
-
 			Eventually(
 				GetReleaseFunc(context.Background(), client.ObjectKey{Name: testReleaseName, Namespace: valuesReleaseKind.Namespace}, valuesRelease),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
@@ -205,7 +212,7 @@ var _ = Context("Install a release with values", func() {
 
 			Eventually(
 				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: valuesReleaseKind.Namespace}, valuesReleaseChart),
-				time.Second*20, time.Millisecond*1500).Should(BeTrue())
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
 				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-tmpl-" + testReleaseChartName + "-" + testReleaseChartVersion, Namespace: valuesReleaseKind.Namespace}, configmap),
@@ -249,8 +256,6 @@ var _ = Context("Install a release with values", func() {
 			err = testClient.Update(context.Background(), values)
 			Expect(err).NotTo(HaveOccurred(), "failed to update values resource")
 
-			time.Sleep(5 * time.Second)
-
 			secondValuesReleaseKind := &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testReleaseNameSecond,
@@ -272,8 +277,6 @@ var _ = Context("Install a release with values", func() {
 			err = testClient.Create(context.Background(), secondValuesReleaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			time.Sleep(5 * time.Second)
-
 			By("should remove this Release resource with the specified configmaps after deletion")
 
 			err = testClient.Delete(context.Background(), valuesReleaseKind)
@@ -281,8 +284,6 @@ var _ = Context("Install a release with values", func() {
 
 			err = testClient.Delete(context.Background(), secondValuesReleaseKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
-
-			time.Sleep(5 * time.Second)
 
 			Eventually(
 				GetReleaseFunc(context.Background(), client.ObjectKey{Name: testReleaseName, Namespace: valuesReleaseKind.Namespace}, valuesRelease),
@@ -296,15 +297,13 @@ var _ = Context("Install a release with values", func() {
 			err = testClient.Delete(context.Background(), valuesReleaseRepoSecond)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
 
-			time.Sleep(1 * time.Second)
-
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: valuesReleaseRepo.Namespace}, deployment),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
 				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: valuesReleaseRepo.Namespace}, valuesReleaseChart),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
 				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-tmpl-" + testReleaseChartName + "-" + testReleaseChartVersion, Namespace: valuesReleaseKind.Namespace}, configmap),

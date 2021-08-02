@@ -26,16 +26,3 @@ spec:
         enabled: false
       common:
         enabled: true
-  flags:
-    atomic: false
-    skipCRDs: false
-    subNotes: true
-    disableOpenAPIValidation: false
-    dryRun: false
-    disableHooks: false
-    wait: false
-    cleanupOnFail: false
-    recreate: false
-    timeout: 3600s
-    force: false
-    description: "test description"

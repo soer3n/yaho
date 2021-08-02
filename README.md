@@ -103,19 +103,16 @@ release-sample2           submariner   submariner-operator   2021-06-16T13:57:58
 - handle func calls with context.Context if actually needed
 - add details to contribution guideline
 - implement web user interface  (start of [backend server implementation](pkg/api/) is already present))
-- syncing state of releases from helm cli and other tools which are using the binary
+- syncing state of releases continiously (check if there changes due to manual changes)
 - switching to previous revision and back
-- translate cli flags to release spec
 - auto-sync for new chart versions from repository (for sure with enabled flag)
 - black- and whitelisting for charts when auto-sync for repository is enabled
-- loading charts from git repository
+- loading charts from volume
 
 ## Known Issues / Troubleshooting
 
 - charts with subfolders in templates are failing due to configmap rendering (slashes are not allowed as charactes in keys)
 - infinite loop when release related chart is not found 
-- non public repositories cannot be downloaded currently due to a replacement if integrated http client with the client delivered by "net/http" package
-- fix local e2e test runs (currently there is a fix needed due to limitations of envtest; [garbage collection of owned resources is not working due to missing kubelet](https://book.kubebuilder.io/reference/envtest.html#testing-considerations) and a [caching problem related to go-client](https://github.com/kubernetes-sigs/controller-runtime/issues/343))
 
 ## Contributing
 

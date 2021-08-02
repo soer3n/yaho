@@ -34,6 +34,19 @@ var _ = Context("Install a repository group", func() {
 			err = testClient.Create(ctx, repoGroupNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
+			By("install a new namespace")
+			repoSecret := &v1.Secret{
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{Name: testRepoAuth, Namespace: namespace},
+				Data: map[string][]byte{
+					"password": []byte("SnU/M2Foc2kK"),
+					"user":     []byte("c29lcjNuCg=="),
+				},
+			}
+
+			err = testClient.Create(ctx, repoSecret)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test secret resource")
+
 			By("creating a new repository group resource with the specified names and specified urls")
 			repoGroupKind = &helmv1alpha1.RepoGroup{
 				TypeMeta:   metav1.TypeMeta{},
@@ -42,7 +55,7 @@ var _ = Context("Install a repository group", func() {
 					LabelSelector: "foo",
 					Repos: []helmv1alpha1.RepoSpec{
 						{
-							Name:       "deployment-name-2",
+							Name:       testRepoName,
 							URL:        testRepoURL,
 							AuthSecret: testRepoAuth,
 						},
@@ -53,15 +66,13 @@ var _ = Context("Install a repository group", func() {
 			err = testClient.Create(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
-			time.Sleep(5 * time.Second)
-
 			repoGroup = &helmv1alpha1.RepoGroup{}
 			chart = &helmv1alpha1.Chart{}
 
 			By("update group by adding another repository resource with the specified name and specified url")
 
 			repoGroupKind.Spec.Repos = append(repoGroupKind.Spec.Repos, helmv1alpha1.RepoSpec{
-				Name:       "deployment-name-3",
+				Name:       testRepoNameSecond,
 				URL:        testRepoURLSecond,
 				AuthSecret: testRepoAuth,
 			})
@@ -69,19 +80,30 @@ var _ = Context("Install a repository group", func() {
 			err = testClient.Update(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
-			Eventually(
-				getChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert, Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*40, time.Millisecond*1500).Should(BeTrue())
+			deployment = &helmv1alpha1.Repo{}
+			deployment2 := &helmv1alpha1.Repo{}
 
 			Eventually(
-				getChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartSecondNameAssert, Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*40, time.Millisecond*1500).Should(BeTrue())
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: repoGroupKind.Namespace}, deployment),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Eventually(
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: repoGroupKind.Namespace}, deployment2),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Eventually(
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert, Namespace: repoGroupKind.Namespace}, chart),
+				time.Second*40, time.Millisecond*1500).Should(BeNil())
+
+			Eventually(
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartSecondNameAssert, Namespace: repoGroupKind.Namespace}, chart),
+				time.Second*40, time.Millisecond*1500).Should(BeNil())
 
 			By("should remove the first repository resource from the group")
 
 			repoGroupKind.Spec.Repos = []helmv1alpha1.RepoSpec{
 				{
-					Name:       "deployment-name-3",
+					Name:       testRepoNameSecond,
 					URL:        testRepoURLSecond,
 					AuthSecret: testRepoAuth,
 				},
@@ -91,12 +113,20 @@ var _ = Context("Install a repository group", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
 			Eventually(
-				getChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert, Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: repoGroupKind.Namespace}, deployment),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				getChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartSecondNameAssert, Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*20, time.Millisecond*1500).Should(BeTrue())
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoNameSecond, Namespace: repoGroupKind.Namespace}, deployment2),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+			Eventually(
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert, Namespace: repoGroupKind.Namespace}, chart),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			Eventually(
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartSecondNameAssert, Namespace: repoGroupKind.Namespace}, chart),
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			By("remove every repository left when group is deleted")
 
@@ -108,8 +138,8 @@ var _ = Context("Install a repository group", func() {
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				getChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartSecondNameAssert, Namespace: repoGroupKind.Namespace}, chart),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartSecondNameAssert, Namespace: repoGroupKind.Namespace}, chart),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			By("by deletion of namespace test should finish successfully")
 			repoGroupNamespace = &v1.Namespace{

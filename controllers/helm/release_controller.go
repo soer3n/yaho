@@ -144,7 +144,12 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamesp
 	refList, _ := r.getRefList(valuesList, instance)
 	helmRelease.InitValuesTemplate(refList, instance.Spec.Version, instance.ObjectMeta.Namespace)
 	controller, _ := r.getControllerRepo(instance.Spec.Repo, instance.ObjectMeta.Namespace)
-	cm, c := helmRelease.GetParsedConfigMaps(instance.ObjectMeta.Namespace)
+
+	if instance.Spec.ValuesTemplate == nil {
+		instance.Spec.ValuesTemplate = &helmv1alpha1.ValueTemplate{}
+	}
+
+	cm, c := helmRelease.GetParsedConfigMaps(instance.ObjectMeta.Namespace, instance.Spec.ValuesTemplate.DependenciesConfig)
 
 	for _, chart := range c {
 		if err := r.updateChart(chart, controller); err != nil {
@@ -156,10 +161,6 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamesp
 		if err := r.deployConfigMap(configmap, controller); err != nil {
 			return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 		}
-	}
-
-	if instance.Spec.ValuesTemplate == nil {
-		instance.Spec.ValuesTemplate = &helmv1alpha1.ValueTemplate{}
 	}
 
 	// set flags for helm action from spec

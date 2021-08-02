@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -20,7 +21,7 @@ var repoChart *helmv1alpha1.Chart
 var _ = Context("Install a repository", func() {
 
 	Describe("when no existing resource exist", func() {
-		FIt("should start with creating dependencies", func() {
+		It("should start with creating dependencies", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
 
@@ -62,8 +63,6 @@ var _ = Context("Install a repository", func() {
 			err = testClient.Create(context.Background(), repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
-			time.Sleep(5 * time.Second)
-
 			deployment = &helmv1alpha1.Repo{}
 			repoChart = &helmv1alpha1.Chart{}
 
@@ -73,14 +72,12 @@ var _ = Context("Install a repository", func() {
 
 			Eventually(
 				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert, Namespace: repoKind.Namespace}, repoChart),
-				time.Second*20, time.Millisecond*1500).Should(BeTrue())
+				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			By("should remove this repository resource with the specified name and specified url")
 
 			err = testClient.Delete(context.Background(), repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
-
-			time.Sleep(5 * time.Second)
 
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: repoKind.Namespace}, deployment),
@@ -88,7 +85,7 @@ var _ = Context("Install a repository", func() {
 
 			Eventually(
 				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert, Namespace: repoKind.Namespace}, repoChart),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeTrue())
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			By("by deletion of namespace test should finish successfully")
 			repoNamespace = &v1.Namespace{
@@ -104,21 +101,20 @@ var _ = Context("Install a repository", func() {
 
 func GetResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repo) func() error {
 	return func() error {
-		return testClient.Get(ctx, key, obj)
+		if err := testClient.Get(ctx, key, obj); err != nil {
+			return err
+		}
+
+		if len(obj.Status.Conditions) > 0 {
+			return nil
+		}
+
+		return &errors.StatusError{}
 	}
 }
 
-func GetChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() bool {
-	return func() bool {
-		l := &helmv1alpha1.ChartList{}
-		_ = testClient.List(ctx, l)
-
-		for _, v := range l.Items {
-			if key.Name == v.ObjectMeta.Name {
-				obj = &v
-				return true
-			}
-		}
-		return false
+func GetChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() error {
+	return func() error {
+		return testClient.Get(ctx, key, obj)
 	}
 }
