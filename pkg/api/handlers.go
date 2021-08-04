@@ -26,12 +26,73 @@ func (h *Handler) K8sAPIGroup(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	vars := mux.Vars(r)
-	data := make(map[string]interface{}, 0)
+	data := make([]map[string]interface{}, 0)
 	response := &Response{
 		Message: "Fail",
 	}
 
 	objs, err := h.K8SClient.GetAPIResources(vars["group"], true)
+
+	if err := json.Unmarshal(objs, &data); err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	response.Data = map[string]interface{}{"objects": data}
+	response.Message = "Success"
+
+	if payload, err = json.Marshal(response); err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("%v", string(payload))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(payload)
+}
+
+func (h *Handler) K8sAPIObject(w http.ResponseWriter, r *http.Request) {
+	var payload []byte
+	var resource, version, group, namespace, name string
+	var ok bool
+	var err error
+
+	vars := mux.Vars(r)
+	data := make(map[string]interface{}, 0)
+	response := &Response{
+		Message: "Fail",
+	}
+
+	if resource, ok = vars["resource"]; !ok {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return
+	}
+
+	if group, ok = vars["group"]; !ok {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return
+	}
+
+	if version, ok = vars["version"]; !ok {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return
+	}
+
+	if namespace, ok = vars["namespace"]; !ok {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return
+	}
+
+	if name, ok = vars["name"]; !ok {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return
+	}
+
+	objs, err := h.K8SClient.GetResource(name, namespace, resource, group, version, metav1.GetOptions{})
 
 	if err := json.Unmarshal(objs, &data); err != nil {
 		fmt.Println(err.Error())
@@ -84,7 +145,13 @@ func (h *Handler) K8sAPIGroupResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	objs, err := h.K8SClient.ListResources("", resource, group, version, metav1.ListOptions{})
+	namespace := ""
+
+	if _, ok = vars["namespace"]; ok {
+		namespace = vars["namespace"]
+	}
+
+	objs, err := h.K8SClient.ListResources(namespace, resource, group, version, metav1.ListOptions{})
 
 	if err := json.Unmarshal(objs, &data); err != nil {
 		fmt.Println(err.Error())
