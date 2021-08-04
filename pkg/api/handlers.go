@@ -20,7 +20,7 @@ func NewHandler(version string, c *client.Client) *Handler {
 	}
 }
 
-// K8sAPIGroup represents func for resturning  resource kinds related to an api group
+// K8sAPIGroup represents func for returning  resource kinds related to an api group
 func (h *Handler) K8sAPIGroup(w http.ResponseWriter, r *http.Request) {
 	var payload []byte
 	var err error
@@ -55,6 +55,7 @@ func (h *Handler) K8sAPIGroup(w http.ResponseWriter, r *http.Request) {
 	w.Write(payload)
 }
 
+// K8sAPIObject represents func for returning  resource object related to an api group
 func (h *Handler) K8sAPIObject(w http.ResponseWriter, r *http.Request) {
 	var payload []byte
 	var resource, version, group, namespace, name string
