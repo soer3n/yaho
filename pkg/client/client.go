@@ -4,13 +4,16 @@ import (
 	// "helm.sh/helm/pkg/kube"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 
+	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
 	"helm.sh/helm/v3/pkg/cli"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
@@ -32,6 +35,9 @@ func New() *Client {
 			panic(err)
 		}
 		if err := apiextv1beta1.AddToScheme(scheme.Scheme); err != nil {
+			panic(err)
+		}
+		if err := helmv1alpha1.AddToScheme(scheme.Scheme); err != nil {
 			panic(err)
 		}
 	})
@@ -76,6 +82,20 @@ func (c *Client) ListResources(namespace, resource, group, version string, opts 
 	obj, err := c.DynamicClient.Resource(deploymentRes).Namespace(namespace).List(context.TODO(), opts)
 
 	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(obj.UnstructuredContent())
+}
+
+// CreateResource represents func for returning newly created k8s unstructured resource by given parameters
+func (c *Client) CreateResource(obj *unstructured.Unstructured, namespace, resource, group, version string, opts metav1.CreateOptions) ([]byte, error) {
+
+	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+	obj, err := c.DynamicClient.Resource(deploymentRes).Namespace(namespace).Create(context.TODO(), obj, opts)
+
+	if err != nil {
+		fmt.Print(err.Error())
 		return nil, err
 	}
 
