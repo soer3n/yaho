@@ -41,6 +41,7 @@ func (api *API) getRoutes() *mux.Router {
 	m.HandleFunc("/api/resources/{group}/{version}/{resource}", h.K8sAPIGroupResources).Methods("GET")
 	m.Path("/api/resources/{group}/{version}/{resource}").Queries("namespace", "{namespace}").HandlerFunc(h.K8sCreateAPIObject).Methods("POST")
 	m.Path("/api/resources/{group}/{version}/{resource}/{name}").Queries("namespace", "{namespace}").HandlerFunc(h.K8sAPIObject).Methods("GET")
+	m.Path("/api/resources/{group}/{version}/{resource}/{name}").Queries("namespace", "{namespace}").HandlerFunc(h.K8sDeleteAPIObject).Methods("DELETE")
 	// Serve static files from the frontend/dist directory.
 	fs := http.FileServer(http.Dir("./frontend/dist"))
 	m.Handle("/", fs)

@@ -183,6 +183,49 @@ func (h *Handler) K8sCreateAPIObject(w http.ResponseWriter, r *http.Request) {
 	w.Write(payload)
 }
 
+// K8sDeleteAPIObject represents func for returning  resource object related to an api group
+func (h *Handler) K8sDeleteAPIObject(w http.ResponseWriter, r *http.Request) {
+	var resource, version, group, namespace, name string
+	var ok bool
+	var err error
+
+	vars := mux.Vars(r)
+
+	if resource, ok = vars["resource"]; !ok {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return
+	}
+
+	if group, ok = vars["group"]; !ok {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return
+	}
+
+	if version, ok = vars["version"]; !ok {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return
+	}
+
+	if namespace, ok = vars["namespace"]; !ok {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return
+	}
+
+	if name, ok = vars["name"]; !ok {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		return
+	}
+
+	if err = h.K8SClient.DeleteResource(name, namespace, resource, group, version, metav1.DeleteOptions{}); err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // K8sAPIGroupResources represents func for returning resources related to a resource kind of an api group
 func (h *Handler) K8sAPIGroupResources(w http.ResponseWriter, r *http.Request) {
 

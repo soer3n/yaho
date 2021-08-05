@@ -102,6 +102,20 @@ func (c *Client) CreateResource(obj *unstructured.Unstructured, namespace, resou
 	return json.Marshal(obj.UnstructuredContent())
 }
 
+// DeleteResource represents func for returning response for deletion process of k8s unstructured resource by given parameters
+func (c *Client) DeleteResource(name, namespace, resource, group, version string, opts metav1.DeleteOptions) error {
+
+	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
+	err := c.DynamicClient.Resource(deploymentRes).Namespace(namespace).Delete(context.TODO(), name, opts)
+
+	if err != nil {
+		fmt.Print(err.Error())
+		return err
+	}
+
+	return nil
+}
+
 // GetAPIResources represents func for returning resource kinds by given api group name
 func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...string) ([]byte, error) {
 
