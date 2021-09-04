@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
-	"github.com/soer3n/apps-operator/internal/mocks"
-	"github.com/soer3n/apps-operator/pkg/client"
+	"github.com/soer3n/yaho/internal/mocks"
+	"github.com/soer3n/yaho/pkg/client"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

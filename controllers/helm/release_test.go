@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 )
 
 var releaseKind *helmv1alpha1.Release

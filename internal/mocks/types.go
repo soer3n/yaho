@@ -3,7 +3,7 @@ package mocks
 import (
 	"net/http"
 
-	"github.com/soer3n/apps-operator/internal/types"
+	"github.com/soer3n/yaho/internal/types"
 	"github.com/stretchr/testify/mock"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"

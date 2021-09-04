@@ -8,9 +8,7 @@ import (
 	"log"
 	"sync"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"helm.sh/helm/v3/pkg/cli"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -94,24 +92,25 @@ func (c *Client) ListResources(namespace, resource, group, version string, opts 
 func (c *Client) CreateResource(obj *unstructured.Unstructured, namespace, resource, group, version string, opts metav1.CreateOptions) ([]byte, error) {
 
 	var err error
+	var updateObj *unstructured.Unstructured
 
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
-	obj, err = c.DynamicClient.Resource(deploymentRes).Namespace(namespace).Create(context.TODO(), obj, opts)
+	updateObj = obj.DeepCopy()
 
-	if err != nil {
-		if errors.IsAlreadyExists(err) {
-			updateOpts := metav1.UpdateOptions{
-				DryRun:       opts.DryRun,
-				FieldManager: opts.FieldManager,
-				TypeMeta:     opts.TypeMeta,
-			}
-			if obj, err = c.DynamicClient.Resource(deploymentRes).Namespace(namespace).Update(context.TODO(), obj, updateOpts); err != nil {
-				fmt.Print(err.Error())
-				return nil, err
-			}
-			return json.Marshal(obj.UnstructuredContent())
+	metaData, _ := obj.Object["metadata"].(map[string]interface{})
+	objName, _ := metaData["name"].(string)
+
+	if _, err = c.DynamicClient.Resource(deploymentRes).Namespace(namespace).Get(context.TODO(), objName, metav1.GetOptions{}); err != nil {
+		if obj, err = c.DynamicClient.Resource(deploymentRes).Namespace(namespace).Create(context.TODO(), obj, opts); err != nil {
+			fmt.Print(err.Error())
+			return nil, err
 		}
+		return json.Marshal(obj.UnstructuredContent())
+	}
 
+	updateOpts := metav1.UpdateOptions{}
+
+	if obj, err = c.DynamicClient.Resource(deploymentRes).Namespace(namespace).Update(context.TODO(), updateObj, updateOpts); err != nil {
 		fmt.Print(err.Error())
 		return nil, err
 	}
@@ -177,6 +176,47 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 				APIGroupVersion: gv.String(),
 				APIResource:     resource,
 			})
+		}
+	}
+
+	return json.Marshal(resources)
+}
+
+// GetAPIGroups represents func for returning resource kinds by given api group name
+func (c *Client) GetAPIGroups() ([]byte, error) {
+	resources := make(map[string][]string)
+	lists, err := c.DiscoverClient.ServerPreferredResources()
+
+	if err != nil {
+		return []byte{}, err
+	}
+
+	for _, list := range lists {
+
+		if len(list.APIResources) == 0 {
+			continue
+		}
+
+		gv, err := schema.ParseGroupVersion(list.GroupVersion)
+
+		if err != nil {
+			continue
+		}
+
+		for _, resource := range list.APIResources {
+
+			group := gv.Group
+
+			if group == "" {
+				group = "core"
+			}
+
+			if _, ok := resources[group]; !ok {
+				resources[group] = append([]string{}, resource.Name)
+				continue
+			}
+
+			resources[group] = append(resources[group], resource.Name)
 		}
 	}
 

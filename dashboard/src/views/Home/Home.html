@@ -1,0 +1,28 @@
+<el-container>
+    <el-header>
+      <el-radio-group v-model="isCollapse" class="el-menu-vertical-opts">
+        <el-radio-button :label="false">expand</el-radio-button>
+        <el-radio-button :label="true">collapse</el-radio-button>
+        <div style="margin-left: 100px;">text</div>
+      </el-radio-group>
+    </el-header>
+    <el-container>
+      <el-main>
+        <el-menu default-active="2" router="true" class="el-menu-vertical" @open="handleOpen" @close="handleClose" :collapse="isCollapse">
+          <el-sub-menu index="1">
+              <template #title>
+                <i class="el-icon-menu"></i>
+                <span>API Groups</span>
+              </template>
+              <el-scrollbar ref="scrollbar" height="400px" always>
+              <el-sub-menu popper-append-to-body="true" v-for="value, index in resources" :key="index" :index="value" unique-opened="true" >
+                <template #title>{{ index }}</template>
+                <el-menu-item v-for="entry, ix in value" :key="ix" :index="entry" route="/charts/sublink" >{{ entry }}</el-menu-item>
+              </el-sub-menu>
+            </el-scrollbar>
+          </el-sub-menu>
+        </el-menu>
+      </el-main>
+    </el-container>
+    <router-view></router-view>
+</el-container>

@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../k8s-management"
+		},
+		{
+			"path": "../../kubeone"
+		},
+		{
+			"path": "../../machine-controller"
+		},
+		{
+			"path": "../../hcloud-cloud-controller-manager"
+		},
+		{
+			"path": "../../noobaa-operator"
+		},
+		{
+			"path": "../../incident-operator"
+		}
+	],
+	"settings": {}
+}

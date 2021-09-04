@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/soer3n/apps-operator/pkg/client"
+	"github.com/soer3n/yaho/pkg/client"
 )
 
 // New represents func for returning struct for managing an api http server
@@ -36,6 +36,7 @@ func (api *API) setHTTPServer() error {
 func (api *API) getRoutes() *mux.Router {
 	m := mux.NewRouter()
 	h := NewHandler("", client.New())
+	m.HandleFunc("/api/resources", h.K8sAPIs).Methods("GET")
 	m.HandleFunc("/api/resources/{group}", h.K8sAPIGroup).Methods("GET")
 	m.HandleFunc("/api/resources/{group}/{version}/{resource}", h.K8sAPIGroupResources).Methods("GET")
 	m.HandleFunc("/api/resources/{group}/{version}/{resource}", h.K8sAPIGroupResources).Methods("GET")

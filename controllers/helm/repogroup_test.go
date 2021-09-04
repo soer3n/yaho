@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 )
 
 var repoGroupKind *helmv1alpha1.RepoGroup

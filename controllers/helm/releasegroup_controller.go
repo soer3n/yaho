@@ -31,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	helmutils "github.com/soer3n/apps-operator/pkg/helm"
-	oputils "github.com/soer3n/apps-operator/pkg/utils"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmutils "github.com/soer3n/yaho/pkg/helm"
+	oputils "github.com/soer3n/yaho/pkg/utils"
 )
 
 // ReleaseGroupReconciler reconciles a ReleaseGroup object

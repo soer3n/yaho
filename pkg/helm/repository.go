@@ -11,9 +11,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/log"
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	inttypes "github.com/soer3n/apps-operator/internal/types"
-	"github.com/soer3n/apps-operator/pkg/utils"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	inttypes "github.com/soer3n/yaho/internal/types"
+	"github.com/soer3n/yaho/pkg/utils"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/repo"

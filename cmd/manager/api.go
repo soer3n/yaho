@@ -1,7 +1,7 @@
 package manager
 
 import (
-	"github.com/soer3n/apps-operator/pkg/api"
+	"github.com/soer3n/yaho/pkg/api"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +12,7 @@ func NewAPICmd() *cobra.Command {
 		Short: "runs backend for web apps",
 		Long:  `restful application`,
 		Run: func(cmd *cobra.Command, args []string) {
-			api.New("9090").Run()
+			api.New("8080").Run()
 		},
 	}
 }

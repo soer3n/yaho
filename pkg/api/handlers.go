@@ -8,7 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/soer3n/apps-operator/pkg/client"
+	"github.com/soer3n/yaho/pkg/client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -33,6 +33,40 @@ func (h *Handler) K8sAPIGroup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	objs, err := h.K8SClient.GetAPIResources(vars["group"], true)
+
+	if err := json.Unmarshal(objs, &data); err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	response.Data = map[string]interface{}{"objects": data}
+	response.Message = "Success"
+
+	if payload, err = json.Marshal(response); err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("%v", string(payload))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(payload)
+}
+
+// K8sAPIGroup represents func for returning  resource kinds related to an api group
+func (h *Handler) K8sAPIs(w http.ResponseWriter, r *http.Request) {
+	var payload []byte
+	var err error
+
+	data := make(map[string][]string)
+	response := &Response{
+		Message: "Fail",
+	}
+
+	objs, err := h.K8SClient.GetAPIGroups()
 
 	if err := json.Unmarshal(objs, &data); err != nil {
 		fmt.Println(err.Error())

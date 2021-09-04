@@ -35,8 +35,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	helmcontrollers "github.com/soer3n/apps-operator/controllers/helm"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmcontrollers "github.com/soer3n/yaho/controllers/helm"
 	// +kubebuilder:scaffold:imports
 )
 

@@ -35,7 +35,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 

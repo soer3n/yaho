@@ -3,7 +3,7 @@ package helm
 import (
 	"testing"
 
-	inttypes "github.com/soer3n/apps-operator/internal/types"
+	inttypes "github.com/soer3n/yaho/internal/types"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,6 +1,10 @@
 .vscode/*
-web/node_modules
-web/node_modules/*
+dashboard/node_modules
+dashboard/node_modules/*
+dashboard/package-lock.json
+node_modules
+node_modules/*
+package-lock.json
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -28,4 +32,6 @@ coverage.txt
 *~
 
 okteto.yml
+dashboard.yml
 .stignore
+*/.stignore

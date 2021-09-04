@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	"github.com/soer3n/apps-operator/internal/mocks"
-	inttypes "github.com/soer3n/apps-operator/internal/types"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	"github.com/soer3n/yaho/internal/mocks"
+	inttypes "github.com/soer3n/yaho/internal/types"
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/cli"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

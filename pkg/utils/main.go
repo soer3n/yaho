@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 
 	"github.com/Masterminds/semver/v3"
-	types "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	types "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	helmchart "helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

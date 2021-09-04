@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/soer3n/apps-operator/pkg/client"
+	"github.com/soer3n/yaho/pkg/client"
 )
 
 // API represents struct for handling an http server

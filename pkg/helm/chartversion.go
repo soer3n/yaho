@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"

@@ -8,9 +8,9 @@ import (
 	"github.com/prometheus/common/log"
 	"k8s.io/apimachinery/pkg/types"
 
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	inttypes "github.com/soer3n/apps-operator/internal/types"
-	"github.com/soer3n/apps-operator/pkg/utils"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	inttypes "github.com/soer3n/yaho/internal/types"
+	"github.com/soer3n/yaho/pkg/utils"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"

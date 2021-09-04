@@ -1,9 +1,9 @@
 package helm
 
 import (
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
-	"github.com/soer3n/apps-operator/internal/types"
-	oputils "github.com/soer3n/apps-operator/pkg/utils"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	"github.com/soer3n/yaho/internal/types"
+	oputils "github.com/soer3n/yaho/pkg/utils"
 	"helm.sh/helm/v3/pkg/kube"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"

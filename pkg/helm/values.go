@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/prometheus/common/log"
-	helmv1alpha1 "github.com/soer3n/apps-operator/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 )
 
 // NewValueTemplate represents initialization of internal struct for managing helm values
