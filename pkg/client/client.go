@@ -16,6 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/scheme"
 )
@@ -24,6 +26,10 @@ var addToScheme sync.Once
 
 // New represents initialization of needed data for running request by client
 func New() *Client {
+
+	var err error
+	var dc dynamic.Interface
+	var tc kubernetes.Interface
 
 	env := cli.New()
 	getter := env.RESTClientGetter()
@@ -42,14 +48,22 @@ func New() *Client {
 		}
 	})
 
-	dc, err := cmdutil.NewFactory(getter).DynamicClient()
+	rc := &Client{}
+
+	if dc, err = cmdutil.NewFactory(getter).DynamicClient(); err != nil {
+		return rc
+	}
+
+	if tc, err = cmdutil.NewFactory(getter).KubernetesClientSet(); err != nil {
+		return rc
+	}
 
 	if err != nil {
 		panic(err)
 	}
 
-	rc := &Client{}
 	rc.DynamicClient = dc
+	rc.TypedClient = tc
 
 	discoveryclient, err := cmdutil.NewFactory(getter).ToDiscoveryClient()
 
