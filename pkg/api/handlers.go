@@ -23,7 +23,7 @@ func NewHandler(version string, c *client.Client) *Handler {
 
 // K8sAPIGroup represents func for returning  resource kinds related to an api group
 func (h *Handler) K8sAPIGroup(w http.ResponseWriter, r *http.Request) {
-	var payload []byte
+	var payload, objs []byte
 	var err error
 
 	vars := mux.Vars(r)
@@ -32,7 +32,11 @@ func (h *Handler) K8sAPIGroup(w http.ResponseWriter, r *http.Request) {
 		Message: "Fail",
 	}
 
-	objs, err := h.K8SClient.GetAPIResources(vars["group"], true)
+	if objs, err = h.K8SClient.GetAPIResources(vars["group"], true); err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	if err := json.Unmarshal(objs, &data); err != nil {
 		fmt.Println(err.Error())
@@ -56,9 +60,9 @@ func (h *Handler) K8sAPIGroup(w http.ResponseWriter, r *http.Request) {
 	w.Write(payload)
 }
 
-// K8sAPIGroup represents func for returning  resource kinds related to an api group
+// K8sAPIs represents func for returning  resource kinds related to an api group
 func (h *Handler) K8sAPIs(w http.ResponseWriter, r *http.Request) {
-	var payload []byte
+	var payload, objs []byte
 	var err error
 
 	data := make(map[string][]string)
@@ -66,7 +70,11 @@ func (h *Handler) K8sAPIs(w http.ResponseWriter, r *http.Request) {
 		Message: "Fail",
 	}
 
-	objs, err := h.K8SClient.GetAPIGroups()
+	if objs, err = h.K8SClient.GetAPIGroups(); err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	if err := json.Unmarshal(objs, &data); err != nil {
 		fmt.Println(err.Error())
@@ -92,13 +100,13 @@ func (h *Handler) K8sAPIs(w http.ResponseWriter, r *http.Request) {
 
 // K8sAPIObject represents func for returning  resource object related to an api group
 func (h *Handler) K8sAPIObject(w http.ResponseWriter, r *http.Request) {
-	var payload []byte
+	var payload, objs []byte
 	var resource, version, group, namespace, name string
 	var ok bool
 	var err error
 
 	vars := mux.Vars(r)
-	data := make(map[string]interface{}, 0)
+	data := make(map[string]interface{})
 	response := &Response{
 		Message: "Fail",
 	}
@@ -128,7 +136,11 @@ func (h *Handler) K8sAPIObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	objs, err := h.K8SClient.GetResource(name, namespace, resource, group, version, metav1.GetOptions{})
+	if objs, err = h.K8SClient.GetResource(name, namespace, resource, group, version, metav1.GetOptions{}); err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	if err := json.Unmarshal(objs, &data); err != nil {
 		fmt.Println(err.Error())
@@ -154,14 +166,14 @@ func (h *Handler) K8sAPIObject(w http.ResponseWriter, r *http.Request) {
 
 // K8sCreateAPIObject represents func for returning  resource object related to an api group
 func (h *Handler) K8sCreateAPIObject(w http.ResponseWriter, r *http.Request) {
-	var payload []byte
+	var payload, objs []byte
 	var resource, version, group, namespace string
 	var ok bool
 	var err error
 	var obj *unstructured.Unstructured
 
 	vars := mux.Vars(r)
-	data := make(map[string]interface{}, 0)
+	data := make(map[string]interface{})
 	response := &Response{
 		Message: "Fail",
 	}
@@ -193,7 +205,11 @@ func (h *Handler) K8sCreateAPIObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	objs, err := h.K8SClient.CreateResource(obj, namespace, resource, group, version, metav1.CreateOptions{})
+	if objs, err = h.K8SClient.CreateResource(obj, namespace, resource, group, version, metav1.CreateOptions{}); err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	if err := json.Unmarshal(objs, &data); err != nil {
 		fmt.Println(err.Error())
@@ -263,13 +279,13 @@ func (h *Handler) K8sDeleteAPIObject(w http.ResponseWriter, r *http.Request) {
 // K8sAPIGroupResources represents func for returning resources related to a resource kind of an api group
 func (h *Handler) K8sAPIGroupResources(w http.ResponseWriter, r *http.Request) {
 
-	var payload []byte
+	var payload, objs []byte
 	var resource, version, group string
 	var ok bool
 	var err error
 
 	vars := mux.Vars(r)
-	data := make(map[string]interface{}, 0)
+	data := make(map[string]interface{})
 	response := &Response{
 		Message: "Fail",
 	}
@@ -295,7 +311,11 @@ func (h *Handler) K8sAPIGroupResources(w http.ResponseWriter, r *http.Request) {
 		namespace = vars["namespace"]
 	}
 
-	objs, err := h.K8SClient.ListResources(namespace, resource, group, version, metav1.ListOptions{})
+	if objs, err = h.K8SClient.ListResources(namespace, resource, group, version, metav1.ListOptions{}); err != nil {
+		fmt.Println(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	if err := json.Unmarshal(objs, &data); err != nil {
 		fmt.Println(err.Error())
