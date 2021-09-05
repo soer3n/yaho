@@ -50,9 +50,9 @@ var err error
 var testEnv *envtest.Environment
 
 const testRepoName = "testresource"
-const testRepoURL = "https://hub.soer3n.info/chartrepo/testing_a"
+const testRepoURL = "https://soer3n.github.io/charts/testing_a"
 const testRepoNameSecond = "testresource-2"
-const testRepoURLSecond = "https://hub.soer3n.info/chartrepo/testing_b"
+const testRepoURLSecond = "https://soer3n.github.io/charts/testing_b"
 const testRepoChartNameAssert = "testing"
 const testRepoChartSecondNameAssert = "testing-dep"
 
