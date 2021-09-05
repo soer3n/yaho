@@ -18,7 +18,7 @@ import (
 var releaseKind *helmv1alpha1.Release
 var release *helmv1alpha1.Release
 var releaseChart *helmv1alpha1.Chart
-var releaseRepo *helmv1alpha1.Repo
+var releaseRepo, releaseRepoSecond *helmv1alpha1.Repo
 
 var _ = Context("Install a release", func() {
 
@@ -55,6 +55,20 @@ var _ = Context("Install a release", func() {
 
 			err = testClient.Create(context.Background(), releaseRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+			releaseRepoSecond = &helmv1alpha1.Repo{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testRepoNameSecond,
+					Namespace: namespace,
+				},
+				Spec: helmv1alpha1.RepoSpec{
+					Name: testRepoNameSecond,
+					URL:  testRepoURLSecond,
+				},
+			}
+
+			err = testClient.Create(context.Background(), releaseRepoSecond)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: namespace}, deployment),
@@ -100,7 +114,7 @@ var _ = Context("Install a release", func() {
 				GetReleaseFunc(context.Background(), client.ObjectKey{Name: testReleaseName, Namespace: releaseKind.Namespace}, release),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
-			Expect(*&release.ObjectMeta.Name).To(Equal(testReleaseName))
+			Expect(release.ObjectMeta.Name).To(Equal(testReleaseName))
 
 			Eventually(
 				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-tmpl-" + testReleaseChartName + "-" + testReleaseChartVersion, Namespace: releaseKind.Namespace}, configmap),
