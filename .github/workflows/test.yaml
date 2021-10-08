@@ -15,7 +15,7 @@ jobs:
       - name: set up Go
         uses: actions/setup-go@v1
         with:
-          go-version: 1.15
+          go-version: 1.16
 
       - name: check out code
         uses: actions/checkout@v1
@@ -26,6 +26,18 @@ jobs:
           go get -u golang.org/x/lint/golint 
           golint -set_exit_status ./...
 
+  build:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+    - uses: actions/checkout@v2
+    - name: set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.16
+    - name: build
+      run: go build -v ./...
+
   test-unit:
     runs-on: ubuntu-latest
     needs: lint
@@ -34,7 +46,7 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.15
+        go-version: 1.16
     - name: test packages
       run: go test -v ./pkg/...
 
@@ -50,13 +62,12 @@ jobs:
     name: test-e2e-k8s-${{ matrix.version }}
     needs:
     - lint
-    - test-unit
     steps:
     - uses: actions/checkout@v2
     - name: set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.15
+        go-version: 1.16
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.2.0
       with:
@@ -75,7 +86,7 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.15
+        go-version: 1.16
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.2.0
       with:
@@ -88,17 +99,3 @@ jobs:
         token: 18c8c4a3-0fb0-44b5-a37d-8bcc9367aa7c
         file: ./coverage.txt
         fail_ci_if_error: true
-
-  build:
-    runs-on: ubuntu-latest
-    needs:
-    - test-unit
-    - test-k8s
-    steps:
-    - uses: actions/checkout@v2
-    - name: set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.15
-    - name: build
-      run: go build -v ./...
