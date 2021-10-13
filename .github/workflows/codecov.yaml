@@ -1,0 +1,29 @@
+name: Coverage
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.16
+    - name: create k8s Kind cluster
+      uses: helm/kind-action@v1.2.0
+      with:
+        node_image: kindest/node:v1.20.7
+    - name: run coverage
+      run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+    - name: report coverage
+      uses: codecov/codecov-action@v2
+      with:
+        file: ./coverage.txt
+        fail_ci_if_error: true
