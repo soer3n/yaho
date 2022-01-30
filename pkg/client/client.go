@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	"helm.sh/helm/v3/pkg/cli"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,13 +27,6 @@ var addToScheme sync.Once
 // New represents initialization of needed data for running request by client
 func New() *Client {
 
-	var err error
-	var dc dynamic.Interface
-	var tc kubernetes.Interface
-
-	env := cli.New()
-	getter := env.RESTClientGetter()
-
 	// Add CRDs to the scheme. They are missing by default.
 	addToScheme.Do(func() {
 		if err := apiextv1.AddToScheme(scheme.Scheme); err != nil {
@@ -53,7 +45,7 @@ func New() *Client {
 
 	rc.DynamicClient = getDynamicKubernetesClient()
 	rc.TypedClient = getTypedKubernetesClient()
-	rc.Discoveryclient = getDiscoveryKubernetesClient()t
+	rc.DiscoverClient = getDiscoveryKubernetesClient()
 
 	return rc
 }
