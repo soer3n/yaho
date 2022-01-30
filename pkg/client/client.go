@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
@@ -16,9 +15,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubectl/pkg/scheme"
 )
 
@@ -50,30 +51,65 @@ func New() *Client {
 
 	rc := &Client{}
 
-	if dc, err = cmdutil.NewFactory(getter).DynamicClient(); err != nil {
-		return rc
+	rc.DynamicClient = getDynamicKubernetesClient()
+	rc.TypedClient = getTypedKubernetesClient()
+	rc.Discoveryclient = getDiscoveryKubernetesClient()t
+
+	return rc
+}
+
+func getClusterConfig() *rest.Config {
+
+	restConfig, err := rest.InClusterConfig()
+
+	if err != nil {
+
+		configLoadRules := clientcmd.NewDefaultClientConfigLoadingRules()
+		config, _ := configLoadRules.Load()
+		copy := *config
+
+		clientConfig := clientcmd.NewDefaultClientConfig(copy, &clientcmd.ConfigOverrides{})
+		restConfig, err = clientConfig.ClientConfig()
+
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 
-	if tc, err = cmdutil.NewFactory(getter).KubernetesClientSet(); err != nil {
-		return rc
-	}
+	return restConfig
+}
 
+func getTypedKubernetesClient() *kubernetes.Clientset {
+
+	config := getClusterConfig()
+	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err)
 	}
 
-	rc.DynamicClient = dc
-	rc.TypedClient = tc
+	return clientset
+}
 
-	discoveryclient, err := cmdutil.NewFactory(getter).ToDiscoveryClient()
+func getDynamicKubernetesClient() dynamic.Interface {
 
+	config := getClusterConfig()
+	client, err := dynamic.NewForConfig(config)
 	if err != nil {
-		log.Fatal("no client detected.")
+		panic(err)
 	}
 
-	rc.DiscoverClient = discoveryclient
+	return client
+}
 
-	return rc
+func getDiscoveryKubernetesClient() *discovery.DiscoveryClient {
+
+	config := getClusterConfig()
+	client, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		panic(err)
+	}
+
+	return client
 }
 
 // GetResource represents func for returning k8s unstructured resource by given parameters
