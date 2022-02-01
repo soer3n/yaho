@@ -6,8 +6,6 @@ import (
 	"net/http"
 
 	"github.com/prometheus/common/log"
-	"k8s.io/apimachinery/pkg/types"
-
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	inttypes "github.com/soer3n/yaho/internal/types"
 	"github.com/soer3n/yaho/internal/utils"
@@ -19,15 +17,12 @@ import (
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
+	"k8s.io/apimachinery/pkg/types"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// VALUES_MAP_SIZE represents limit for keys on first level in values
-const valuesMapSize = 100
-
 func initActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configuration, error) {
-
 	/*
 		/ we cannot use helm init func here due to data race issues on concurrent execution (helm's kube client tries to update the namespace field on each initialization)
 
@@ -48,7 +43,6 @@ func initActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configu
 }
 
 func getChartByURL(url string, opts *Auth, g inttypes.HTTPClientInterface) (*chart.Chart, error) {
-
 	var resp *http.Response
 	var err error
 
@@ -56,7 +50,6 @@ func getChartByURL(url string, opts *Auth, g inttypes.HTTPClientInterface) (*cha
 	log.Infof("url: %v", url)
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
-
 	if err != nil {
 		return &chart.Chart{}, err
 	}
@@ -77,7 +70,6 @@ func getChartByURL(url string, opts *Auth, g inttypes.HTTPClientInterface) (*cha
 }
 
 func getChartURL(rc client.Client, chart, version, namespace string) (string, error) {
-
 	var err error
 
 	chartObj := &helmv1alpha1.Chart{}
@@ -105,7 +97,6 @@ func mergeValues(specValues map[string]interface{}, helmChart *chart.Chart) map[
 
 // have to be called as a goroutine to avoid memory leaks
 func mergeMaps(source, dest map[string]interface{}) map[string]interface{} {
-
 	if source == nil || dest == nil {
 		return dest
 	}
@@ -126,7 +117,6 @@ func mergeMaps(source, dest map[string]interface{}) map[string]interface{} {
 
 // have to be called as a goroutine to avoid memory leaks
 func mergeUntypedMaps(dest, source map[string]interface{}, key string) map[string]interface{} {
-
 	for k, v := range source {
 		if key == "" {
 			if temp, ok := dest[k].(map[string]interface{}); ok {
@@ -167,7 +157,7 @@ func (c Client) GetEnvSettings() *cli.EnvSettings {
 		return settings
 	}
 
-	//overwrite default settings if requested
+	// overwrite default settings if requested
 	for k, v := range c.Env {
 		switch k {
 		case "KubeConfig":

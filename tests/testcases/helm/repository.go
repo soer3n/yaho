@@ -10,7 +10,6 @@ import (
 
 // GetTestRepoChartListSpec returns expected chartlist spec for testing
 func GetTestRepoChartListSpec() *helmv1alpha1.ChartList {
-
 	chartSpec := helmv1alpha1.ChartSpec{
 		Name:        "chart.Name",
 		Home:        "chart.Spec.Home",

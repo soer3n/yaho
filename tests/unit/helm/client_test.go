@@ -10,7 +10,6 @@ import (
 )
 
 func TestClient(t *testing.T) {
-
 	clientMock, httpMock := helmmocks.GetClientMock()
 	assert := assert.New(t)
 

@@ -6,20 +6,20 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 )
 
-var repoKind *helmv1alpha1.Repo
-var deployment *helmv1alpha1.Repo
-var repoChart *helmv1alpha1.Chart
+var (
+	repoKind   *helmv1alpha1.Repo
+	deployment *helmv1alpha1.Repo
+	repoChart  *helmv1alpha1.Chart
+)
 
 var _ = Context("Install a repository", func() {
-
 	Describe("when no existing resource exist", func() {
 		It("should start with creating dependencies", func() {
 			ctx := context.Background()

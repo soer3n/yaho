@@ -24,15 +24,14 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ValuesReconciler reconciles a Values object
@@ -64,7 +63,6 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	instance := &helmv1alpha1.Values{}
 
 	err := r.Get(ctx, req.NamespacedName, instance)
-
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.

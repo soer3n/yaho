@@ -16,7 +16,6 @@ import (
 )
 
 func TestReleaseConfigMaps(t *testing.T) {
-
 	clientMock, httpMock := helmmocks.GetReleaseMock()
 	settings := cli.New()
 	apiObjList := testcases.GetTestReleaseSpecs()
@@ -41,14 +40,13 @@ func TestReleaseConfigMaps(t *testing.T) {
 			"dep": {Enabled: true},
 		})
 		// TODO: why is dependency chart not correctly parsed
-		//expect, _ := apiObj.ReturnValue.([]v1.ConfigMap)
+		// expect, _ := apiObj.ReturnValue.([]v1.ConfigMap)
 
 		assert.Equal([]*helmv1alpha1.Chart{}, chartUpdateList)
 	}
 }
 
 func TestReleaseUpdate(t *testing.T) {
-
 	clientMock, httpMock := helmmocks.GetReleaseMock()
 	settings := cli.New()
 	apiObjList := testcases.GetTestReleaseSpecs()
@@ -89,7 +87,6 @@ func TestReleaseUpdate(t *testing.T) {
 }
 
 func TestReleaseInitValuesTemplate(t *testing.T) {
-
 	clientMock := unstructuredmocks.K8SClientMock{}
 	httpMock := mocks.HTTPClientMock{}
 	settings := cli.New()

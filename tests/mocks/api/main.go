@@ -2,7 +2,6 @@ package api
 
 import (
 	mocks "github.com/soer3n/yaho/tests/mocks/unstructured"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -10,7 +9,6 @@ import (
 
 // GetClientDiscoveryMock returns kubernetes discovery client mock
 func GetClientDiscoveryMock() *mocks.K8SDiscoveryMock {
-
 	dcMock := &mocks.K8SDiscoveryMock{}
 	dcMock.On("ServerPreferredResources").Return([]*metav1.APIResourceList{
 		{
@@ -33,7 +31,6 @@ func GetClientDiscoveryMock() *mocks.K8SDiscoveryMock {
 
 // GetClientDynamicMock returns kubernetes dynamic client mock
 func GetClientDynamicMock() *mocks.K8SDynamicClientMock {
-
 	dcMock := &mocks.K8SDynamicClientMock{}
 
 	gvr := schema.GroupVersionResource{

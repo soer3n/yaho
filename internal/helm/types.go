@@ -45,9 +45,8 @@ type Release struct {
 
 // Repos represents struct for data needed for managing repos and list of installed
 type Repos struct {
-	Entries   []*Repo
-	Settings  *cli.EnvSettings
-	installed *repo.File
+	Entries  []*Repo
+	Settings *cli.EnvSettings
 }
 
 // Repo represents struct for data needed for managing repos and list of installed

@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-
 	"github.com/soer3n/yaho/internal/client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -290,7 +289,6 @@ func (h *Handler) K8sDeleteAPIObject(w http.ResponseWriter, r *http.Request) {
 
 // K8sAPIGroupResources represents func for returning resources related to a resource kind of an api group
 func (h *Handler) K8sAPIGroupResources(w http.ResponseWriter, r *http.Request) {
-
 	var payload, objs []byte
 	var resource, version, group string
 	var ok bool

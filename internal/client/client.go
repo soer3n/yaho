@@ -1,6 +1,7 @@
 package client
 
 import (
+
 	// "helm.sh/helm/pkg/kube"
 	"context"
 	"encoding/json"
@@ -26,7 +27,6 @@ var addToScheme sync.Once
 
 // New represents initialization of needed data for running request by client
 func New() *Client {
-
 	// Add CRDs to the scheme. They are missing by default.
 	addToScheme.Do(func() {
 		if err := apiextv1.AddToScheme(scheme.Scheme); err != nil {
@@ -51,9 +51,7 @@ func New() *Client {
 }
 
 func getClusterConfig() *rest.Config {
-
 	restConfig, err := rest.InClusterConfig()
-
 	if err != nil {
 
 		configLoadRules := clientcmd.NewDefaultClientConfigLoadingRules()
@@ -72,7 +70,6 @@ func getClusterConfig() *rest.Config {
 }
 
 func getTypedKubernetesClient() *kubernetes.Clientset {
-
 	config := getClusterConfig()
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
@@ -83,7 +80,6 @@ func getTypedKubernetesClient() *kubernetes.Clientset {
 }
 
 func getDynamicKubernetesClient() dynamic.Interface {
-
 	config := getClusterConfig()
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
@@ -94,7 +90,6 @@ func getDynamicKubernetesClient() dynamic.Interface {
 }
 
 func getDiscoveryKubernetesClient() *discovery.DiscoveryClient {
-
 	config := getClusterConfig()
 	client, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
@@ -106,10 +101,8 @@ func getDiscoveryKubernetesClient() *discovery.DiscoveryClient {
 
 // GetResource represents func for returning k8s unstructured resource by given parameters
 func (c *Client) GetResource(name, namespace, resource, group, version string, opts metav1.GetOptions) ([]byte, error) {
-
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
 	obj, err := c.DynamicClient.Resource(deploymentRes).Namespace(namespace).Get(context.TODO(), name, opts)
-
 	if err != nil {
 		return nil, err
 	}
@@ -119,10 +112,8 @@ func (c *Client) GetResource(name, namespace, resource, group, version string, o
 
 // ListResources represents func for returning k8s unstructured resource list by given parameters
 func (c *Client) ListResources(namespace, resource, group, version string, opts metav1.ListOptions) ([]byte, error) {
-
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
 	obj, err := c.DynamicClient.Resource(deploymentRes).Namespace(namespace).List(context.TODO(), opts)
-
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +123,6 @@ func (c *Client) ListResources(namespace, resource, group, version string, opts 
 
 // CreateResource represents func for returning newly created k8s unstructured resource by given parameters
 func (c *Client) CreateResource(obj *unstructured.Unstructured, namespace, resource, group, version string, opts metav1.CreateOptions) ([]byte, error) {
-
 	var err error
 	var updateObj *unstructured.Unstructured
 
@@ -162,10 +152,8 @@ func (c *Client) CreateResource(obj *unstructured.Unstructured, namespace, resou
 
 // DeleteResource represents func for returning response for deletion process of k8s unstructured resource by given parameters
 func (c *Client) DeleteResource(name, namespace, resource, group, version string, opts metav1.DeleteOptions) error {
-
 	deploymentRes := schema.GroupVersionResource{Group: group, Version: version, Resource: resource}
 	err := c.DynamicClient.Resource(deploymentRes).Namespace(namespace).Delete(context.TODO(), name, opts)
-
 	if err != nil {
 		fmt.Print(err.Error())
 		return err
@@ -176,10 +164,8 @@ func (c *Client) DeleteResource(name, namespace, resource, group, version string
 
 // GetAPIResources represents func for returning resource kinds by given api group name
 func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...string) ([]byte, error) {
-
 	var resources []ResourceKind
 	lists, err := c.DiscoverClient.ServerPreferredResources()
-
 	if err != nil {
 		return []byte{}, err
 	}
@@ -191,7 +177,6 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 		}
 
 		gv, err := schema.ParseGroupVersion(list.GroupVersion)
-
 		if err != nil {
 			continue
 		}
@@ -228,7 +213,6 @@ func (c *Client) GetAPIResources(apiGroup string, namespaced bool, verbs ...stri
 func (c *Client) GetAPIGroups() ([]byte, error) {
 	resources := make(map[string][]string)
 	lists, err := c.DiscoverClient.ServerPreferredResources()
-
 	if err != nil {
 		return []byte{}, err
 	}
@@ -240,7 +224,6 @@ func (c *Client) GetAPIGroups() ([]byte, error) {
 		}
 
 		gv, err := schema.ParseGroupVersion(list.GroupVersion)
-
 		if err != nil {
 			continue
 		}

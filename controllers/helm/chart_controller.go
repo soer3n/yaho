@@ -22,13 +22,12 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 )
 
 // ChartReconciler reconciles a Chart object
@@ -60,7 +59,6 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	instance := &helmv1alpha1.Chart{}
 
 	err := r.Get(ctx, req.NamespacedName, instance)
-
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.

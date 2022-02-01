@@ -23,6 +23,9 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmutils "github.com/soer3n/yaho/internal/helm"
+	oputils "github.com/soer3n/yaho/internal/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,10 +33,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	helmutils "github.com/soer3n/yaho/internal/helm"
-	oputils "github.com/soer3n/yaho/internal/utils"
 )
 
 // ReleaseGroupReconciler reconciles a ReleaseGroup object
@@ -65,7 +64,6 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	instance := &helmv1alpha1.ReleaseGroup{}
 
 	err := r.Get(ctx, req.NamespacedName, instance)
-
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -90,7 +88,6 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(instance.ObjectMeta, hc.Env)
 
 	if _, ok := instance.Labels["release"]; !ok {
-
 		instance.Labels = map[string]string{
 			"release": instance.ObjectMeta.Name,
 		}

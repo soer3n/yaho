@@ -14,7 +14,6 @@ import (
 )
 
 func TestChartCreateConfigMaps(t *testing.T) {
-
 	settings := cli.New()
 	clientMock, httpMock := helmmocks.GetChartMock()
 
@@ -29,7 +28,6 @@ func TestChartCreateConfigMaps(t *testing.T) {
 }
 
 func TestChartAddOrUpdateMap(t *testing.T) {
-
 	settings := cli.New()
 	clientMock, httpMock := helmmocks.GetChartMock()
 

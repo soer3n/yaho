@@ -13,11 +13,9 @@ import (
 
 // AddOrUpdateChartMap represents update of version specific data of a map of chart structs if needed
 func (chartVersion ChartVersion) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
-
 	chartMeta := chartVersion.Version.Metadata
 	_, ok := chartObjMap[chartMeta.Name]
 	chartURL, err := repo.ResolveReferenceURL(instance.Spec.URL, chartVersion.Version.URLs[0])
-
 	if err != nil {
 		return chartObjMap, err
 	}
@@ -72,7 +70,6 @@ func (chartVersion ChartVersion) AddOrUpdateChartMap(chartObjMap map[string]*hel
 }
 
 func (chartVersion ChartVersion) createDependenciesList(chartMeta *chart.Metadata) []*helmv1alpha1.ChartDep {
-
 	deps := make([]*helmv1alpha1.ChartDep, 0)
 
 	for _, dep := range chartMeta.Dependencies {
@@ -94,15 +91,13 @@ func (chartVersion ChartVersion) createConfigMaps(namespace string, deps []*char
 	returnList = append(returnList, chartVersion.createTemplateConfigMap("crds", namespace, chartVersion.CRDs))
 	returnList = append(returnList, chartVersion.createDefaultValueConfigMap(namespace, chartVersion.DefaultValues))
 
-	for _, cm := range chartVersion.createDependenciesConfigMaps(namespace, deps) {
-		returnList = append(returnList, cm)
-	}
+	cms := chartVersion.createDependenciesConfigMaps(namespace, deps)
+	returnList = append(returnList, cms...)
 
 	return returnList
 }
 
 func (chartVersion ChartVersion) createDependenciesConfigMaps(namespace string, deps []*chart.Chart) []v1.ConfigMap {
-
 	cmList := []v1.ConfigMap{}
 	immutable := new(bool)
 	*immutable = true
@@ -154,17 +149,13 @@ func (chartVersion ChartVersion) createDependenciesConfigMaps(namespace string, 
 		})
 
 		subConfigMaps := chartVersion.createDependenciesConfigMaps(namespace, dep.Dependencies())
-
-		for _, cm := range subConfigMaps {
-			cmList = append(cmList, cm)
-		}
+		cmList = append(cmList, subConfigMaps...)
 	}
 
 	return cmList
 }
 
 func (chartVersion ChartVersion) createTemplateConfigMap(name string, namespace string, list []*chart.File) v1.ConfigMap {
-
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
@@ -189,7 +180,6 @@ func (chartVersion ChartVersion) createTemplateConfigMap(name string, namespace 
 }
 
 func (chartVersion ChartVersion) createDefaultValueConfigMap(namespace string, values map[string]interface{}) v1.ConfigMap {
-
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{

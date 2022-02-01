@@ -7,13 +7,11 @@ import (
 	"github.com/soer3n/yaho/tests/mocks"
 	unstructuredmocks "github.com/soer3n/yaho/tests/mocks/unstructured"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
-
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/cli"
 )
 
 func TestSetEnv(t *testing.T) {
-
 	clientMock := unstructuredmocks.K8SClientMock{}
 	httpMock := mocks.HTTPClientMock{}
 	assert := assert.New(t)

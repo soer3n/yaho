@@ -25,6 +25,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	controllers "github.com/soer3n/yaho/controllers/helm"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,34 +34,38 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	controllers "github.com/soer3n/yaho/controllers/helm"
-	// +kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var cfg *rest.Config
-var k8sClient, testClient client.Client
+var (
+	cfg                   *rest.Config
+	k8sClient, testClient client.Client
+)
 
-var err error
-var testEnv *envtest.Environment
+var (
+	err     error
+	testEnv *envtest.Environment
+)
 
-const testRepoName = "testresource"
-const testRepoURL = "https://soer3n.github.io/charts/testing_a"
-const testRepoNameSecond = "testresource-2"
-const testRepoURLSecond = "https://soer3n.github.io/charts/testing_b"
-const testRepoChartNameAssert = "testing"
-const testRepoChartSecondNameAssert = "testing-dep"
+const (
+	testRepoName                  = "testresource"
+	testRepoURL                   = "https://soer3n.github.io/charts/testing_a"
+	testRepoNameSecond            = "testresource-2"
+	testRepoURLSecond             = "https://soer3n.github.io/charts/testing_b"
+	testRepoChartNameAssert       = "testing"
+	testRepoChartSecondNameAssert = "testing-dep"
+)
 
-const testReleaseName = "testresource"
-const testReleaseChartName = "testing"
-const testReleaseChartVersion = "0.1.0"
-const testReleaseNameSecond = "testresource-2"
-const testReleaseChartNameSecond = "testing-dep"
-const testReleaseChartVersionSecond = "0.1.0"
+const (
+	testReleaseName               = "testresource"
+	testReleaseChartName          = "testing"
+	testReleaseChartVersion       = "0.1.0"
+	testReleaseNameSecond         = "testresource-2"
+	testReleaseChartNameSecond    = "testing-dep"
+	testReleaseChartVersionSecond = "0.1.0"
+)
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -182,11 +188,10 @@ var _ = BeforeSuite(func() {
 	testClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
-
 }, 60)
 
 var _ = AfterSuite(func() {
-	//close(stopCh)
+	// close(stopCh)
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())

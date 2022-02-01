@@ -13,7 +13,6 @@ import (
 )
 
 func TestK8sApiGroupResources(t *testing.T) {
-
 	assert := assert.New(t)
 
 	k8sclient := &client.Client{}
@@ -25,11 +24,9 @@ func TestK8sApiGroupResources(t *testing.T) {
 	handler := api.NewHandler("v1", k8sclient)
 	handler.K8sAPIGroup(res, req)
 	assert.NotNil(res)
-
 }
 
 func TestK8sApiGroup(t *testing.T) {
-
 	assert := assert.New(t)
 
 	k8sclient := &client.Client{}

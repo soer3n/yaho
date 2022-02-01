@@ -6,21 +6,20 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 )
 
-var releaseGroupChart *helmv1alpha1.Chart
-var releaseGroup *helmv1alpha1.ReleaseGroup
-var releaseGroupRepo *helmv1alpha1.Repo
+var (
+	releaseGroupChart *helmv1alpha1.Chart
+	releaseGroup      *helmv1alpha1.ReleaseGroup
+	releaseGroupRepo  *helmv1alpha1.Repo
+)
 
 var _ = Context("Install a releasegroup", func() {
-
 	Describe("when no existing resources exist", func() {
-
 		It("should create a new Repository resource with the specified name and specified url", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
@@ -226,7 +225,6 @@ var _ = Context("Install a releasegroup", func() {
 
 			err = testClient.Delete(context.Background(), releaseNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
-
 		})
 	})
 })

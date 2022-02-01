@@ -22,7 +22,6 @@ func Contains(list []string, s string) bool {
 
 // GetLabelsByInstance represents func for parsing labels by k8s objectMeta and env map
 func GetLabelsByInstance(metaObj metav1.ObjectMeta, env map[string]string) (string, string) {
-
 	var repoPath, repoCache string
 
 	repoPath = filepath.Dir(env["RepositoryConfig"])
@@ -103,7 +102,6 @@ func ConvertChartVersions(chart *types.Chart) []*repo.ChartVersion {
 }
 
 func convertDependencies(version types.ChartVersion) []*helmchart.Dependency {
-
 	deps := []*helmchart.Dependency{}
 
 	for _, dep := range version.Dependencies {

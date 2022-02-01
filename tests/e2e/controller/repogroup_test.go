@@ -6,21 +6,20 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 )
 
-var repoGroupKind *helmv1alpha1.RepoGroup
-var repoGroup *helmv1alpha1.RepoGroup
-var chart *helmv1alpha1.Chart
+var (
+	repoGroupKind *helmv1alpha1.RepoGroup
+	repoGroup     *helmv1alpha1.RepoGroup
+	chart         *helmv1alpha1.Chart
+)
 
 var _ = Context("Install a repository group", func() {
-
 	Describe("when no existing resource exist", func() {
-
 		It("should start with creating dependencies", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
@@ -133,7 +132,6 @@ var _ = Context("Install a repository group", func() {
 
 			err = testClient.Delete(context.Background(), repoGroupNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
-
 		})
 	})
 })

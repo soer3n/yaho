@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//NewRootCmd represents the root command manager
+// NewRootCmd represents the root command manager
 func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "manager",

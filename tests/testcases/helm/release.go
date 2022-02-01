@@ -59,7 +59,6 @@ func GetTestReleaseValueRefListSpec() []inttypes.TestCase {
 
 // GetTestReleaseSpecs returns testcases for testing release cr
 func GetTestReleaseSpecs() []inttypes.TestCase {
-
 	return []inttypes.TestCase{
 		{
 			ReturnValue: GetTestReleaseChartConfigMapsValid(),
@@ -253,7 +252,6 @@ func GetTestReleaseDeployedReleaseObj() *release.Release {
 
 // GetTestReleaseDefaultValueConfigMap returns configmap with default values for testing release cr
 func GetTestReleaseDefaultValueConfigMap() v1.ConfigMap {
-
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
@@ -278,7 +276,6 @@ func GetTestReleaseDefaultValueConfigMap() v1.ConfigMap {
 
 // GetTestReleaseTemplateConfigMap returns configmap with templates for testing release cr
 func GetTestReleaseTemplateConfigMap() v1.ConfigMap {
-
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
@@ -303,7 +300,6 @@ func GetTestReleaseTemplateConfigMap() v1.ConfigMap {
 
 // GetTestReleaseCRDConfigMap returns configmap with crds for testing release cr
 func GetTestReleaseCRDConfigMap() v1.ConfigMap {
-
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
@@ -328,7 +324,6 @@ func GetTestReleaseCRDConfigMap() v1.ConfigMap {
 
 // GetTestReleaseChartConfigMapsValid returns configmaps for testing release cr
 func GetTestReleaseChartConfigMapsValid() []v1.ConfigMap {
-
 	raw, _ := os.Open("../../../testutils/busybox-0.1.0.tgz")
 
 	defer func() {

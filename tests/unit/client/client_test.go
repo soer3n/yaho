@@ -10,7 +10,6 @@ import (
 )
 
 func TestGetAPIResources(t *testing.T) {
-
 	client := &client.Client{}
 	client.DiscoverClient = clientmocks.GetClientDiscoveryMock()
 
@@ -22,7 +21,6 @@ func TestGetAPIResources(t *testing.T) {
 }
 
 func TestListResources(t *testing.T) {
-
 	client := &client.Client{}
 	client.DynamicClient = clientmocks.GetClientDynamicMock()
 
@@ -34,7 +32,6 @@ func TestListResources(t *testing.T) {
 }
 
 func TestGetResource(t *testing.T) {
-
 	client := &client.Client{}
 	client.DynamicClient = clientmocks.GetClientDynamicMock()
 

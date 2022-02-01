@@ -59,7 +59,6 @@ func (options *ListOptions) getFilterName(valueT reflect.Type, confV reflect.Val
 	}
 
 	return field, structName, filterName
-
 }
 
 func (options *ListOptions) getFilterSpec(f *ValuesRef) map[string]string {

@@ -10,26 +10,23 @@ import (
 	"net/http"
 	"os"
 
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/tests/mocks"
 	unstructuredmocks "github.com/soer3n/yaho/tests/mocks/unstructured"
+	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 )
 
 // GetChartMock returns kubernetes typed client mock and http client mock for testing chart functions
 func GetChartMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
-
 	clientMock := unstructuredmocks.K8SClientMock{}
 	httpMock := mocks.HTTPClientMock{}
 
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "foo", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
-
 		c := args.Get(2).(*helmv1alpha1.Chart)
 		spec := testcases.GetTestChartSpec()
 		c.Spec = spec.Spec
@@ -75,26 +72,22 @@ func GetChartMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 
 // GetClientMock returns kubernetes typed client mock and http client mock for testing client functions
 func GetClientMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
-
 	clientMock := unstructuredmocks.K8SClientMock{}
 	httpMock := mocks.HTTPClientMock{}
 
 	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{
 		"label": "selector",
 	}}).Return(nil).Run(func(args mock.Arguments) {
-
 		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
 
 	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{}}).Return(nil).Run(func(args mock.Arguments) {
-
 		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
 
 	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{
 		"label": "notpresent",
 	}}).Return(nil).Run(func(args mock.Arguments) {
-
 		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
 
@@ -114,26 +107,22 @@ func GetClientMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 
 // GetFinalizerMock returns kubernetes typed client mock and http client mock for testing finalizer functions
 func GetFinalizerMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
-
 	clientMock := unstructuredmocks.K8SClientMock{}
 	httpMock := mocks.HTTPClientMock{}
 
 	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{
 		"label": "selector",
 	}}).Return(nil).Run(func(args mock.Arguments) {
-
 		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
 
 	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{}}).Return(nil).Run(func(args mock.Arguments) {
-
 		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
 
 	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{
 		"label": "notpresent",
 	}}).Return(nil).Run(func(args mock.Arguments) {
-
 		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
 
@@ -153,7 +142,6 @@ func GetFinalizerMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock
 
 // GetReleaseMock returns kubernetes typed client mock and http client mock for testing release functions
 func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
-
 	clientMock := unstructuredmocks.K8SClientMock{}
 	httpMock := mocks.HTTPClientMock{}
 
@@ -168,21 +156,18 @@ func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) 
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "notfound", Namespace: ""}, &helmv1alpha1.Chart{}).Return(errors.New("chart not found"))
 
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-tmpl-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
-
 		c := args.Get(2).(*v1.ConfigMap)
 		spec := testcases.GetTestReleaseTemplateConfigMap()
 		c.BinaryData = spec.BinaryData
 		c.ObjectMeta = spec.ObjectMeta
 	})
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-crds-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
-
 		c := args.Get(2).(*v1.ConfigMap)
 		spec := testcases.GetTestReleaseCRDConfigMap()
 		c.BinaryData = spec.BinaryData
 		c.ObjectMeta = spec.ObjectMeta
 	})
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-default-chart-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
-
 		c := args.Get(2).(*v1.ConfigMap)
 		spec := testcases.GetTestReleaseDefaultValueConfigMap()
 		c.Data = spec.Data
@@ -190,7 +175,6 @@ func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) 
 	})
 
 	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.MatchingLabels{"repoGroup": "group"}, client.InNamespace("")}).Return(nil).Run(func(args mock.Arguments) {
-
 		c := args.Get(1).(*helmv1alpha1.ChartList)
 		spec := helmv1alpha1.ChartList{
 			Items: []helmv1alpha1.Chart{
@@ -203,7 +187,6 @@ func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) 
 			},
 		}
 		c.Items = spec.Items
-
 	})
 
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "dep", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
@@ -214,21 +197,18 @@ func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) 
 	})
 
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-tmpl-dep-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
-
 		c := args.Get(2).(*v1.ConfigMap)
 		spec := testcases.GetTestReleaseTemplateConfigMap()
 		c.BinaryData = spec.BinaryData
 		c.ObjectMeta = spec.ObjectMeta
 	})
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-crds-dep-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
-
 		c := args.Get(2).(*v1.ConfigMap)
 		spec := testcases.GetTestReleaseCRDConfigMap()
 		c.BinaryData = spec.BinaryData
 		c.ObjectMeta = spec.ObjectMeta
 	})
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-default-dep-0.0.1", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
-
 		c := args.Get(2).(*v1.ConfigMap)
 		spec := testcases.GetTestReleaseDefaultValueConfigMap()
 		c.Data = spec.Data
@@ -266,31 +246,26 @@ func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) 
 
 // GetRepoMock returns kubernetes typed client mock and http client mock for testing repository functions
 func GetRepoMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
-
 	clientMock := unstructuredmocks.K8SClientMock{}
 	httpMock := mocks.HTTPClientMock{}
 
 	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{
 		"label": "selector",
 	}}).Return(nil).Run(func(args mock.Arguments) {
-
 		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
 
 	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{}}).Return(nil).Run(func(args mock.Arguments) {
-
 		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
 
 	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.InNamespace(""), client.MatchingLabels{
 		"label": "notpresent",
 	}}).Return(nil).Run(func(args mock.Arguments) {
-
 		_ = args.Get(1).(*helmv1alpha1.ChartList)
 	})
 
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "secret", Namespace: ""}, &v1.Secret{}).Return(nil).Run(func(args mock.Arguments) {
-
 		c := args.Get(2).(*v1.Secret)
 		c.ObjectMeta =
 			metav1.ObjectMeta{

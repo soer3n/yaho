@@ -54,7 +54,6 @@ func (api *API) getRoutes() *mux.Router {
 
 // Run represents func for starting an http server
 func (api *API) Run() error {
-
 	log.Println("start server")
 
 	return api.Server.ListenAndServe()

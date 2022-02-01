@@ -69,7 +69,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	instance := &helmv1alpha1.Repo{}
 
 	err := r.Get(ctx, req.NamespacedName, instance)
-
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -130,7 +129,6 @@ func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Rep
 }
 
 func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Client) error {
-
 	var chartList []*helmutils.Chart
 	var err error
 
@@ -172,7 +170,6 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Clien
 				Namespace: helmChart.ObjectMeta.Namespace,
 				Name:      helmChart.Spec.Name,
 			}, installedChart)
-
 			if err != nil {
 				if errors.IsNotFound(err) {
 					log.Info("Trying to install HelmChart " + helmChart.Name)
@@ -197,7 +194,6 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Clien
 				log.Infof("chart %v is up to date", installedChart.Spec.Name)
 				c <- ""
 			}
-
 		}(chartObj, instance, c)
 	}
 
@@ -224,7 +220,6 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Clien
 }
 
 func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Repo, err error) (ctrl.Result, error) {
-
 	stats := metav1.ConditionTrue
 	message := ""
 	reason := "install"
@@ -248,7 +243,6 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.
 }
 
 func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.Client, instance *helmv1alpha1.Repo) error {
-
 	var del bool
 	var err error
 

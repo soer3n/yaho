@@ -6,24 +6,23 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 )
 
-var releaseKind *helmv1alpha1.Release
-var release *helmv1alpha1.Release
-var releaseChart *helmv1alpha1.Chart
-var releaseRepo, releaseRepoSecond *helmv1alpha1.Repo
+var (
+	releaseKind                    *helmv1alpha1.Release
+	release                        *helmv1alpha1.Release
+	releaseChart                   *helmv1alpha1.Chart
+	releaseRepo, releaseRepoSecond *helmv1alpha1.Repo
+)
 
 var _ = Context("Install a release", func() {
-
 	Describe("when no existing resources exist", func() {
-
 		It("should start with creating dependencies", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
@@ -233,7 +232,6 @@ var _ = Context("Install a release", func() {
 
 			err = testClient.Delete(context.Background(), releaseNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
-
 		})
 	})
 })

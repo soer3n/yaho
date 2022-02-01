@@ -26,20 +26,19 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmutils "github.com/soer3n/yaho/internal/helm"
+	oputils "github.com/soer3n/yaho/internal/utils"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	helmutils "github.com/soer3n/yaho/internal/helm"
-	oputils "github.com/soer3n/yaho/internal/utils"
-	meta "k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ReleaseReconciler reconciles a Release object
@@ -71,7 +70,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	instance := &helmv1alpha1.Release{}
 
 	err := r.Get(ctx, req.NamespacedName, instance)
-
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -187,9 +185,7 @@ func (r *ReleaseReconciler) getRefList(valuesList []*helmv1alpha1.Values, instan
 			return refList, err
 		}
 
-		for _, subValueObj := range subRefList {
-			refList = append(refList, subValueObj)
-		}
+		refList = append(refList, subRefList...)
 	}
 
 	return refList, nil
@@ -229,11 +225,9 @@ func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (*helmv1al
 	}
 
 	return instance, nil
-
 }
 
 func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.Client, instance *helmv1alpha1.Release) error {
-
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
 		if _, err := helmutils.HandleFinalizer(helmClient, instance.ObjectMeta); err != nil {
@@ -250,7 +244,6 @@ func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.Client, instan
 }
 
 func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Repo) error {
-
 	if err := controllerutil.SetControllerReference(instance, &configmap, r.Scheme); err != nil {
 		return err
 	}
@@ -260,7 +253,6 @@ func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *he
 		Namespace: configmap.ObjectMeta.Namespace,
 		Name:      configmap.ObjectMeta.Name,
 	}, current)
-
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = r.Client.Create(context.TODO(), &configmap); err != nil {
@@ -274,13 +266,11 @@ func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *he
 }
 
 func (r *ReleaseReconciler) updateChart(chart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo) error {
-
 	current := &helmv1alpha1.Chart{}
 	err := r.Client.Get(context.Background(), client.ObjectKey{
 		Namespace: chart.ObjectMeta.Namespace,
 		Name:      chart.ObjectMeta.Name,
 	}, current)
-
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = r.Client.Create(context.TODO(), chart); err != nil {
@@ -333,9 +323,8 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 			if err != nil {
 				return list, err
 			}
-			for _, nested := range nestedRef {
-				list = append(list, nested)
-			}
+
+			list = append(list, nestedRef...)
 		}
 
 		entry := &helmutils.ValuesRef{
@@ -350,7 +339,6 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 }
 
 func (r *ReleaseReconciler) updateValuesAnnotations(obj *helmv1alpha1.Values, release *helmv1alpha1.Release) error {
-
 	var patch []byte
 	var value string
 	var ok bool
@@ -377,7 +365,6 @@ func (r *ReleaseReconciler) updateValuesAnnotations(obj *helmv1alpha1.Values, re
 }
 
 func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Release, stats metav1.ConditionStatus, reason, message string) (ctrl.Result, error) {
-
 	if meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", stats) && instance.Status.Conditions[0].Message == message {
 		return ctrl.Result{}, nil
 	}
@@ -402,7 +389,6 @@ func (r *ReleaseReconciler) getValuesByReference(refs []string, namespace string
 			Namespace: namespace,
 			Name:      ref,
 		}, helmRef)
-
 		if err != nil {
 			if errors.IsNotFound(err) {
 				helmRef.ObjectMeta.Namespace = namespace

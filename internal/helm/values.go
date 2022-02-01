@@ -34,7 +34,6 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 	for _, ref := range base {
 		if values, err = hv.manageStruct(ref); err != nil {
 			return merged, err
-
 		}
 
 		refValues := ref.Ref

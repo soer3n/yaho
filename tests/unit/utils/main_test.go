@@ -11,7 +11,6 @@ import (
 )
 
 func TestContains(t *testing.T) {
-
 	testList := []string{"foo", "bar"}
 
 	assert := assert.New(t)
@@ -24,7 +23,6 @@ func TestContains(t *testing.T) {
 }
 
 func TestGetLabelsByInstance(t *testing.T) {
-
 	metaObj := metav1.ObjectMeta{
 		Name:      "foo",
 		Namespace: "bar",
@@ -51,7 +49,6 @@ func TestGetLabelsByInstance(t *testing.T) {
 }
 
 func TestGetChartVersion(t *testing.T) {
-
 	testChartSpec := &v1alpha1.Chart{
 		Spec: v1alpha1.ChartSpec{
 			Versions: []v1alpha1.ChartVersion{
@@ -89,7 +86,6 @@ func TestGetChartVersion(t *testing.T) {
 }
 
 func TestConvertChartVersions(t *testing.T) {
-
 	testChartSpec := &v1alpha1.Chart{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",

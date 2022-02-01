@@ -12,7 +12,6 @@ import (
 
 // GetTestValueSpecs returns expected spec for testing helm values parsing
 func GetTestValueSpecs() []inttypes.TestCase {
-
 	firstVals := map[string]string{"foo": "bar"}
 	secVals := map[string]string{"foo": "bar"}
 	thirdVals := map[string]interface{}{"baf": "muh", "boo": map[string]string{

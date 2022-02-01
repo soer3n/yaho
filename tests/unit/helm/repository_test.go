@@ -13,7 +13,6 @@ import (
 )
 
 func TestRepoGetCharts(t *testing.T) {
-
 	clientMock, httpMock := helmmocks.GetRepoMock()
 	settings := cli.New()
 	apiObjList := testcases.GetTestRepoSpecs()

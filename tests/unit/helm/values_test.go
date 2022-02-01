@@ -9,7 +9,6 @@ import (
 )
 
 func TestValues(t *testing.T) {
-
 	assert := assert.New(t)
 
 	for _, testcase := range testcases.GetTestValueSpecs() {

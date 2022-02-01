@@ -14,7 +14,6 @@ var nopLogger = func(_ string, _ ...interface{}) {}
 
 // NewHelmClient represents initialization of the client for managing related stuff
 func NewHelmClient(instance interface{}, k8sClient client.Client, g types.HTTPClientInterface) *Client {
-
 	hc := &Client{
 		Repos:    &Repos{},
 		Releases: &Releases{},
@@ -56,7 +55,6 @@ func NewHelmClient(instance interface{}, k8sClient client.Client, g types.HTTPCl
 
 // GetRepo represents func for returning internal repo struct by name
 func (hc *Client) GetRepo(name string) *Repo {
-
 	for _, repo := range hc.Repos.Entries {
 		if name == repo.Name {
 			return repo
@@ -68,7 +66,6 @@ func (hc *Client) GetRepo(name string) *Repo {
 
 // GetRelease represents func for returning internal release struct by name of it and its repo
 func (hc *Client) GetRelease(name, repo string) *Release {
-
 	for _, release := range hc.Releases.Entries {
 		if release.Name == name && release.Repo == repo {
 			return release
@@ -78,7 +75,6 @@ func (hc *Client) GetRelease(name, repo string) *Release {
 }
 
 func (hc *Client) manageEntries(instance interface{}, k8sclient client.Client, g types.HTTPClientInterface, helmClient kube.Client) error {
-
 	var releaseObj *helmv1alpha1.Release
 	repoObj, ok := instance.(*helmv1alpha1.Repo)
 	settings := hc.GetEnvSettings()

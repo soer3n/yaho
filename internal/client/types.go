@@ -25,5 +25,4 @@ type ResourceKind struct {
 }
 
 // Opts represents an interface for collecting options in a generic way
-type Opts interface {
-}
+type Opts interface{}

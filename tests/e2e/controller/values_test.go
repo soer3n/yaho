@@ -7,25 +7,24 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 )
 
-var valuesReleaseKind *helmv1alpha1.Release
-var valuesRelease *helmv1alpha1.Release
-var valuesReleaseChart *helmv1alpha1.Chart
-var valuesReleaseRepo, valuesReleaseRepoSecond *helmv1alpha1.Repo
-var values *helmv1alpha1.Values
+var (
+	valuesReleaseKind                          *helmv1alpha1.Release
+	valuesRelease                              *helmv1alpha1.Release
+	valuesReleaseChart                         *helmv1alpha1.Chart
+	valuesReleaseRepo, valuesReleaseRepoSecond *helmv1alpha1.Repo
+	values                                     *helmv1alpha1.Values
+)
 
 var _ = Context("Install a release with values", func() {
-
 	Describe("when no existing resources exist", func() {
-
 		It("should create a new Repository resource with the specified name and specified url", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
@@ -310,7 +309,6 @@ var _ = Context("Install a release with values", func() {
 
 			err = testClient.Delete(context.Background(), releaseNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
-
 		})
 	})
 })

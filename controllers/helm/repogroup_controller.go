@@ -23,16 +23,15 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // RepoGroupReconciler reconciles a RepoGroup object
@@ -64,7 +63,6 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	instance := &helmv1alpha1.RepoGroup{}
 
 	err := r.Get(ctx, req.NamespacedName, instance)
-
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
@@ -142,7 +140,6 @@ func (r *RepoGroupReconciler) removeUnwantedRepos(repos *helmv1alpha1.RepoList, 
 }
 
 func (r *RepoGroupReconciler) deployRepos(instance *helmv1alpha1.RepoGroup) {
-
 	var wg sync.WaitGroup
 	c := make(chan string, 10)
 	spec := instance.Spec.Repos
@@ -183,7 +180,6 @@ func (r *RepoGroupReconciler) deployRepos(instance *helmv1alpha1.RepoGroup) {
 				Namespace: helmRepo.ObjectMeta.Namespace,
 				Name:      helmRepo.Spec.Name,
 			}, installedRepo)
-
 			if err != nil {
 				if errors.IsNotFound(err) {
 					c <- err.Error()

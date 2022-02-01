@@ -11,7 +11,6 @@ import (
 )
 
 func TestFinalizerHandleRelease(t *testing.T) {
-
 	clientMock, httpMock := helmmocks.GetFinalizerMock()
 	assert := assert.New(t)
 
@@ -29,11 +28,9 @@ func TestFinalizerHandleRelease(t *testing.T) {
 		assert.Equal(v.ReturnValue, ok)
 		assert.Equal(v.ReturnError, err)
 	}
-
 }
 
 func TestFinalizerHandleRepo(t *testing.T) {
-
 	clientMock, httpMock := helmmocks.GetFinalizerMock()
 	assert := assert.New(t)
 
@@ -45,5 +42,4 @@ func TestFinalizerHandleRepo(t *testing.T) {
 		assert.Equal(v.ReturnValue, ok)
 		assert.Equal(v.ReturnError, err)
 	}
-
 }
