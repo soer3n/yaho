@@ -85,6 +85,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	var hc *helmutils.Client
 	var helmRelease *helmutils.Release
+	var requeue bool
 
 	g := http.Client{
 		Timeout: time.Second * 10,
@@ -104,10 +105,15 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	hc = helmutils.NewHelmClient(instance, r.Client, &g)
 
-	if instance.GetDeletionTimestamp() != nil {
+	if requeue, err = r.handleFinalizer(hc, instance); err != nil {
+		log.Errorf("Handle finalizer for release %v failed.", hc.GetRelease(instance.Spec.Name, instance.Spec.Repo).Name)
+		return ctrl.Result{}, err
+	}
 
-		if err = r.handleFinalizer(hc, instance); err != nil {
-			log.Errorf("Handle finalizer for release %v failed.", hc.GetRelease(instance.Spec.Name, instance.Spec.Repo).Name)
+	if requeue {
+		reqLogger.Info("Update resource after modifying finalizer.")
+		if err := r.Update(context.TODO(), instance); err != nil {
+			reqLogger.Error(err, "error in reconciling")
 			return ctrl.Result{}, err
 		}
 
@@ -115,13 +121,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	log.Infof("Trying HelmRelease %v", instance.Spec.Name)
-
-	if !oputils.Contains(instance.GetFinalizers(), "finalizer.releases.helm.soer3n.info") {
-		if err := r.addFinalizer(reqLogger, instance); err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, r.Update(ctx, instance)
-	}
 
 	helmRelease = hc.GetRelease(instance.Spec.Name, instance.Spec.Repo)
 
@@ -191,18 +190,6 @@ func (r *ReleaseReconciler) getRefList(valuesList []*helmv1alpha1.Values, instan
 	return refList, nil
 }
 
-func (r *ReleaseReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Release) error {
-	reqLogger.Info("Adding Finalizer for the Release")
-	controllerutil.AddFinalizer(m, "finalizer.releases.helm.soer3n.info")
-
-	// Update CR
-	if err := r.Update(context.TODO(), m); err != nil {
-		reqLogger.Error(err, "Failed to update Release with finalizer")
-		return err
-	}
-	return nil
-}
-
 func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (*helmv1alpha1.Repo, error) {
 	instance := &helmv1alpha1.Repo{}
 
@@ -227,20 +214,24 @@ func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (*helmv1al
 	return instance, nil
 }
 
-func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.Client, instance *helmv1alpha1.Release) error {
+func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.Client, instance *helmv1alpha1.Release) (bool, error) {
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
 		if _, err := helmutils.HandleFinalizer(helmClient, instance.ObjectMeta); err != nil {
-			return err
+			return true, err
 		}
 
 		controllerutil.RemoveFinalizer(instance, "finalizer.releases.helm.soer3n.info")
-
-		if err := r.Update(context.Background(), instance); err != nil {
-			return err
-		}
+		return true, nil
 	}
-	return nil
+
+	if !oputils.Contains(instance.GetFinalizers(), "finalizer.releases.helm.soer3n.info") {
+		r.Log.Info("Adding Finalizer for the Release")
+		controllerutil.AddFinalizer(instance, "finalizer.releases.helm.soer3n.info")
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Repo) error {
@@ -372,7 +363,9 @@ func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alph
 	condition := metav1.Condition{Type: "synced", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
 	meta.SetStatusCondition(&instance.Status.Conditions, condition)
 
-	_ = r.Status().Update(ctx, instance)
+	if err := r.Status().Update(ctx, instance); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	log.Info("Don't reconcile releases after sync.")
 	return ctrl.Result{}, nil

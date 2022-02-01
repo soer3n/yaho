@@ -83,6 +83,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	var hc *helmutils.Client
+	var requeue bool
 
 	g := http.Client{
 		Timeout: time.Second * 10,
@@ -94,19 +95,19 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	hc = helmutils.NewHelmClient(instance, r.Client, &g)
 
-	if instance.GetDeletionTimestamp() != nil {
-		if err := r.handleFinalizer(reqLogger, hc, instance); err != nil {
-			log.Infof("Failed on handling finalizer for repo %v", instance.Spec.Name)
+	if requeue, err = r.handleFinalizer(reqLogger, hc, instance); err != nil {
+		log.Infof("Failed on handling finalizer for repo %v", instance.Spec.Name)
+		return ctrl.Result{}, err
+	}
+
+	if requeue {
+		reqLogger.Info("Update resource after modifying finalizer.")
+		if err := r.Update(context.TODO(), instance); err != nil {
+			reqLogger.Error(err, "error in reconciling")
 			return ctrl.Result{}, err
 		}
 
 		return ctrl.Result{}, nil
-	}
-
-	if !oputils.Contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
-		if err := r.addFinalizer(reqLogger, instance); err != nil {
-			return ctrl.Result{}, err
-		}
 	}
 
 	err = r.deploy(instance, hc)
@@ -114,18 +115,6 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	log.Infof("Repo %v deployed in namespace %v", instance.Spec.Name, instance.ObjectMeta.Namespace)
 	log.Info("Don't reconcile repos.")
 	return r.syncStatus(context.Background(), instance, err)
-}
-
-func (r *RepoReconciler) addFinalizer(reqLogger logr.Logger, m *helmv1alpha1.Repo) error {
-	reqLogger.Info("Adding Finalizer for the Repo")
-	controllerutil.AddFinalizer(m, "finalizer.repo.helm.soer3n.info")
-
-	// Update CR
-	if err := r.Update(context.TODO(), m); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Client) error {
@@ -213,7 +202,7 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Clien
 	log.Infof("chart parsing for %s completed.", instance.ObjectMeta.Name)
 
 	if len(failedChartList) > 0 {
-		return fmt.Errorf("Problems with charts: %v", strings.Join(failedChartList, ","))
+		return fmt.Errorf("problems with charts: %v", strings.Join(failedChartList, ","))
 	}
 
 	return nil
@@ -242,26 +231,29 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.
 	return ctrl.Result{}, nil
 }
 
-func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.Client, instance *helmv1alpha1.Repo) error {
+func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.Client, instance *helmv1alpha1.Repo) (bool, error) {
 	var del bool
 	var err error
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
 		if del, err = helmutils.HandleFinalizer(hc, instance.ObjectMeta); err != nil {
-			return nil
+			return true, err
 		}
 
 		if del {
 			controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
+			return true, nil
 		}
 	}
 
-	if err := r.Client.Update(context.TODO(), instance); err != nil {
-		return err
+	if !oputils.Contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
+		reqLogger.Info("Adding Finalizer for the Quarantine Resource")
+		controllerutil.AddFinalizer(instance, "finalizer.repo.helm.soer3n.info")
+		return true, nil
 	}
 
-	return nil
+	return false, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
