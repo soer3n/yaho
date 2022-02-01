@@ -80,7 +80,7 @@ func ConvertChartVersions(chart *types.Chart) []*repo.ChartVersion {
 				Sources:      chart.Spec.Sources,
 				Version:      item.Name,
 				Description:  chart.Spec.Description,
-				Dependencies: convertDependencies(&item),
+				Dependencies: convertDependencies(item),
 				Keywords:     chart.Spec.Keywords,
 				Maintainers:  chart.Spec.Maintainers,
 				Icon:         chart.Spec.Icon,
@@ -102,7 +102,7 @@ func ConvertChartVersions(chart *types.Chart) []*repo.ChartVersion {
 	return convertedVersions
 }
 
-func convertDependencies(version *types.ChartVersion) []*helmchart.Dependency {
+func convertDependencies(version types.ChartVersion) []*helmchart.Dependency {
 
 	deps := []*helmchart.Dependency{}
 

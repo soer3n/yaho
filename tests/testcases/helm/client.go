@@ -5,6 +5,7 @@ import (
 	"helm.sh/helm/v3/pkg/repo"
 )
 
+// GetTestClientRepo returns repo cr for testing client
 func GetTestClientRepo() *helm.Repo {
 	return &helm.Repo{
 		Name: "boo",
@@ -12,6 +13,7 @@ func GetTestClientRepo() *helm.Repo {
 	}
 }
 
+// GetTestClientRelease returns release cr for testing client
 func GetTestClientRelease() *helm.Release {
 	return &helm.Release{
 		Name:    "far",
@@ -21,6 +23,7 @@ func GetTestClientRelease() *helm.Release {
 	}
 }
 
+// GetTestClientIndexFile returns helm index file struct for testing client
 func GetTestClientIndexFile() *repo.IndexFile {
 	return &repo.IndexFile{
 		Entries: map[string]repo.ChartVersions{

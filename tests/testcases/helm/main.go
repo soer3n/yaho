@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// GetTestMainEnvMaps returns testcases for environment settings
 func GetTestMainEnvMaps() []inttypes.TestCase {
 	homeDir, _ := os.UserHomeDir()
 	return []inttypes.TestCase{
@@ -62,6 +63,7 @@ func GetTestMainEnvMaps() []inttypes.TestCase {
 	}
 }
 
+// GetTestMainObjSpecs returns cr managed by client
 func GetTestMainObjSpecs() []interface{} {
 	return []interface{}{
 		&helmv1alpha1.Release{

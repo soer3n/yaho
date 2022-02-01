@@ -146,12 +146,12 @@ func (hr Repo) GetCharts(settings *cli.EnvSettings, selectors map[string]string)
 		return chartList, err
 	}
 
-	for _, v := range chartAPIList.Items {
-		chartList = append(chartList, NewChart(utils.ConvertChartVersions(&v), settings, hr.Name, hr.K8sClient, hr.getter, kube.Client{
+	for i := range chartAPIList.Items {
+		chartList = append(chartList, NewChart(utils.ConvertChartVersions(&chartAPIList.Items[i]), settings, hr.Name, hr.K8sClient, hr.getter, kube.Client{
 			Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
 			Log:     nopLogger,
 		}))
-		log.Debugf("new: %v", v)
+		log.Debugf("new: %v", chartAPIList.Items[i])
 	}
 
 	if chartList == nil {

@@ -57,7 +57,10 @@ func (h *Handler) K8sAPIGroup(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(payload)
+
+	if _, err := w.Write(payload); err != nil {
+		log.Fatal(err.Error())
+	}
 }
 
 // K8sAPIs represents func for returning  resource kinds related to an api group
@@ -95,7 +98,10 @@ func (h *Handler) K8sAPIs(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(payload)
+
+	if _, err := w.Write(payload); err != nil {
+		log.Fatal(err.Error())
+	}
 }
 
 // K8sAPIObject represents func for returning  resource object related to an api group
@@ -161,7 +167,10 @@ func (h *Handler) K8sAPIObject(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(payload)
+
+	if _, err := w.Write(payload); err != nil {
+		log.Fatal(err.Error())
+	}
 }
 
 // K8sCreateAPIObject represents func for returning  resource object related to an api group
@@ -230,7 +239,10 @@ func (h *Handler) K8sCreateAPIObject(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(payload)
+
+	if _, err := w.Write(payload); err != nil {
+		log.Fatal(err.Error())
+	}
 }
 
 // K8sDeleteAPIObject represents func for returning  resource object related to an api group
@@ -336,5 +348,8 @@ func (h *Handler) K8sAPIGroupResources(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(payload)
+
+	if _, err := w.Write(payload); err != nil {
+		log.Fatal(err.Error())
+	}
 }

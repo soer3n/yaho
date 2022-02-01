@@ -29,6 +29,7 @@ func (api *API) setHTTPServer() error {
 		Handler: api.getRoutes(),
 		TLSConfig: &tls.Config{
 			NextProtos: []string{"h2", "http/1.1"},
+			MinVersion: tls.VersionTLS12,
 		},
 	}
 	return nil

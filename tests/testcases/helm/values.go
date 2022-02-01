@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// GetTestValueSpecs returns expected spec for testing helm values parsing
 func GetTestValueSpecs() []inttypes.TestCase {
 
 	firstVals := map[string]string{"foo": "bar"}

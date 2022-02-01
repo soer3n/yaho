@@ -2,9 +2,11 @@ name: Lint
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
 
 jobs:
 
@@ -20,8 +22,9 @@ jobs:
       - name: check out code
         uses: actions/checkout@v1
 
-      - name: lint Go code
-        run: |
-          export PATH=$PATH:$(go env GOPATH)/bin # temporary fix. See https://github.com/actions/setup-go/issues/14
-          go get -u golang.org/x/lint/golint
-          golint -set_exit_status ./...
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.29
+          args: --issues-exit-code=1 --timeout=5m0s
+          only-new-issues: true

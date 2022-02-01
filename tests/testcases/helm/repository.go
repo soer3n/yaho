@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// GetTestRepoChartListSpec returns expected chartlist spec for testing
 func GetTestRepoChartListSpec() *helmv1alpha1.ChartList {
 
 	chartSpec := helmv1alpha1.ChartSpec{
@@ -51,6 +52,7 @@ func GetTestRepoChartListSpec() *helmv1alpha1.ChartList {
 	}
 }
 
+// GetTestRepoSpecs returns testcases for testing chart cr
 func GetTestRepoSpecs() []inttypes.TestCase {
 	return []inttypes.TestCase{
 
@@ -73,6 +75,7 @@ func GetTestRepoSpecs() []inttypes.TestCase {
 	}
 }
 
+// GetTestRepoIndexFile returns repoIndex for testing chart cr
 func GetTestRepoIndexFile() *repo.IndexFile {
 	return &repo.IndexFile{
 		Entries: map[string]repo.ChartVersions{

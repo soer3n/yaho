@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// GetClientDiscoveryMock returns kubernetes discovery client mock
 func GetClientDiscoveryMock() *mocks.K8SDiscoveryMock {
 
 	dcMock := &mocks.K8SDiscoveryMock{}
@@ -30,6 +31,7 @@ func GetClientDiscoveryMock() *mocks.K8SDiscoveryMock {
 	return dcMock
 }
 
+// GetClientDynamicMock returns kubernetes dynamic client mock
 func GetClientDynamicMock() *mocks.K8SDynamicClientMock {
 
 	dcMock := &mocks.K8SDynamicClientMock{}

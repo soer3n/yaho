@@ -20,6 +20,7 @@ import (
 
 var verbose = flag.Bool("test.log", false, "enable test logging")
 
+// GetTestFinalizerRepo returns repo cr for testing finalizer handling
 func GetTestFinalizerRepo() *helmv1alpha1.Repo {
 	return &helmv1alpha1.Repo{
 		ObjectMeta: metav1.ObjectMeta{
@@ -33,6 +34,7 @@ func GetTestFinalizerRepo() *helmv1alpha1.Repo {
 	}
 }
 
+// GetTestFinalizerRelease returns release cr for testing finalizer handling
 func GetTestFinalizerRelease() *helmv1alpha1.Release {
 	return &helmv1alpha1.Release{
 		ObjectMeta: metav1.ObjectMeta{
@@ -46,6 +48,7 @@ func GetTestFinalizerRelease() *helmv1alpha1.Release {
 	}
 }
 
+// GetTestFinalizerFakeActionConfig returns helm action configuration for testing finalizer handling
 func GetTestFinalizerFakeActionConfig(t *testing.T) *action.Configuration {
 	return &action.Configuration{
 		Releases:     storage.Init(driver.NewMemory()),
@@ -60,6 +63,7 @@ func GetTestFinalizerFakeActionConfig(t *testing.T) *action.Configuration {
 	}
 }
 
+// GetTestFinalizerDeployedReleaseObj returns helm release struct for testing finalizer handling
 func GetTestFinalizerDeployedReleaseObj() *release.Release {
 	return &release.Release{
 		Name:  "release",
@@ -70,6 +74,7 @@ func GetTestFinalizerDeployedReleaseObj() *release.Release {
 	}
 }
 
+// GetTestFinalizerIndexFile returns helm index file struct for testing finalizer handling
 func GetTestFinalizerIndexFile() *repo.IndexFile {
 	return &repo.IndexFile{
 		Entries: map[string]repo.ChartVersions{
@@ -78,6 +83,7 @@ func GetTestFinalizerIndexFile() *repo.IndexFile {
 	}
 }
 
+// GetTestFinalizerSpecsRelease returns testcase with release + repo cr for testing finalizer handling
 func GetTestFinalizerSpecsRelease() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		{
@@ -93,6 +99,7 @@ func GetTestFinalizerSpecsRelease() []inttypes.TestCase {
 	}
 }
 
+// GetTestFinalizerSpecsRepo returns testcases with repo cr for testing finalizer handling
 func GetTestFinalizerSpecsRepo() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		{

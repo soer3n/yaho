@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -24,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// GetTestReleaseValueRefListSpec returns testcases for testing release cr with values
 func GetTestReleaseValueRefListSpec() []inttypes.TestCase {
 	values := map[string]interface{}{
 		"values": "foo",
@@ -55,6 +57,7 @@ func GetTestReleaseValueRefListSpec() []inttypes.TestCase {
 	}
 }
 
+// GetTestReleaseSpecs returns testcases for testing release cr
 func GetTestReleaseSpecs() []inttypes.TestCase {
 
 	return []inttypes.TestCase{
@@ -141,6 +144,7 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 	}
 }
 
+// GetTestChartSpec returns chart spec for testing release cr with dependencies
 func GetTestChartSpec() helmv1alpha1.Chart {
 	return helmv1alpha1.Chart{
 		ObjectMeta: metav1.ObjectMeta{
@@ -169,6 +173,7 @@ func GetTestChartSpec() helmv1alpha1.Chart {
 	}
 }
 
+// GetTestChartDepSpec returns chart spec for testing release cr
 func GetTestChartDepSpec() helmv1alpha1.Chart {
 	return helmv1alpha1.Chart{
 		ObjectMeta: metav1.ObjectMeta{
@@ -190,6 +195,7 @@ func GetTestChartDepSpec() helmv1alpha1.Chart {
 	}
 }
 
+// GetTestHelmChart returns chart struct for testing release cr
 func GetTestHelmChart() *chart.Chart {
 	c := &chart.Chart{
 		Templates: []*chart.File{},
@@ -219,6 +225,7 @@ func GetTestHelmChart() *chart.Chart {
 	return c
 }
 
+// GetTestReleaseFakeActionConfig returns helm action configuration for testing release cr
 func GetTestReleaseFakeActionConfig(t *testing.T) *action.Configuration {
 	return &action.Configuration{
 		Releases:     storage.Init(driver.NewMemory()),
@@ -233,6 +240,7 @@ func GetTestReleaseFakeActionConfig(t *testing.T) *action.Configuration {
 	}
 }
 
+// GetTestReleaseDeployedReleaseObj returns helm release for testing release cr
 func GetTestReleaseDeployedReleaseObj() *release.Release {
 	return &release.Release{
 		Name:  "release",
@@ -243,6 +251,7 @@ func GetTestReleaseDeployedReleaseObj() *release.Release {
 	}
 }
 
+// GetTestReleaseDefaultValueConfigMap returns configmap with default values for testing release cr
 func GetTestReleaseDefaultValueConfigMap() v1.ConfigMap {
 
 	immutable := new(bool)
@@ -267,6 +276,7 @@ func GetTestReleaseDefaultValueConfigMap() v1.ConfigMap {
 	return configmap
 }
 
+// GetTestReleaseTemplateConfigMap returns configmap with templates for testing release cr
 func GetTestReleaseTemplateConfigMap() v1.ConfigMap {
 
 	immutable := new(bool)
@@ -291,6 +301,7 @@ func GetTestReleaseTemplateConfigMap() v1.ConfigMap {
 	return configmap
 }
 
+// GetTestReleaseCRDConfigMap returns configmap with crds for testing release cr
 func GetTestReleaseCRDConfigMap() v1.ConfigMap {
 
 	immutable := new(bool)
@@ -315,10 +326,17 @@ func GetTestReleaseCRDConfigMap() v1.ConfigMap {
 	return configmap
 }
 
+// GetTestReleaseChartConfigMapsValid returns configmaps for testing release cr
 func GetTestReleaseChartConfigMapsValid() []v1.ConfigMap {
 
 	raw, _ := os.Open("../../../testutils/busybox-0.1.0.tgz")
-	defer raw.Close()
+
+	defer func() {
+		if err := raw.Close(); err != nil {
+			log.Printf("Error closing file: %s\n", err)
+		}
+	}()
+
 	chart, _ := loader.LoadArchive(raw)
 
 	immutable := new(bool)

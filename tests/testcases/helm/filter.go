@@ -5,6 +5,7 @@ import (
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
 )
 
+// GetTestFilterSpecs returns testcases for testing filtering of values
 func GetTestFilterSpecs() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		{

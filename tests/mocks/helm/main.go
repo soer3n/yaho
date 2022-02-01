@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 
@@ -21,6 +22,7 @@ import (
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 )
 
+// GetChartMock returns kubernetes typed client mock and http client mock for testing chart functions
 func GetChartMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 
 	clientMock := unstructuredmocks.K8SClientMock{}
@@ -37,7 +39,13 @@ func GetChartMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 	var payload []byte
 
 	raw, _ := os.Open("../../testutils/busybox-0.1.0.tgz")
-	defer raw.Close()
+
+	defer func() {
+		if err := raw.Close(); err != nil {
+			log.Printf("Error closing file: %s\n", err)
+		}
+	}()
+
 	payload, _ = ioutil.ReadAll(raw)
 
 	httpMock.On("Get",
@@ -65,6 +73,7 @@ func GetChartMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 	return &clientMock, &httpMock
 }
 
+// GetClientMock returns kubernetes typed client mock and http client mock for testing client functions
 func GetClientMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 
 	clientMock := unstructuredmocks.K8SClientMock{}
@@ -103,6 +112,7 @@ func GetClientMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 	return &clientMock, &httpMock
 }
 
+// GetFinalizerMock returns kubernetes typed client mock and http client mock for testing finalizer functions
 func GetFinalizerMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 
 	clientMock := unstructuredmocks.K8SClientMock{}
@@ -141,6 +151,7 @@ func GetFinalizerMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock
 	return &clientMock, &httpMock
 }
 
+// GetReleaseMock returns kubernetes typed client mock and http client mock for testing release functions
 func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 
 	clientMock := unstructuredmocks.K8SClientMock{}
@@ -227,7 +238,13 @@ func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) 
 	var payload []byte
 
 	raw, _ := os.Open("../../testutils/busybox-0.1.0.tgz")
-	defer raw.Close()
+
+	defer func() {
+		if err := raw.Close(); err != nil {
+			log.Printf("Error closing file: %s\n", err)
+		}
+	}()
+
 	payload, _ = ioutil.ReadAll(raw)
 	httpResponse := &http.Response{
 		Body: ioutil.NopCloser(bytes.NewReader(payload)),
@@ -247,6 +264,7 @@ func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) 
 	return &clientMock, &httpMock
 }
 
+// GetRepoMock returns kubernetes typed client mock and http client mock for testing repository functions
 func GetRepoMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 
 	clientMock := unstructuredmocks.K8SClientMock{}

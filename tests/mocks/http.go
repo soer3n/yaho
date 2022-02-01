@@ -1,5 +1,3 @@
-// +build !test
-
 package mocks
 
 import "net/http"

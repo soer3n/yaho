@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// GetTestRepoChartVersions returns testcases for testing chart cr with helm chartversion struct
 func GetTestRepoChartVersions() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		{
@@ -32,6 +33,7 @@ func GetTestRepoChartVersions() []inttypes.TestCase {
 	}
 }
 
+// GetTestHelmChartMaps returns testcases for testing chart cr
 func GetTestHelmChartMaps() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		{
@@ -86,6 +88,7 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 	}
 }
 
+// GetTestChartRepo returns repo cr for testing chart cr
 func GetTestChartRepo() *helmv1alpha1.Repo {
 	return &helmv1alpha1.Repo{
 		ObjectMeta: metav1.ObjectMeta{
