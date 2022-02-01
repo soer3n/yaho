@@ -21,9 +21,9 @@ jobs:
       with:
         node_image: kindest/node:v1.20.7
     - name: set directories to cover
-      run: export coverpkg=$(go list ./... | grep -v apis | grep -v tests | tr '\n' ',')
+      run: echo "COVERPKG=$(go list ./... | grep -v apis | grep -v tests | tr '\n' ',')" >> $GITHUB_ENV
     - name: run coverage
-      run: go test -covermode=atomic -race -coverprofile ./coverage.txt -coverpkg $coverpkg ./tests/...
+      run: go test -covermode=atomic -race -coverprofile ./coverage.txt -coverpkg ${{ env.COVERPKG }} ./tests/...
     - name: report coverage
       uses: codecov/codecov-action@v2
       with:
