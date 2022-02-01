@@ -17,10 +17,3 @@ type HTTPClientInterface interface {
 	Get(url string) (*http.Response, error)
 	Do(req *http.Request) (*http.Response, error)
 }
-
-// TestCase represents a struct with setup structs, expected return structs and errors of tested funcs
-type TestCase struct {
-	ReturnValue interface{}
-	ReturnError error
-	Input       interface{}
-}

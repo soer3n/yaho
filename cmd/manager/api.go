@@ -1,7 +1,8 @@
 package manager
 
 import (
-	"github.com/soer3n/yaho/pkg/api"
+	"github.com/soer3n/yaho/internal/api"
+	"github.com/soer3n/yaho/internal/client"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +13,8 @@ func NewAPICmd() *cobra.Command {
 		Short: "runs backend for web apps",
 		Long:  `restful application`,
 		Run: func(cmd *cobra.Command, args []string) {
-			api.New("8080").Run()
+			c := client.New()
+			api.New("8080", c).Run()
 		},
 	}
 }

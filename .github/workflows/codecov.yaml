@@ -15,13 +15,15 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.16
+        go-version: 1.17
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.2.0
       with:
         node_image: kindest/node:v1.20.7
+    - name: set directories to cover
+      run: export coverpkg=$(go list ./... | grep -v apis | grep -v tests | tr '\n' ',')
     - name: run coverage
-      run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+      run: go test -covermode=atomic -race -coverprofile ./coverage.txt -coverpkg $coverpkg ./tests/...
     - name: report coverage
       uses: codecov/codecov-action@v2
       with:

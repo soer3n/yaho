@@ -2,9 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - dev
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
 
 jobs:
 
@@ -15,7 +18,7 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.16
+        go-version: 1.17
     - name: build
       run: go build -v ./...
 
@@ -27,9 +30,9 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.16
+        go-version: 1.17
     - name: test packages
-      run: go test -v ./pkg/...
+      run: go test -coverpkg ./internal/... ./tests/unit/...
 
   test-k8s:
     strategy:
@@ -48,11 +51,11 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.16
+        go-version: 1.17
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.2.0
       with:
         node_image: kindest/node:${{ matrix.version }}
         cluster_name:  cluster-${{ matrix.version }}
     - name: test controllers
-      run: go test -v ./controllers/...
+      run: go test -coverpkg ./controllers/... ./tests/e2e/controller/...
