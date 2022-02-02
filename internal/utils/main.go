@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"math/rand"
 	"path/filepath"
 
 	"github.com/Masterminds/semver/v3"
@@ -113,4 +114,14 @@ func convertDependencies(version types.ChartVersion) []*helmchart.Dependency {
 	}
 
 	return deps
+}
+
+func RandomString(n int) string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+	s := make([]rune, n)
+	for i := range s {
+		s[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(s)
 }

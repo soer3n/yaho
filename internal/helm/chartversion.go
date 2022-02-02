@@ -11,6 +11,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const configMapLabelKey = "helm.soer3n.info/chart"
+const configMapLabelSubName = "helm.soer3n.info/subname"
+
 // AddOrUpdateChartMap represents update of version specific data of a map of chart structs if needed
 func (chartVersion ChartVersion) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
 	chartMeta := chartVersion.Version.Metadata
@@ -87,8 +90,8 @@ func (chartVersion ChartVersion) createDependenciesList(chartMeta *chart.Metadat
 func (chartVersion ChartVersion) createConfigMaps(namespace string, deps []*chart.Chart) []v1.ConfigMap {
 	returnList := []v1.ConfigMap{}
 
-	returnList = append(returnList, chartVersion.createTemplateConfigMap("tmpl", namespace, chartVersion.Templates))
-	returnList = append(returnList, chartVersion.createTemplateConfigMap("crds", namespace, chartVersion.CRDs))
+	returnList = append(returnList, chartVersion.createTemplateConfigMap("tmpl", namespace, chartVersion.Templates)...)
+	returnList = append(returnList, chartVersion.createTemplateConfigMap("crds", namespace, chartVersion.CRDs)...)
 	returnList = append(returnList, chartVersion.createDefaultValueConfigMap(namespace, chartVersion.DefaultValues))
 
 	cms := chartVersion.createDependenciesConfigMaps(namespace, deps)
@@ -155,28 +158,68 @@ func (chartVersion ChartVersion) createDependenciesConfigMaps(namespace string, 
 	return cmList
 }
 
-func (chartVersion ChartVersion) createTemplateConfigMap(name string, namespace string, list []*chart.File) v1.ConfigMap {
+func (chartVersion ChartVersion) createTemplateConfigMap(name string, namespace string, list []*chart.File) []v1.ConfigMap {
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
 		Name:      "helm-" + name + "-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 		Namespace: namespace,
+		Labels: map[string]string{
+			configMapLabelKey: chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version + "-" + name,
+		},
 	}
-	configmap := v1.ConfigMap{
+	baseConfigmap := v1.ConfigMap{
 		Immutable:  immutable,
 		ObjectMeta: objectMeta,
 	}
+
+	configMapMap := make(map[string]v1.ConfigMap)
+	configMapList := []v1.ConfigMap{}
 
 	binaryData := make(map[string][]byte)
 
 	for _, entry := range list {
 		path := strings.SplitAfter(entry.Name, "/")
-		binaryData[path[len(path)-1]] = entry.Data
+
+		if len(path) > 3 {
+			continue
+		}
+
+		if len(path) == 2 {
+			binaryData[path[len(path)-1]] = entry.Data
+			continue
+		}
+		key := strings.Replace(path[1], "/", "", 1)
+		fileName := strings.Replace(path[2], "/", "", 1)
+		if _, ok := configMapMap[key]; !ok {
+			configMapMap[key] = v1.ConfigMap{
+				Immutable: immutable,
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "helm-" + name + "-" + chartVersion.Version.Metadata.Name + "-" + key + "-" + chartVersion.Version.Metadata.Version,
+					Namespace: namespace,
+					Labels: map[string]string{
+						configMapLabelKey:     chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version + "-" + name,
+						configMapLabelSubName: key,
+					},
+				},
+				BinaryData: map[string][]byte{
+					fileName: entry.Data,
+				},
+			}
+			continue
+		}
+
+		configMapMap[key].BinaryData[fileName] = entry.Data
 	}
 
-	configmap.BinaryData = binaryData
+	baseConfigmap.BinaryData = binaryData
+	configMapList = append(configMapList, baseConfigmap)
 
-	return configmap
+	for _, c := range configMapMap {
+		configMapList = append(configMapList, c)
+	}
+
+	return configMapList
 }
 
 func (chartVersion ChartVersion) createDefaultValueConfigMap(namespace string, values map[string]interface{}) v1.ConfigMap {

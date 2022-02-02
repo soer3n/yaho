@@ -1,0 +1,37 @@
+---
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Repo
+metadata:
+  name: cilium
+  namespace: helm
+spec:
+  name: cilium
+  url: https://helm.cilium.io/
+
+---
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Release
+metadata:
+  name: cilium
+  namespace: helm
+spec:
+  name: cilium
+  namespace:
+    install: false
+    name: kube-system
+  repo: cilium
+  chart: cilium
+  version: 1.11.0
+  flags:
+    atomic: false
+    skipCRDs: false
+    subNotes: true
+    disableOpenAPIValidation: false
+    dryRun: false
+    disableHooks: false
+    wait: false
+    cleanupOnFail: false
+    recreate: false
+    timeout: 3600
+    force: false
+    description: "test description"

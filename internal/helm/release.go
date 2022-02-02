@@ -21,6 +21,8 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -256,7 +258,7 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	helmChart.Metadata.Version = chartObj.Spec.APIVersion
 	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
 	helmChart.Files = files
-	helmChart.Templates = hc.appendFilesFromConfigMap("helm-tmpl-" + chartName + "-" + versionObj.Name)
+	helmChart.Templates = hc.appendFilesFromConfigMap(chartName + "-" + versionObj.Name + "-tmpl")
 
 	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + chartName + "-" + versionObj.Name)
 	helmChart.Values = defaultValues
@@ -279,10 +281,10 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 func (hc Release) getFiles(chartName, chartVersion string, helmChart *helmv1alpha1.Chart) []*chart.File {
 	files := []*chart.File{}
 
-	temp := hc.appendFilesFromConfigMap("helm-tmpl-" + chartName + "-" + chartVersion)
+	temp := hc.appendFilesFromConfigMap(chartName + "-" + chartVersion + "-tmpl")
 	files = append(files, temp...)
 
-	temp = hc.appendFilesFromConfigMap("helm-crds-" + chartName + "-" + chartVersion)
+	temp = hc.appendFilesFromConfigMap(chartName + "-" + chartVersion + "-crds")
 	files = append(files, temp...)
 
 	return files
@@ -336,23 +338,38 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []*helmv1alpha1.Chart
 func (hc Release) appendFilesFromConfigMap(name string) []*chart.File {
 	var err error
 
-	configmap := &v1.ConfigMap{}
+	// configmap := &v1.ConfigMap{}
+	configmapList := v1.ConfigMapList{}
 	files := []*chart.File{}
 
-	if err = hc.K8sClient.Get(context.Background(), types.NamespacedName{Namespace: hc.Namespace.Name, Name: name}, configmap); err != nil {
+	selector := labels.NewSelector()
+	requirement, _ := labels.NewRequirement(configMapLabelKey, selection.Equals, []string{name})
+	selector = selector.Add(*requirement)
+
+	if err = hc.K8sClient.List(context.Background(), &configmapList, &client.ListOptions{
+		LabelSelector: selector,
+	}); err != nil {
 		return files
 	}
 
-	for key, data := range configmap.BinaryData {
-		if name == "helm-crds-"+hc.Chart+"-"+hc.Version {
-			key = "crds/" + key
-		}
+	for _, configmap := range configmapList.Items {
+		for key, data := range configmap.BinaryData {
+			if name == "helm-crds-"+hc.Chart+"-"+hc.Version {
+				key = "crds/" + key
+			}
 
-		file := &chart.File{
-			Name: key,
-			Data: data,
+			baseName := "templates/"
+
+			if configmap.ObjectMeta.Labels[configMapLabelSubName] != "" {
+				baseName = baseName + configmap.ObjectMeta.Labels[configMapLabelSubName] + "/"
+			}
+
+			file := &chart.File{
+				Name: baseName + key,
+				Data: data,
+			}
+			files = append(files, file)
 		}
-		files = append(files, file)
 	}
 
 	return files
