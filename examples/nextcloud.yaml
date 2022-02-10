@@ -17,15 +17,6 @@ spec:
     - values-redis
     - values-db-nextcloud
     - values-nginx-nextcloud
-    deps:
-      mariadb:
-        enabled: false
-      postgresql:
-        enabled: true
-      redis:
-        enabled: false
-      common:
-        enabled: true
   flags:
     atomic: false
     skipCRDs: false

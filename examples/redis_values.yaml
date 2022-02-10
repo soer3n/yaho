@@ -10,7 +10,7 @@ spec:
       global:
         redis:
           password: foobar
-        storageClass: "openebs-hostpath"
+        storageClass: "standard"
       usePassword: true
       usePasswordFile: true
       # password: foobar
@@ -22,12 +22,12 @@ spec:
       master:
         persistence:
           enabled: true
-          storageClass: "openebs-hostpath"
+          storageClass: "standard"
           accessMode: ReadWriteOnce
       slave:
         persistence:
           enabled: true
-          storageClass: "openebs-hostpath"
+          storageClass: "standard"
           accessMode: ReadWriteOnce
       metrics:
         enabled: true

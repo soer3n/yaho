@@ -150,15 +150,15 @@ func mergeUntypedMaps(dest, source map[string]interface{}, key string) map[strin
 }
 
 // GetEnvSettings represents func for returning helm cli settings which are needed for helm actions
-func (c Client) GetEnvSettings() *cli.EnvSettings {
+func GetEnvSettings(env map[string]string) *cli.EnvSettings {
 	settings := cli.New()
 
-	if c.Env == nil {
+	if env == nil {
 		return settings
 	}
 
 	// overwrite default settings if requested
-	for k, v := range c.Env {
+	for k, v := range env {
 		switch k {
 		case "KubeConfig":
 			settings.KubeConfig = v

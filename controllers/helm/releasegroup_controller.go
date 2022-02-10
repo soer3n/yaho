@@ -24,8 +24,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	helmutils "github.com/soer3n/yaho/internal/helm"
-	oputils "github.com/soer3n/yaho/internal/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -76,16 +74,6 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		log.Error(err, "Failed to get HelmReleaseGroup")
 		return ctrl.Result{}, err
 	}
-
-	hc := &helmutils.Client{
-		Repos: &helmutils.Repos{},
-		Env:   map[string]string{},
-	}
-
-	settings := hc.GetEnvSettings()
-	hc.Env["RepositoryConfig"] = settings.RepositoryConfig
-	hc.Env["RepositoryCache"] = settings.RepositoryCache
-	hc.Env["RepositoryConfig"], hc.Env["RepositoryCache"] = oputils.GetLabelsByInstance(instance.ObjectMeta, hc.Env)
 
 	if _, ok := instance.Labels["release"]; !ok {
 		instance.Labels = map[string]string{

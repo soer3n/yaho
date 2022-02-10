@@ -68,7 +68,7 @@ func TestGetChartVersion(t *testing.T) {
 	assert.NotNil(cv)
 
 	cv = utils.GetChartVersion("0.0.2", testChartSpec)
-	assert.Equal(&v1alpha1.ChartVersion{}, cv)
+	assert.Equal(&v1alpha1.ChartVersion{Name: "0.0.1"}, cv)
 
 	cv = utils.GetChartVersion("0.0.3", testChartSpec)
 	assert.NotNil(cv)
@@ -82,7 +82,7 @@ func TestGetChartVersion(t *testing.T) {
 	})
 
 	cv = utils.GetChartVersion("0.0.1", testChartSpec)
-	assert.Equal(&v1alpha1.ChartVersion{}, cv)
+	assert.Equal(&v1alpha1.ChartVersion{Name: "fdsifhdsogb"}, cv)
 }
 
 func TestConvertChartVersions(t *testing.T) {

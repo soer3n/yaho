@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/prometheus/common/log"
@@ -58,7 +59,7 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k
 }
 
 // Update represents update or installation process of a release
-func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig map[string]helmv1alpha1.DependencyConfig) error {
+func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 	log.Debugf("config install: %v", fmt.Sprint(hc.Config))
 
 	var release *release.Release
@@ -79,7 +80,7 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace, dependenciesConfig m
 		Verify:                false,
 	}
 
-	if helmChart, err = hc.getChart(hc.Chart, options, dependenciesConfig, specValues); err != nil {
+	if helmChart, err = hc.getChart(hc.Chart, options, specValues); err != nil {
 		return err
 	}
 
@@ -218,7 +219,7 @@ func (hc Release) getRelease() (*release.Release, error) {
 	return client.Run(hc.Name)
 }
 
-func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathOptions, dependenciesConfig map[string]helmv1alpha1.DependencyConfig, vals map[string]interface{}) (*chart.Chart, error) {
+func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*chart.Chart, error) {
 	helmChart := &chart.Chart{
 		Metadata:  &chart.Metadata{},
 		Files:     []*chart.File{},
@@ -255,7 +256,7 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	}
 
 	helmChart.Metadata.Name = chartName
-	helmChart.Metadata.Version = chartObj.Spec.APIVersion
+	helmChart.Metadata.Version = versionObj.Name
 	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
 	helmChart.Files = files
 	helmChart.Templates = hc.appendFilesFromConfigMap(chartName + "-" + versionObj.Name + "-tmpl")
@@ -266,7 +267,7 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	helmChart.Values = cv
 
 	if len(versionObj.Dependencies) > 0 {
-		if err := hc.addDependencies(helmChart, versionObj.Dependencies, cv, dependenciesConfig, repoSelector); err != nil {
+		if err := hc.addDependencies(helmChart, versionObj.Dependencies, cv, repoSelector); err != nil {
 			return helmChart, err
 		}
 	}
@@ -290,7 +291,7 @@ func (hc Release) getFiles(chartName, chartVersion string, helmChart *helmv1alph
 	return files
 }
 
-func (hc Release) addDependencies(chart *chart.Chart, deps []*helmv1alpha1.ChartDep, vals chartutil.Values, dependenciesConfig map[string]helmv1alpha1.DependencyConfig, selectors map[string]string) error {
+func (hc Release) addDependencies(chart *chart.Chart, deps []*helmv1alpha1.ChartDep, vals chartutil.Values, selectors map[string]string) error {
 	var chartList helmv1alpha1.ChartList
 	var err error
 
@@ -313,9 +314,30 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []*helmv1alpha1.Chart
 				options.Version = dep.Version
 				var valueObj chartutil.Values
 
-				if dependenciesConfig[dep.Name].Enabled {
-					subVals, _ := vals[dep.Name].(map[string]interface{})
-					subChart, _ := hc.getChart(item.Spec.Name, options, dependenciesConfig, subVals)
+				depCondition := true
+				conditional := strings.Split(dep.Condition, ".")
+
+				if len(conditional) == 0 || len(conditional) > 2 {
+					log.Errorf("failed to parse conditional for subchart %s", dep.Name)
+					continue
+				}
+
+				// parse sub values for dependency
+				subChartCondition, _ := vals[conditional[0]].(map[string]interface{})
+
+				// getting subchart default value configmap
+				subVals := hc.getDefaultValuesFromConfigMap("helm-default-" + dep.Name + "-" + dep.Version)
+
+				// parse conditional to boolean
+				if subChartCondition != nil {
+					keyAsString := string(fmt.Sprint(subChartCondition[conditional[1]]))
+					depCondition, _ = strconv.ParseBool(keyAsString)
+				}
+
+				// check conditional
+				if depCondition {
+
+					subChart, _ := hc.getChart(item.Spec.Name, options, subVals)
 
 					if valueObj, err = chartutil.ToRenderValues(subChart, subVals, chartutil.ReleaseOptions{}, nil); err != nil {
 						return err
@@ -408,12 +430,14 @@ func (hc Release) getRepo() (helmv1alpha1.Repo, error) {
 }
 
 // GetParsedConfigMaps represents parsing and returning of chart related data for a release
-func (hc *Release) GetParsedConfigMaps(namespace string, dependenciesConfig map[string]helmv1alpha1.DependencyConfig) ([]v1.ConfigMap, []*helmv1alpha1.Chart) {
+func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []helmv1alpha1.Chart) {
 	var chartRequested *chart.Chart
 	var repoObj helmv1alpha1.Repo
 	var chartObj helmv1alpha1.Chart
-	chartObjList := []*helmv1alpha1.Chart{}
+	chartObjList := &helmv1alpha1.ChartList{}
+	chartObjList.Items = []helmv1alpha1.Chart{}
 	var chartURL string
+	var specValues map[string]interface{}
 	var err error
 
 	configmapList := []v1.ConfigMap{}
@@ -426,17 +450,21 @@ func (hc *Release) GetParsedConfigMaps(namespace string, dependenciesConfig map[
 	log.Debugf("configinstall: %v", hc.Config)
 
 	if repoObj, err = hc.getRepo(); err != nil {
-		return configmapList, chartObjList
+		return configmapList, chartObjList.Items
 	}
 
 	options := &action.ChartPathOptions{}
 	options.RepoURL = hc.Repo
 	options.Version = hc.Version
 
-	if chartRequested, err = hc.getChart(hc.Chart, options, dependenciesConfig, hc.Values); err != nil {
+	if specValues, err = hc.getValues(); err != nil {
+		return configmapList, chartObjList.Items
+	}
+
+	if chartRequested, err = hc.getChart(hc.Chart, options, specValues); err != nil {
 
 		if chartURL, err = getChartURL(hc.K8sClient, hc.Chart, hc.Version, hc.Namespace.Name); err != nil {
-			return configmapList, chartObjList
+			return configmapList, chartObjList.Items
 		}
 
 		releaseClient.ReleaseName = hc.Name
@@ -449,7 +477,7 @@ func (hc *Release) GetParsedConfigMaps(namespace string, dependenciesConfig map[
 		}
 
 		if chartRequested, err = getChartByURL(chartURL, credentials, hc.getter); err != nil {
-			return configmapList, chartObjList
+			return configmapList, chartObjList.Items
 		}
 	}
 
@@ -457,7 +485,7 @@ func (hc *Release) GetParsedConfigMaps(namespace string, dependenciesConfig map[
 		Namespace: namespace,
 		Name:      hc.Chart,
 	}, &chartObj); err != nil {
-		return configmapList, chartObjList
+		return configmapList, chartObjList.Items
 	}
 
 	chartVersion.Version = &repo.ChartVersion{
@@ -475,14 +503,15 @@ func (hc *Release) GetParsedConfigMaps(namespace string, dependenciesConfig map[
 
 	for _, v := range version.Dependencies {
 		if err := hc.validateChartSpec(deps, v, chartObjList); err != nil {
-			return configmapList, chartObjList
+			return configmapList, chartObjList.Items
 		}
 	}
 
 	chartVersion.Version.Metadata.Version = version.Name
 	configmapList = chartVersion.createConfigMaps(hc.Namespace.Name, deps)
+	// chartObjList = append(chartObjList, &chartObj)
 
-	return configmapList, chartObjList
+	return configmapList, chartObjList.Items
 }
 
 func (hc Release) getCredentials(secret string) *Auth {
@@ -509,7 +538,7 @@ func (hc Release) getCredentials(secret string) *Auth {
 	return creds
 }
 
-func (hc Release) validateChartSpec(deps []*chart.Chart, version *helmv1alpha1.ChartDep, chartObjList []*helmv1alpha1.Chart) error {
+func (hc Release) validateChartSpec(deps []*chart.Chart, version *helmv1alpha1.ChartDep, chartObjList *helmv1alpha1.ChartList) error {
 	subChartObj := &helmv1alpha1.Chart{}
 
 	for _, d := range deps {
@@ -521,17 +550,24 @@ func (hc Release) validateChartSpec(deps []*chart.Chart, version *helmv1alpha1.C
 			return err
 		}
 
-		if version.Name == d.Name() && version.Version != d.Metadata.Version {
+		if version.Name == d.Name() {
+
+			subVersion := utils.GetChartVersion(d.Metadata.Version, subChartObj)
+			for _, sv := range subVersion.Dependencies {
+				if err := hc.validateChartSpec(d.Dependencies(), sv, chartObjList); err != nil {
+					return err
+				}
+			}
+
+			/*
+				set dependency version to fixed from loaded metadata
+				instead of using semver version from parent chart
+				and update parent chart resource
+			*/
 			version.Version = d.Metadata.Version
-			chartObjList = append(chartObjList, subChartObj)
+			chartObjList.Items = append(chartObjList.Items, *subChartObj)
 		}
 
-		subVersion := utils.GetChartVersion(version.Version, subChartObj)
-		for _, sv := range subVersion.Dependencies {
-			if err := hc.validateChartSpec(d.Dependencies(), sv, chartObjList); err != nil {
-				return err
-			}
-		}
 	}
 
 	return nil

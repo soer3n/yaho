@@ -24,6 +24,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+var nopLogger = func(_ string, _ ...interface{}) {}
+
 // NewHelmRepo represents initialization of internal repo struct
 func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.Client, g inttypes.HTTPClientInterface, c kube.Client) *Repo {
 	var helmRepo *Repo

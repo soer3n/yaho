@@ -35,13 +35,13 @@ spec:
       master:
         persistence:
           enabled: true
-          storageClass: "rook-cephfs"
+          storageClass: "standard"
           accessMode: ReadWriteMany
           size: 8Gi
       slave:
         persistence:
           enabled: true
-          storageClass: "rook-cephfs"
+          storageClass: "standard"
           accessMode: ReadWriteMany
           size: 8Gi
 
@@ -54,7 +54,7 @@ spec:
           postgresqlDatabase: nextcloud
       persistence:
         enabled: true
-        storageClass: "openebs-jiva-default"
+        storageClass: "standard"
       containerSecurityContext:
         enabled: true
         runAsUser: 1001

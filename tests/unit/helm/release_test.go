@@ -18,7 +18,7 @@ import (
 func TestReleaseConfigMaps(t *testing.T) {
 	clientMock, httpMock := helmmocks.GetReleaseMock()
 	settings := cli.New()
-	apiObjList := testcases.GetTestReleaseSpecs()
+	apiObjList := testcases.GetTestReleaseSpecsForConfigMaps()
 	assert := assert.New(t)
 
 	for _, apiObj := range apiObjList {
@@ -36,13 +36,12 @@ func TestReleaseConfigMaps(t *testing.T) {
 		}
 
 		testObj.Version = current.Spec.Version
-		_, chartUpdateList := testObj.GetParsedConfigMaps("", map[string]helmv1alpha1.DependencyConfig{
-			"dep": {Enabled: true},
-		})
+		cmList, chartUpdateList := testObj.GetParsedConfigMaps("")
 		// TODO: why is dependency chart not correctly parsed
-		// expect, _ := apiObj.ReturnValue.([]v1.ConfigMap)
+		expect, _ := apiObj.ReturnValue.(map[string]int)
 
-		assert.Equal([]*helmv1alpha1.Chart{}, chartUpdateList)
+		assert.Len(cmList, expect["configmap"])
+		assert.Len(chartUpdateList, expect["chart"])
 	}
 }
 
@@ -79,10 +78,8 @@ func TestReleaseUpdate(t *testing.T) {
 		err := testObj.Update(helmv1alpha1.Namespace{
 			Name:    "",
 			Install: false,
-		}, map[string]helmv1alpha1.DependencyConfig{
-			"dep": {Enabled: true},
 		})
-		assert.Equal(err, apiObj.ReturnError)
+		assert.Equal(apiObj.ReturnError, err)
 	}
 }
 
@@ -111,6 +108,6 @@ func TestReleaseInitValuesTemplate(t *testing.T) {
 		testObj := helm.NewHelmRelease(testRelease, settings, &clientMock, &httpMock, kube.Client{})
 		testObj.InitValuesTemplate(current, "namespace", "v0.0.1")
 		expect := apiObj.ReturnValue.(map[string]interface{})
-		assert.Equal(testObj.Values, expect)
+		assert.Equal(expect, testObj.Values)
 	}
 }

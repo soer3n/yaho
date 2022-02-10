@@ -1,15 +1,22 @@
 package helm
 
-import "github.com/prometheus/common/log"
+import (
+	"github.com/prometheus/common/log"
+)
 
 // HandleFinalizer represents func for managing action related to a change of a finalizer related to a release or repo resource
-func HandleFinalizer(hc *Client, instance interface{}) (bool, error) {
-	if len(hc.Repos.Entries) > 0 {
+func HandleFinalizer(instance interface{}) (bool, error) {
+
+	_, ok := instance.(*Repo)
+
+	if ok {
 		return true, nil
 	}
 
-	if len(hc.Releases.Entries) > 0 {
-		if err := removeRelease(hc.Releases.Entries[0]); err != nil {
+	release, ok := instance.(*Release)
+
+	if ok {
+		if err := removeRelease(release); err != nil {
 			return true, err
 		}
 

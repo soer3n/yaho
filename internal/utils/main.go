@@ -1,7 +1,8 @@
 package utils
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 	"path/filepath"
 
 	"github.com/Masterminds/semver/v3"
@@ -51,21 +52,26 @@ func GetChartVersion(version string, chart *types.Chart) *types.ChartVersion {
 	var v *semver.Version
 	var err error
 
+	current, _ := semver.NewVersion("0.0.0")
+	currentIndex := 0
+
 	if constraint, err = semver.NewConstraint(version); err != nil {
 		return versionObj
 	}
 
-	for _, item := range chart.Spec.Versions {
+	for ix, item := range chart.Spec.Versions {
 		if v, err = semver.NewVersion(item.Name); err != nil {
 			continue
 		}
 
-		if constraint.Check(v) {
-			return &item
+		if constraint.Check(v) && v.GreaterThan(current) {
+			current = v
+			currentIndex = ix
+			continue
 		}
 	}
 
-	return versionObj
+	return &chart.Spec.Versions[currentIndex]
 }
 
 // ConvertChartVersions represents func for converting chart version from internal to official helm project struct
@@ -110,6 +116,7 @@ func convertDependencies(version types.ChartVersion) []*helmchart.Dependency {
 			Name:       dep.Name,
 			Version:    dep.Version,
 			Repository: dep.Repo,
+			Condition:  dep.Condition,
 		})
 	}
 
@@ -119,9 +126,10 @@ func convertDependencies(version types.ChartVersion) []*helmchart.Dependency {
 func RandomString(n int) string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-	s := make([]rune, n)
-	for i := range s {
-		s[i] = letters[rand.Intn(len(letters))]
+	b := make([]rune, n)
+	for i := range b {
+		n, _ := rand.Int(rand.Reader, (big.NewInt(30)))
+		b[i] = letters[n.Uint64()]
 	}
-	return string(s)
+	return string(b)
 }

@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"os"
 
+	"gopkg.in/yaml.v3"
+
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/tests/mocks"
 	unstructuredmocks "github.com/soer3n/yaho/tests/mocks/unstructured"
@@ -35,7 +37,7 @@ func GetChartMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 
 	var payload []byte
 
-	raw, _ := os.Open("../../testutils/busybox-0.1.0.tgz")
+	raw, _ := os.Open("../../../testutils/busybox-0.1.0.tgz")
 
 	defer func() {
 		if err := raw.Close(); err != nil {
@@ -215,9 +217,36 @@ func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) 
 		c.ObjectMeta = spec.ObjectMeta
 	})
 
+	clientMock.On("List", context.Background(), &v1.ConfigMapList{}, mock.MatchedBy(func(cList []client.ListOption) bool {
+
+		// opt := cList[0].(*client.ListOptions)
+		// return opt.LabelSelector.String() == "helm.soer3n.info/chart=chart-0.0.1-tmpl"
+		return true
+	})).Return(nil).Run(func(args mock.Arguments) {
+
+		c := args.Get(1).(*v1.ConfigMapList)
+		foo := map[string]string{"foo": "bar", "boo": "baz"}
+		bar := map[string]string{"foo": "bar", "boo": "baz"}
+
+		fooData, _ := yaml.Marshal(&foo)
+		barData, _ := yaml.Marshal(&bar)
+
+		c.Items = []v1.ConfigMap{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "chart-0.0.1-tmpl",
+				},
+				BinaryData: map[string][]byte{
+					"foo.yaml": fooData,
+					"bar.yaml": barData,
+				},
+			},
+		}
+	})
+
 	var payload []byte
 
-	raw, _ := os.Open("../../testutils/busybox-0.1.0.tgz")
+	raw, _ := os.Open("../../../testutils/busybox-0.1.0.tgz")
 
 	defer func() {
 		if err := raw.Close(); err != nil {

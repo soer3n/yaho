@@ -29,6 +29,7 @@ import (
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	helmutils "github.com/soer3n/yaho/internal/helm"
 	oputils "github.com/soer3n/yaho/internal/utils"
+	"helm.sh/helm/v3/pkg/kube"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
@@ -36,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -83,7 +85,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	var hc *helmutils.Client
 	var helmRelease *helmutils.Release
 	var requeue bool
 
@@ -103,10 +104,16 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	_ = os.Setenv("HELM_NAMESPACE", releaseNamespace.Name)
 
-	hc = helmutils.NewHelmClient(instance, r.Client, &g)
+	settings := helmutils.GetEnvSettings(map[string]string{})
+	c := kube.Client{
+		Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
+		Log:     nopLogger,
+	}
 
-	if requeue, err = r.handleFinalizer(hc, instance); err != nil {
-		log.Errorf("Handle finalizer for release %v failed.", hc.GetRelease(instance.Spec.Name, instance.Spec.Repo).Name)
+	helmRelease = helmutils.NewHelmRelease(instance, settings, r.Client, &g, c)
+
+	if requeue, err = r.handleFinalizer(helmRelease, instance); err != nil {
+		log.Errorf("Handle finalizer for release %v failed.", helmRelease.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -121,8 +128,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	log.Infof("Trying HelmRelease %v", instance.Spec.Name)
-
-	helmRelease = hc.GetRelease(instance.Spec.Name, instance.Spec.Repo)
 
 	var refList []*helmutils.ValuesRef
 	var valuesList []*helmv1alpha1.Values
@@ -146,7 +151,7 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamesp
 		instance.Spec.ValuesTemplate = &helmv1alpha1.ValueTemplate{}
 	}
 
-	cm, c := helmRelease.GetParsedConfigMaps(instance.ObjectMeta.Namespace, instance.Spec.ValuesTemplate.DependenciesConfig)
+	cm, c := helmRelease.GetParsedConfigMaps(instance.ObjectMeta.Namespace)
 
 	for _, chart := range c {
 		if err := r.updateChart(chart, controller); err != nil {
@@ -163,7 +168,7 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamesp
 	// set flags for helm action from spec
 	helmRelease.Flags = instance.Spec.Flags
 
-	if err := helmRelease.Update(releaseNamespace, instance.Spec.ValuesTemplate.DependenciesConfig); err != nil {
+	if err := helmRelease.Update(releaseNamespace); err != nil {
 		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 	}
 
@@ -214,10 +219,10 @@ func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (*helmv1al
 	return instance, nil
 }
 
-func (r *ReleaseReconciler) handleFinalizer(helmClient *helmutils.Client, instance *helmv1alpha1.Release) (bool, error) {
+func (r *ReleaseReconciler) handleFinalizer(helmRelease *helmutils.Release, instance *helmv1alpha1.Release) (bool, error) {
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
-		if _, err := helmutils.HandleFinalizer(helmClient, instance.ObjectMeta); err != nil {
+		if _, err := helmutils.HandleFinalizer(helmRelease); err != nil {
 			return true, err
 		}
 
@@ -256,7 +261,7 @@ func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *he
 	return nil
 }
 
-func (r *ReleaseReconciler) updateChart(chart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo) error {
+func (r *ReleaseReconciler) updateChart(chart helmv1alpha1.Chart, instance *helmv1alpha1.Repo) error {
 	current := &helmv1alpha1.Chart{}
 	err := r.Client.Get(context.Background(), client.ObjectKey{
 		Namespace: chart.ObjectMeta.Namespace,
@@ -264,14 +269,14 @@ func (r *ReleaseReconciler) updateChart(chart *helmv1alpha1.Chart, instance *hel
 	}, current)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			if err = r.Client.Create(context.TODO(), chart); err != nil {
+			if err = r.Client.Create(context.TODO(), &chart); err != nil {
 				return err
 			}
 		}
 		return err
 	}
 
-	if err = r.Client.Update(context.TODO(), chart); err != nil {
+	if err = r.Client.Update(context.TODO(), &chart); err != nil {
 		return err
 	}
 

@@ -197,7 +197,7 @@ spec:
       # Nextcloud Data (/var/www/html)
       enabled: true
       annotations: {}
-      storageClass: "openebs-rwx"
+      storageClass: "standard"
       accessMode: ReadWriteMany
       size: 2Gi
 

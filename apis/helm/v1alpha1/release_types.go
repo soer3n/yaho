@@ -42,8 +42,7 @@ type ReleaseSpec struct {
 
 // ValueTemplate represents data for install process of a release
 type ValueTemplate struct {
-	ValueRefs          []string                    `json:"valueRefs,omitempty"`
-	DependenciesConfig map[string]DependencyConfig `json:"deps,omitempty"`
+	ValueRefs []string `json:"valueRefs,omitempty"`
 }
 
 // Flags represents data for parsing flags for creating release resources
@@ -60,12 +59,6 @@ type Flags struct {
 	Description              string        `json:"description,omitempty"`
 	Recreate                 bool          `json:"recreate,omitempty"`
 	CleanupOnFail            bool          `json:"cleanupOnFail,omitempty"`
-}
-
-// DependencyConfig represents data for a chart dependency in a release
-type DependencyConfig struct {
-	Enabled bool   `json:"enabled,omitempty"`
-	Values  string `json:"values,omitempty"`
 }
 
 // Namespace represents struct for release namespace data

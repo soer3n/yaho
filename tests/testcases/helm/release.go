@@ -111,17 +111,105 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 					Version: "0.0.1",
 					ValuesTemplate: &helmv1alpha1.ValueTemplate{
 						ValueRefs: []string{"notpresent"},
-						DependenciesConfig: map[string]helmv1alpha1.DependencyConfig{
-							"subMeta": {
-								Enabled: true,
-							},
-						},
 					},
 				},
 			},
 		},
 		{
 			ReturnValue: []v1.ConfigMap{},
+			ReturnError: errors.New("chart not found"),
+			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"label": "selector",
+					},
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:    "test",
+					Chart:   "notfound",
+					Repo:    "notfound",
+					Version: "0.0.1",
+					ValuesTemplate: &helmv1alpha1.ValueTemplate{
+						ValueRefs: []string{"notpresent"},
+					},
+				},
+			},
+		},
+	}
+}
+
+// GetTestReleaseSpecs returns testcases for testing release cr
+func GetTestReleaseSpecsForConfigMaps() []inttypes.TestCase {
+	return []inttypes.TestCase{
+		{
+			ReturnValue: map[string]int{
+				"configmap": 6,
+				"chart":     1,
+			},
+			ReturnError: nil,
+			Input: &helmv1alpha1.Release{
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:    "test",
+					Chart:   "chart",
+					Repo:    "repo",
+					Version: "0.0.1",
+					ValuesTemplate: &helmv1alpha1.ValueTemplate{
+						ValueRefs: []string{"notpresent"},
+					},
+				},
+			},
+		},
+		{
+			ReturnValue: map[string]int{
+				"configmap": 6,
+				"chart":     1,
+			},
+			ReturnError: nil,
+			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"label": "selector",
+					},
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:    "release",
+					Chart:   "chart",
+					Repo:    "repo",
+					Version: "0.0.1",
+					ValuesTemplate: &helmv1alpha1.ValueTemplate{
+						ValueRefs: []string{"notpresent"},
+					},
+				},
+			},
+		},
+		{
+			ReturnValue: map[string]int{
+				"configmap": 0,
+				"chart":     0,
+			},
+			ReturnError: errors.New("chart not found"),
+			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"label": "selector",
+					},
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:    "test",
+					Chart:   "notfound",
+					Repo:    "repo",
+					Version: "0.0.1",
+					ValuesTemplate: &helmv1alpha1.ValueTemplate{
+						ValueRefs: []string{"notpresent"},
+					},
+				},
+			},
+		},
+		{
+			ReturnValue: map[string]int{
+				"configmap": 0,
+				"chart":     0,
+			},
 			ReturnError: errors.New("chart not found"),
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{

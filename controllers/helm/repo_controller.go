@@ -30,15 +30,19 @@ import (
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	helmutils "github.com/soer3n/yaho/internal/helm"
 	oputils "github.com/soer3n/yaho/internal/utils"
+	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
+
+var nopLogger = func(_ string, _ ...interface{}) {}
 
 // RepoReconciler reconciles a Repo object
 type RepoReconciler struct {
@@ -82,7 +86,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	var hc *helmutils.Client
+	var hc *helmutils.Repo
 	var requeue bool
 
 	g := http.Client{
@@ -93,7 +97,14 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		},
 	}
 
-	hc = helmutils.NewHelmClient(instance, r.Client, &g)
+	settings := helmutils.GetEnvSettings(map[string]string{})
+
+	c := kube.Client{
+		Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
+		Log:     nopLogger,
+	}
+
+	hc = helmutils.NewHelmRepo(instance, settings, r.Client, &g, c)
 
 	if requeue, err = r.handleFinalizer(reqLogger, hc, instance); err != nil {
 		log.Infof("Failed on handling finalizer for repo %v", instance.Spec.Name)
@@ -117,11 +128,13 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	return r.syncStatus(context.Background(), instance, err)
 }
 
-func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Client) error {
+func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, helmRepo *helmutils.Repo) error {
 	var chartList []*helmutils.Chart
 	var err error
 
-	helmRepo := hc.GetRepo(instance.Spec.Name)
+	settings := helmutils.GetEnvSettings(map[string]string{})
+
+	// helmRepo := hc.GetRepo(instance.Spec.Name)
 	label, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
 	selector := map[string]string{"repo": helmRepo.Name}
 
@@ -129,7 +142,7 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, hc *helmutils.Clien
 		selector["repoGroup"] = instance.ObjectMeta.Labels["repoGroup"]
 	}
 
-	if chartList, err = helmRepo.GetCharts(hc.Repos.Settings, selector); err != nil {
+	if chartList, err = helmRepo.GetCharts(settings, selector); err != nil {
 		log.Infof("Error on getting charts for repo %v", instance.Spec.Name)
 	}
 
@@ -231,13 +244,13 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.
 	return ctrl.Result{}, nil
 }
 
-func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.Client, instance *helmv1alpha1.Repo) (bool, error) {
+func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.Repo, instance *helmv1alpha1.Repo) (bool, error) {
 	var del bool
 	var err error
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
-		if del, err = helmutils.HandleFinalizer(hc, instance.ObjectMeta); err != nil {
+		if del, err = helmutils.HandleFinalizer(hc); err != nil {
 			return true, err
 		}
 

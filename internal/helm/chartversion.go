@@ -12,6 +12,8 @@ import (
 )
 
 const configMapLabelKey = "helm.soer3n.info/chart"
+
+// const configMapRepoLabelKey = "helm.soer3n.info/repo"
 const configMapLabelSubName = "helm.soer3n.info/subname"
 
 // AddOrUpdateChartMap represents update of version specific data of a map of chart structs if needed
@@ -80,7 +82,7 @@ func (chartVersion ChartVersion) createDependenciesList(chartMeta *chart.Metadat
 			Name:      dep.Name,
 			Version:   dep.Version,
 			Repo:      dep.Repository,
-			Condition: dep.Name + ".enabled",
+			Condition: dep.Condition,
 		})
 	}
 
@@ -117,6 +119,9 @@ func (chartVersion ChartVersion) createDependenciesConfigMaps(namespace string, 
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "helm-tmpl-" + dep.Name() + "-" + dep.Metadata.Version,
 				Namespace: namespace,
+				Labels: map[string]string{
+					configMapLabelKey: dep.Metadata.Name + "-" + dep.Metadata.Version + "-tmpl",
+				},
 			},
 			Immutable:  immutable,
 			BinaryData: binaryData,
