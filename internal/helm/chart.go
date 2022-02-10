@@ -1,7 +1,7 @@
 package helm
 
 import (
-	"github.com/prometheus/common/log"
+	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/internal/types"
 	"helm.sh/helm/v3/pkg/action"
@@ -13,7 +13,7 @@ import (
 )
 
 // NewChart represents initialization of internal chart struct
-func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo string, k8sclient client.Client, g types.HTTPClientInterface, c kube.Client) *Chart {
+func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, logger logr.Logger, repo string, k8sclient client.Client, g types.HTTPClientInterface, c kube.Client) *Chart {
 	var chartVersions []ChartVersion
 	var config *action.Configuration
 	var err error
@@ -27,7 +27,7 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 	}
 
 	if config, err = initActionConfig(settings, c); err != nil {
-		log.Infof("Error on getting action config for chart %v: %v", chartVersions[0].Version.Metadata.Name, err)
+		logger.Info("Error on getting action config for chart")
 		return &Chart{}
 	}
 
@@ -38,6 +38,7 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, repo str
 		Repo:      repo,
 		K8sClient: k8sclient,
 		getter:    g,
+		logger:    logger.WithValues("repo", repo),
 	}
 }
 

@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/prometheus/common/log"
+	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 )
 
 // NewValueTemplate represents initialization of internal struct for managing helm values
-func NewValueTemplate(valuesList []*ValuesRef) *ValueTemplate {
+func NewValueTemplate(valuesList []*ValuesRef, logger logr.Logger) *ValueTemplate {
 	return &ValueTemplate{
 		valuesRef: valuesList,
+		logger:    logger.WithValues("template", valuesList),
 	}
 }
 
@@ -122,18 +123,11 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 
 	if rawVals != nil && rawVals.Raw != nil {
 		if err := json.Unmarshal(rawVals.Raw, &convertedMap); err != nil {
-			log.Debugf("error on parsing:%v", err)
+			hv.logger.Error(err, "error on parsing map", "map", rawVals)
 			return valMap
 		}
 
-		log.Debugf("ConvertedMap: %v", convertedMap)
-
-		if err := json.Unmarshal(rawVals.Raw, &convertedMap); err != nil {
-			log.Debugf("error on parsing:%v", err)
-			return valMap
-		}
-
-		log.Debugf("ConvertedMap: %v", convertedMap)
+		hv.logger.Info("converting map succeeded", "map", convertedMap)
 
 		mapKey := ""
 

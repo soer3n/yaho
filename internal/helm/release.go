@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/prometheus/common/log"
+	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	inttypes "github.com/soer3n/yaho/internal/types"
 	"github.com/soer3n/yaho/internal/utils"
@@ -29,10 +29,10 @@ import (
 )
 
 // NewHelmRelease represents initialization of internal release struct
-func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k8sclient client.Client, g inttypes.HTTPClientInterface, c kube.Client) *Release {
+func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g inttypes.HTTPClientInterface, c kube.Client) *Release {
 	var helmRelease *Release
 
-	log.Debugf("Trying HelmRelease %v", instance.Spec.Name)
+	reqLogger.Info("init new release", "name", instance.Spec.Name, "repo", instance.Spec.Repo)
 
 	helmRelease = &Release{
 		Name:      instance.Spec.Name,
@@ -41,11 +41,12 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k
 		Settings:  settings,
 		K8sClient: k8sclient,
 		getter:    g,
+		logger:    reqLogger.WithValues("release", instance.Spec.Name),
 	}
 
 	helmRelease.Config, _ = initActionConfig(settings, c)
 
-	log.Debugf("HelmRelease config path: %v", helmRelease.Settings.RepositoryCache)
+	helmRelease.logger.Info("parsed config", "name", instance.Spec.Name, "cache", helmRelease.Settings.RepositoryCache)
 
 	if instance.Spec.ValuesTemplate != nil {
 		if instance.Spec.ValuesTemplate.ValueRefs != nil {
@@ -60,7 +61,7 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, k
 
 // Update represents update or installation process of a release
 func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
-	log.Debugf("config install: %v", fmt.Sprint(hc.Config))
+	hc.logger.Info("config install: "+fmt.Sprint(hc.Config), "name", hc.Name, "repo", hc.Repo)
 
 	var release *release.Release
 	var helmChart *chart.Chart
@@ -84,7 +85,7 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 		return err
 	}
 
-	log.Debugf("configupdate: %v", hc.Config)
+	hc.logger.Info("configupdate: "+fmt.Sprint(hc.Config), "name", hc.Name, "repo", hc.Repo)
 
 	vals := helmChart.Values
 	release, _ = hc.getRelease()
@@ -109,24 +110,24 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 	hc.setInstallFlags(client)
 
 	if release, err = client.Run(helmChart, vals); err != nil {
-		log.Info(err.Error())
+		hc.logger.Error(err, "error on installing chart", "release", hc.Name, "chart", hc.Chart, "repo", hc.Repo)
 		return err
 	}
 
-	log.Debugf("Release (%q) successfully installed in namespace %v.", release.Name, namespace)
+	hc.logger.Info("release successfully installed.", "name", release.Name, "namespace", namespace, "chart", hc.Chart, "repo", hc.Repo)
 	return nil
 }
 
 // InitValuesTemplate represents initialization of value template by list of refs from kubernetes api
 func (hc *Release) InitValuesTemplate(refList []*ValuesRef, version, namespace string) {
-	hc.ValuesTemplate = NewValueTemplate(refList)
+	hc.ValuesTemplate = NewValueTemplate(refList, hc.logger)
 	hc.Namespace.Name = namespace
 	hc.Version = version
 }
 
 func (hc *Release) setInstallFlags(client *action.Install) {
 	if hc.Flags == nil {
-		log.Debugf("no flags set for release %v", hc.Name)
+		hc.logger.Info("no flags set for release", "name", hc.Name, "chart", hc.Chart, "repo", hc.Repo)
 		return
 	}
 
@@ -142,7 +143,7 @@ func (hc *Release) setInstallFlags(client *action.Install) {
 
 func (hc *Release) setUpgradeFlags(client *action.Upgrade) {
 	if hc.Flags == nil {
-		log.Debugf("no flags set for release %v", hc.Name)
+		hc.logger.Info("no flags set for release", "name", hc.Name, "chart", hc.Chart, "repo", hc.Repo)
 		return
 	}
 
@@ -193,11 +194,11 @@ func (hc Release) valuesChanged(vals map[string]interface{}) (bool, error) {
 		return false, err
 	}
 
-	log.Debugf("installed values: (%v)", installedValues)
+	hc.logger.Info("values parsed", "name", hc.Name, "chart", hc.Chart, "repo", hc.Repo, "values", installedValues)
 
 	for key := range installedValues {
 		if _, ok := vals[key]; !ok {
-			log.Errorf("missing key %v", key)
+			hc.logger.Error(err, "missing key", "key", key)
 		}
 	}
 
@@ -213,7 +214,6 @@ func (hc Release) valuesChanged(vals map[string]interface{}) (bool, error) {
 }
 
 func (hc Release) getRelease() (*release.Release, error) {
-	log.Debugf("config: %v", hc.Config)
 	getConfig := hc.Config
 	client := action.NewGet(getConfig)
 	return client.Run(hc.Name)
@@ -228,8 +228,6 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	}
 
 	chartObj := &helmv1alpha1.Chart{}
-
-	log.Debugf("namespace: %v", hc.Namespace.Name)
 
 	if err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
 		Namespace: hc.Namespace.Name,
@@ -318,7 +316,7 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []*helmv1alpha1.Chart
 				conditional := strings.Split(dep.Condition, ".")
 
 				if len(conditional) == 0 || len(conditional) > 2 {
-					log.Errorf("failed to parse conditional for subchart %s", dep.Name)
+					hc.logger.Error(err, "failed to parse conditional for subchart", "name", hc.Name, "dependency", dep.Name)
 					continue
 				}
 
@@ -424,8 +422,6 @@ func (hc Release) getRepo() (helmv1alpha1.Repo, error) {
 		return *repoObj, err
 	}
 
-	log.Infof("Repo namespace: %v", hc.Namespace.Name)
-
 	return *repoObj, nil
 }
 
@@ -446,8 +442,6 @@ func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []helm
 	releaseClient.ReleaseName = hc.Name
 	hc.Client = releaseClient
 	chartVersion := &ChartVersion{}
-
-	log.Debugf("configinstall: %v", hc.Config)
 
 	if repoObj, err = hc.getRepo(); err != nil {
 		return configmapList, chartObjList.Items
@@ -523,11 +517,11 @@ func (hc Release) getCredentials(secret string) *Auth {
 	}
 
 	if _, ok := secretObj.Data["user"]; !ok {
-		log.Info("Username empty for repo auth")
+		hc.logger.Info("Username empty for repo auth")
 	}
 
 	if _, ok := secretObj.Data["password"]; !ok {
-		log.Info("Password empty for repo auth")
+		hc.logger.Info("Password empty for repo auth")
 	}
 
 	username, _ := b64.StdEncoding.DecodeString(string(secretObj.Data["user"]))
@@ -582,10 +576,10 @@ func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values, namespa
 	hc.setUpgradeFlags(client)
 
 	if rel, err = client.Run(hc.Name, helmChart, vals); err != nil {
-		log.Info(err.Error())
+		hc.logger.Info(err.Error())
 		return err
 	}
 
-	log.Debugf("(%q) has been upgraded.", rel.Name)
+	hc.logger.Info("successfully upgraded.", "name", rel.Name, "chart", hc.Chart, "repo", hc.Repo)
 	return nil
 }

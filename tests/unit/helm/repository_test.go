@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
+
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestRepoGetCharts(t *testing.T) {
@@ -22,7 +24,7 @@ func TestRepoGetCharts(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		val := apiObj.Input.(helmv1alpha1.Repo)
-		testObj := helm.NewHelmRepo(&val, settings, clientMock, httpMock, kube.Client{})
+		testObj := helm.NewHelmRepo(&val, settings, logf.Log, clientMock, httpMock, kube.Client{})
 		selectors := make(map[string]string)
 
 		// parse selectors string from api object meta data

@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	inttypes "github.com/soer3n/yaho/internal/types"
 	"github.com/soer3n/yaho/internal/utils"
@@ -27,10 +27,10 @@ import (
 var nopLogger = func(_ string, _ ...interface{}) {}
 
 // NewHelmRepo represents initialization of internal repo struct
-func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclient client.Client, g inttypes.HTTPClientInterface, c kube.Client) *Repo {
+func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g inttypes.HTTPClientInterface, c kube.Client) *Repo {
 	var helmRepo *Repo
 
-	log.Debugf("Trying HelmRepo %v", instance.Spec.Name)
+	reqLogger.Info("Trying HelmRepo", "repo", instance.Spec.Name)
 
 	helmRepo = &Repo{
 		Name: instance.Spec.Name,
@@ -43,6 +43,7 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 		K8sClient:  k8sclient,
 		getter:     g,
 		helmClient: c,
+		logger:     reqLogger.WithValues("repo", instance.Spec.Name),
 	}
 
 	if instance.Spec.AuthSecret != "" {
@@ -54,11 +55,11 @@ func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, k8sclie
 		}
 
 		if _, ok := secretObj.Data["user"]; !ok {
-			log.Info("Username empty for repo auth")
+			reqLogger.Info("Username empty for repo auth")
 		}
 
 		if _, ok := secretObj.Data["password"]; !ok {
-			log.Info("Password empty for repo auth")
+			reqLogger.Info("Password empty for repo auth")
 		}
 
 		username, _ := b64.StdEncoding.DecodeString(string(secretObj.Data["user"]))
@@ -86,7 +87,7 @@ func (hr Repo) getIndexByURL() (*repo.IndexFile, error) {
 	obj := &repo.IndexFile{}
 
 	if entry, err = hr.getEntryObj(); err != nil {
-		return obj, errors.Wrapf(err, "error on initializing object for %q.", hr.URL)
+		return obj, errors.Wrapf(err, "error on initializing object", "name", hr.Name, "url", hr.URL)
 	}
 
 	cr = &repo.ChartRepository{
@@ -94,7 +95,7 @@ func (hr Repo) getIndexByURL() (*repo.IndexFile, error) {
 	}
 
 	if parsedURL, err = url.Parse(cr.Config.URL); err != nil {
-		log.Infof("%v", err)
+		hr.logger.Error(err, "failed on parsing url", "name", hr.Name, "url", hr.URL)
 	}
 
 	parsedURL.RawPath = path.Join(parsedURL.RawPath, "index.yaml")
@@ -114,14 +115,12 @@ func (hr Repo) getIndexByURL() (*repo.IndexFile, error) {
 		return obj, err
 	}
 
-	log.Infof("URL: %v", parsedURL.String())
-
 	if raw, err = ioutil.ReadAll(res.Body); err != nil {
 		return obj, err
 	}
 
 	if err := yaml.UnmarshalStrict(raw, &obj); err != nil {
-		log.Infof("%v", err)
+		hr.logger.Error(err, "error on unmarshaling http body to index file")
 	}
 
 	return obj, nil
@@ -145,28 +144,27 @@ func (hr Repo) GetCharts(settings *cli.EnvSettings, selectors map[string]string)
 	}
 
 	for i := range chartAPIList.Items {
-		chartList = append(chartList, NewChart(utils.ConvertChartVersions(&chartAPIList.Items[i]), settings, hr.Name, hr.K8sClient, hr.getter, kube.Client{
+		chartList = append(chartList, NewChart(utils.ConvertChartVersions(&chartAPIList.Items[i]), settings, hr.logger, hr.Name, hr.K8sClient, hr.getter, kube.Client{
 			Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
 			Log:     nopLogger,
 		}))
-		log.Debugf("new: %v", chartAPIList.Items[i])
+		hr.logger.Info("new..", "name", chartAPIList.Items[i].ObjectMeta.Name)
 	}
 
 	if chartList == nil {
 
 		if indexFile, err = hr.getIndexByURL(); err != nil {
+			hr.logger.Error(err, "error on getting repo index file")
 			return chartList, err
 		}
-
-		log.Debugf("IndexFileErr: %v", err)
 
 		if indexFile == nil {
 			return chartList, nil
 		}
 
 		for _, chartMetadata := range indexFile.Entries {
-			log.Debugf("ChartMetadata: %v", chartMetadata)
-			chartList = append(chartList, NewChart(chartMetadata, settings, hr.Name, hr.K8sClient, hr.getter, kube.Client{
+			hr.logger.Info("initializing chart struct by metadata", "repo", hr.Name)
+			chartList = append(chartList, NewChart(chartMetadata, settings, hr.logger, hr.Name, hr.K8sClient, hr.getter, kube.Client{
 				Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
 				Log:     nopLogger,
 			}))

@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"helm.sh/helm/v3/pkg/kube"
+
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestFinalizerHandleRelease(t *testing.T) {
@@ -17,7 +19,7 @@ func TestFinalizerHandleRelease(t *testing.T) {
 	assert := assert.New(t)
 
 	settings := helm.GetEnvSettings(map[string]string{})
-	testObj := helm.NewHelmRelease(testcases.GetTestFinalizerRelease(), settings, clientMock, httpMock, kube.Client{})
+	testObj := helm.NewHelmRelease(testcases.GetTestFinalizerRelease(), settings, logf.Log, clientMock, httpMock, kube.Client{})
 	testObj.Config = testcases.GetTestFinalizerFakeActionConfig(t)
 
 	if err := testObj.Config.Releases.Create(testcases.GetTestFinalizerDeployedReleaseObj()); err != nil {

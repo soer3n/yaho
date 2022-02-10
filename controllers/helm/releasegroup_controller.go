@@ -22,7 +22,6 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +54,7 @@ type ReleaseGroupReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("releasegroup", req.NamespacedName)
+	reqLogger := r.Log.WithValues("releasegroup", req.NamespacedName)
 	_ = r.Log.WithValues("releasegroupsreq", req)
 
 	// fetch app instance
@@ -67,11 +66,11 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			log.Info("HelmReleaseGroup resource not found. Ignoring since object must be deleted")
+			reqLogger.Info("HelmReleaseGroup resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get HelmReleaseGroup")
+		reqLogger.Error(err, "Failed to get HelmReleaseGroup")
 		return ctrl.Result{}, err
 	}
 
@@ -153,10 +152,10 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}()
 
 	for i := range c {
-		log.Info(i)
+		reqLogger.Info(i)
 	}
 
-	log.Infof("Reconciled HelmReleaseGroup %v", instance.Name)
+	reqLogger.Info("Reconciled HelmReleaseGroup", "release group", instance.Name)
 
 	return ctrl.Result{}, nil
 }

@@ -22,7 +22,6 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,7 +55,7 @@ type RepoGroupReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("repos", req.NamespacedName)
+	reqLogger := r.Log.WithValues("repos", req.NamespacedName)
 	_ = r.Log.WithValues("reposreq", req)
 
 	// fetch app instance
@@ -65,11 +64,11 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
+			reqLogger.Info("HelmRepo resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get HelmRepo")
+		reqLogger.Error(err, "Failed to get HelmRepo")
 		return ctrl.Result{}, err
 	}
 
@@ -81,12 +80,12 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	if err = r.List(context.Background(), repos, opts); err != nil {
-		log.Infof("Error on listing repos for group %v", instance.Spec.LabelSelector)
+		reqLogger.Info("Error on listing repos for group %v", instance.Spec.LabelSelector)
 	}
 
 	r.removeUnwantedRepos(repos, instance)
 
-	log.Infof("Trying to install HelmRepoSpecs: %v", instance.Spec.Repos)
+	reqLogger.Info("Trying to install HelmRepoSpecs", "groupname", instance.ObjectMeta.Name, "repos", instance.Spec.Repos)
 
 	r.deployRepos(instance)
 
@@ -98,7 +97,7 @@ func (r *RepoGroupReconciler) removeUnwantedRepos(repos *helmv1alpha1.RepoList, 
 	c := make(chan string, 10)
 	spec := instance.Spec.Repos
 
-	log.Infof("Trying to delete unwanted HelmRepoSpecs: %v", spec)
+	r.Log.Info("Trying to delete unwanted resoucres", "groupname", instance.ObjectMeta.Name, "repos", spec)
 
 	for _, repo := range repos.Items {
 		exists := false
@@ -135,7 +134,7 @@ func (r *RepoGroupReconciler) removeUnwantedRepos(repos *helmv1alpha1.RepoList, 
 	}()
 
 	for i := range c {
-		log.Info(i)
+		r.Log.Info(i)
 	}
 }
 
@@ -198,7 +197,7 @@ func (r *RepoGroupReconciler) deployRepos(instance *helmv1alpha1.RepoGroup) {
 	}()
 
 	for i := range c {
-		log.Info(i)
+		r.Log.Info(i)
 	}
 }
 

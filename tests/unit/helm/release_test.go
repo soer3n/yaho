@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
+
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestReleaseConfigMaps(t *testing.T) {
@@ -24,7 +26,7 @@ func TestReleaseConfigMaps(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj.Input.(*helmv1alpha1.Release)
-		testObj := helm.NewHelmRelease(current, settings, clientMock, httpMock, kube.Client{})
+		testObj := helm.NewHelmRelease(current, settings, logf.Log, clientMock, httpMock, kube.Client{})
 		selectors := ""
 
 		// parse selectors string from api object meta data
@@ -54,7 +56,7 @@ func TestReleaseUpdate(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj.Input.(*helmv1alpha1.Release)
-		testObj := helm.NewHelmRelease(current, settings, clientMock, httpMock, kube.Client{})
+		testObj := helm.NewHelmRelease(current, settings, logf.Log, clientMock, httpMock, kube.Client{})
 		selectors := ""
 
 		// parse selectors string from api object meta data
@@ -105,7 +107,7 @@ func TestReleaseInitValuesTemplate(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj.Input.([]*helm.ValuesRef)
-		testObj := helm.NewHelmRelease(testRelease, settings, &clientMock, &httpMock, kube.Client{})
+		testObj := helm.NewHelmRelease(testRelease, settings, logf.Log, &clientMock, &httpMock, kube.Client{})
 		testObj.InitValuesTemplate(current, "namespace", "v0.0.1")
 		expect := apiObj.ReturnValue.(map[string]interface{})
 		assert.Equal(expect, testObj.Values)

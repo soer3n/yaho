@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	helmutils "github.com/soer3n/yaho/internal/helm"
 	oputils "github.com/soer3n/yaho/internal/utils"
@@ -78,11 +77,11 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			log.Infof("HelmRepo resource %v not found. Ignoring since object must be deleted", req.Name)
+			reqLogger.Info("HelmRepo resource not found. Ignoring since object must be deleted", "repo", req.Name)
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get HelmRepo")
+		reqLogger.Error(err, "Failed to get HelmRepo")
 		return ctrl.Result{}, err
 	}
 
@@ -104,10 +103,10 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		Log:     nopLogger,
 	}
 
-	hc = helmutils.NewHelmRepo(instance, settings, r.Client, &g, c)
+	hc = helmutils.NewHelmRepo(instance, settings, reqLogger, r.Client, &g, c)
 
-	if requeue, err = r.handleFinalizer(reqLogger, hc, instance); err != nil {
-		log.Infof("Failed on handling finalizer for repo %v", instance.Spec.Name)
+	if requeue, err = r.handleFinalizer(hc, instance); err != nil {
+		reqLogger.Info("Failed on handling finalizer", "repo", instance.Spec.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -123,8 +122,8 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	err = r.deploy(instance, hc)
 
-	log.Infof("Repo %v deployed in namespace %v", instance.Spec.Name, instance.ObjectMeta.Namespace)
-	log.Info("Don't reconcile repos.")
+	reqLogger.Info("Repo deployed", "name", instance.Spec.Name, "namespace", instance.ObjectMeta.Namespace)
+	reqLogger.Info("Don't reconcile repos.", "name", instance.Spec.Name)
 	return r.syncStatus(context.Background(), instance, err)
 }
 
@@ -143,7 +142,7 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, helmRepo *helmutils
 	}
 
 	if chartList, err = helmRepo.GetCharts(settings, selector); err != nil {
-		log.Infof("Error on getting charts for repo %v", instance.Spec.Name)
+		r.Log.Info("Error on getting charts", "repo", instance.Spec.Name)
 	}
 
 	chartObjMap := make(map[string]*helmv1alpha1.Chart)
@@ -164,7 +163,7 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, helmRepo *helmutils
 			defer wg.Done()
 
 			if err := controllerutil.SetControllerReference(instance, helmChart, r.Scheme); err != nil {
-				log.Info(err.Error())
+				r.Log.Error(err, "failed to set controller ref")
 			}
 
 			installedChart := &helmv1alpha1.Chart{}
@@ -174,10 +173,10 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, helmRepo *helmutils
 			}, installedChart)
 			if err != nil {
 				if errors.IsNotFound(err) {
-					log.Info("Trying to install HelmChart " + helmChart.Name)
+					r.Log.Info("Trying to install HelmChart " + helmChart.Name)
 
 					if err = r.Client.Create(context.TODO(), helmChart); err != nil {
-						log.Info(err.Error())
+						r.Log.Info(err.Error())
 						c <- installedChart.Spec.Name
 					}
 				}
@@ -193,7 +192,7 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, helmRepo *helmutils
 			if err != nil {
 				c <- installedChart.Spec.Name
 			} else {
-				log.Infof("chart %v is up to date", installedChart.Spec.Name)
+				r.Log.Info("chart is up to date", "chart", installedChart.Spec.Name)
 				c <- ""
 			}
 		}(chartObj, instance, c)
@@ -212,7 +211,7 @@ func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, helmRepo *helmutils
 		}
 	}
 
-	log.Infof("chart parsing for %s completed.", instance.ObjectMeta.Name)
+	r.Log.Info("chart parsing for %s completed.", "chart", instance.ObjectMeta.Name)
 
 	if len(failedChartList) > 0 {
 		return fmt.Errorf("problems with charts: %v", strings.Join(failedChartList, ","))
@@ -240,11 +239,11 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.
 
 	_ = r.Status().Update(ctx, instance)
 
-	log.Info("Don't reconcile repo after status sync.")
+	r.Log.Info("Don't reconcile repo after status sync.")
 	return ctrl.Result{}, nil
 }
 
-func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.Repo, instance *helmv1alpha1.Repo) (bool, error) {
+func (r *RepoReconciler) handleFinalizer(hc *helmutils.Repo, instance *helmv1alpha1.Repo) (bool, error) {
 	var del bool
 	var err error
 
@@ -261,7 +260,7 @@ func (r *RepoReconciler) handleFinalizer(reqLogger logr.Logger, hc *helmutils.Re
 	}
 
 	if !oputils.Contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
-		reqLogger.Info("Adding Finalizer for the Quarantine Resource")
+		r.Log.Info("Adding Finalizer for the Quarantine Resource")
 		controllerutil.AddFinalizer(instance, "finalizer.repo.helm.soer3n.info")
 		return true, nil
 	}

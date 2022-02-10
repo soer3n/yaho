@@ -11,6 +11,8 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/repo"
+
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestChartCreateConfigMaps(t *testing.T) {
@@ -21,7 +23,7 @@ func TestChartCreateConfigMaps(t *testing.T) {
 
 	for _, v := range testcases.GetTestRepoChartVersions() {
 		ver := v.Input.([]*repo.ChartVersion)
-		testObj := helm.NewChart(ver, settings, "test", clientMock, httpMock, kube.Client{})
+		testObj := helm.NewChart(ver, settings, logf.Log, "test", clientMock, httpMock, kube.Client{})
 		maps := testObj.CreateConfigMaps()
 		assert.NotNil(maps)
 	}
@@ -36,7 +38,7 @@ func TestChartAddOrUpdateMap(t *testing.T) {
 	for _, v := range testcases.GetTestHelmChartMaps() {
 		for _, i := range testcases.GetTestRepoChartVersions() {
 			ver := i.Input.([]*repo.ChartVersion)
-			testObj := helm.NewChart(ver, settings, "test", clientMock, httpMock, kube.Client{})
+			testObj := helm.NewChart(ver, settings, logf.Log, "test", clientMock, httpMock, kube.Client{})
 			rel, _ := v.Input.(map[string]*helmv1alpha1.Chart)
 			maps := testObj.AddOrUpdateChartMap(rel, testcases.GetTestChartRepo())
 			expectedLen, _ := v.ReturnValue.(int)

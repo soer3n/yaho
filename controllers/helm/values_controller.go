@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
@@ -56,7 +55,7 @@ type ValuesReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("charts", req.NamespacedName)
+	reqLogger := r.Log.WithValues("charts", req.NamespacedName)
 	_ = r.Log.WithValues("chartsreq", req)
 
 	// fetch app instance
@@ -68,11 +67,11 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			log.Info("HelmValues resource not found. Ignoring since object must be deleted")
+			reqLogger.Info("HelmValues resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get HelmValues")
+		reqLogger.Error(err, "Failed to get HelmValues")
 		return ctrl.Result{}, err
 	}
 
@@ -93,7 +92,7 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 					condition := metav1.Condition{Type: "synced", Status: metav1.ConditionFalse, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "valueschange", Message: "valuesupdated"}
 					meta.SetStatusCondition(&current.Status.Conditions, condition)
 					err = r.Status().Update(ctx, current)
-					log.Info("Trigger release sync.")
+					reqLogger.Info("Trigger release sync.")
 					if err != nil {
 						return ctrl.Result{}, err
 					}

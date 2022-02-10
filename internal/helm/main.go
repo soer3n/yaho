@@ -5,7 +5,6 @@ import (
 	actionlog "log"
 	"net/http"
 
-	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	inttypes "github.com/soer3n/yaho/internal/types"
 	"github.com/soer3n/yaho/internal/utils"
@@ -46,9 +45,6 @@ func getChartByURL(url string, opts *Auth, g inttypes.HTTPClientInterface) (*cha
 	var resp *http.Response
 	var err error
 
-	// Put content to buffer
-	log.Infof("url: %v", url)
-
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return &chart.Chart{}, err
@@ -63,8 +59,6 @@ func getChartByURL(url string, opts *Auth, g inttypes.HTTPClientInterface) (*cha
 	if resp, err = g.Do(req); err != nil {
 		return &chart.Chart{}, err
 	}
-
-	log.Infof("%v", url)
 
 	return loader.LoadArchive(resp.Body)
 }

@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/internal/types"
 	"helm.sh/helm/v3/pkg/action"
@@ -41,6 +42,7 @@ type Release struct {
 	Client         *action.Install
 	K8sClient      client.Client
 	getter         types.HTTPClientInterface
+	logger         logr.Logger
 }
 
 // Repos represents struct for data needed for managing repos and list of installed
@@ -59,6 +61,7 @@ type Repo struct {
 	K8sClient  client.Client
 	getter     types.HTTPClientInterface
 	helmClient kube.Client
+	logger     logr.Logger
 }
 
 // Chart represents struct for data needed for managing chart
@@ -69,6 +72,7 @@ type Chart struct {
 	Repo      string
 	K8sClient client.Client
 	getter    types.HTTPClientInterface
+	logger    logr.Logger
 }
 
 // ChartVersions represents a list of internal struct for a chart version
@@ -88,6 +92,7 @@ type ValueTemplate struct {
 	Values     map[string]interface{}
 	ValuesMap  map[string]string
 	ValueFiles []string
+	logger     logr.Logger
 }
 
 // ValuesRef represents struct for filtering values kubernetes resources by json tag

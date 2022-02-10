@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/common/log"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	helmutils "github.com/soer3n/yaho/internal/helm"
 	oputils "github.com/soer3n/yaho/internal/utils"
@@ -77,11 +76,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			log.Info("HelmRelease resource not found. Ignoring since object must be deleted")
+			reqLogger.Info("HelmRelease resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get HelmRelease")
+		reqLogger.Error(err, "Failed to get HelmRelease")
 		return ctrl.Result{}, err
 	}
 
@@ -110,10 +109,10 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		Log:     nopLogger,
 	}
 
-	helmRelease = helmutils.NewHelmRelease(instance, settings, r.Client, &g, c)
+	helmRelease = helmutils.NewHelmRelease(instance, settings, reqLogger, r.Client, &g, c)
 
 	if requeue, err = r.handleFinalizer(helmRelease, instance); err != nil {
-		log.Errorf("Handle finalizer for release %v failed.", helmRelease.Name)
+		reqLogger.Error(err, "Handle finalizer for release %v failed.", helmRelease.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -127,8 +126,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	log.Infof("Trying HelmRelease %v", instance.Spec.Name)
-
 	var refList []*helmutils.ValuesRef
 	var valuesList []*helmv1alpha1.Values
 
@@ -138,7 +135,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	log.Infof("Trying HelmRelease %v", refList)
+	reqLogger.Info("list of references", "name", instance.Spec.Name, "chart", instance.Spec.Chart, "repo", instance.Spec.Repo, "refs", refList)
 	return r.update(helmRelease, releaseNamespace, valuesList, instance)
 }
 
@@ -172,7 +169,7 @@ func (r *ReleaseReconciler) update(helmRelease *helmutils.Release, releaseNamesp
 		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 	}
 
-	log.Info("Don't reconcile releases.")
+	r.Log.Info("Don't reconcile releases.")
 	return r.syncStatus(context.Background(), instance, metav1.ConditionTrue, "success", "all up to date")
 }
 
@@ -203,16 +200,13 @@ func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (*helmv1al
 		Namespace: namespace,
 	}, instance)
 
-	log.Infof("Get: %v.\n", err)
-	log.Infof("Namespace: %v", namespace)
-
 	if err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
+			r.Log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
 			return instance, err
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get ControllerRepo")
+		r.Log.Error(err, "Failed to get ControllerRepo")
 		return instance, err
 	}
 
@@ -310,7 +304,7 @@ func (r *ReleaseReconciler) collectValues(values *helmv1alpha1.Values, count int
 		}
 
 		if err := r.updateValuesAnnotations(helmRef, release); err != nil {
-			log.Infof("annotations error: %v", err)
+			r.Log.Info("annotations error: %v", err)
 			return list, err
 		}
 
@@ -372,7 +366,7 @@ func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alph
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Don't reconcile releases after sync.")
+	r.Log.Info("Don't reconcile releases after sync.")
 	return ctrl.Result{}, nil
 }
 
