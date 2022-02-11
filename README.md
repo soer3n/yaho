@@ -3,116 +3,49 @@
 
 # Yet Another Helm Operator 
 
-This operator is for managing helm repositories, releases and values in a declarative way. This project was originally created by the idea to deploy helm charts in a simple way without any binary except the kubernetes go-client, to avoid problem caused by local dependencies (e.g. missing repo pull, usage of wrong repository, not synced values for a release, ...), reusing of values in different releases with same sub specifications and to learn how helm and golang actually works. During the development more and more ideas came to my mind. The most aren't implemented until now. But that brought me to publish this project. 
+This operator is for managing helm repositories, releases and values in a declarative way. This project tries to picture helm as an kubernetes api extension. Through a custom resource for values reusing of them in different releases with same sub specifications is one feature. Another is to use kubernetes rbac for restricting helm usage for specific cluster configs. And there no local files which could differ from each other.
 
 
 ## Installation
 
-For now there is no docker image neither for the operator nor for the planned web backend. So you have to run it either local or you have to build an image and push it to your own account/repository. For the second way only docker is needed. If you want to run it local you need to install [golang](https://golang.org/doc/install) if not already done and [operator-sdk](https://sdk.operatorframework.io/docs/installation/).
+```
+
+kubectl apply -f https://raw.githubusercontent.com/soer3n/yaho/master/deploy/rbac.yaml
+kubectl apply -f https://raw.githubusercontent.com/soer3n/yaho/master/deploy/operator.yaml
+
+
+```
+
+##  Local
+
+If you want to run it local you need to install [golang](https://golang.org/doc/install) if not already done and [operator-sdk](https://sdk.operatorframework.io/docs/installation/).
 
 ```
 
 # Install the CRDs
 make install
 
-
-# Building and pushing as an image to private registry
-export IMG="image_name:image_tag"
-make docker-build docker-push
-
-# create image pull secret if needed
-kubectl create secret generic harbor-registry-secret -n helm --from-file=.dockerconfigjson=harbor.json --type=kubernetes.io/dockerconfigjson
-
-# Deploy the built operator
-kubectl apply -f deploy/rbac.yaml
-cat deploy/operator.yaml | envsubst | kubectl apply -f -
-
-########
-## OR ##
-########
-
 # Run it local
 make run
 
 ```
 
-
 ## Architecture
 
 [Here](docs/ARCHITECTURE.md) is an explanation how the operator works and a comparison between the operator and helm usage on your workstation or somewhere else.
 
-
 ## Usage
 
-There is an more complex configuration sample in [these](examples/) directory. You should deploy all needed repositories before deploying a release or releasegroup. Kubectl can be used for filtering repos, charts and releases due to set labels by controllers.
+[Click Here](docs/USAGE.md) for seeing an example.
 
-```
-
-# as an example if you deployed repo and repogroup resource from sample directory
-# you see an output like this:
-
-$ kubectl apply -f config/samples/helm_v1alpha1_repo.yaml
-$ kubectl apply -f config/samples/helm_v1alpha1_repogroup.yaml
-
-$ kubectl get repoes.helm.soer3n.info -n helm
-
-NAME         GROUP   CREATED_AT
-bitnami      foo     2021-06-16T13:38:52Z
-nextcloud    foo     2021-06-16T13:38:52Z
-submariner           2021-06-16T13:38:57Z
-
-# you can also filter by group label
-
-$ kubectl get repoes.helm.soer3n.info -n helm -l repoGroup=foo
-
-NAME        GROUP   CREATED_AT
-bitnami     foo     2021-06-16T13:38:52Z
-nextcloud   foo     2021-06-16T13:38:52Z
-
-# this is also possible for created charts:
-
-$ kubectl get charts.helm.soer3n.info -n helm -l repo=submariner
-
-NAME                    GROUP   REPO         CREATED_AT
-submariner                      submariner   2021-06-16T13:39:05Z
-submariner-k8s-broker           submariner   2021-06-16T13:39:06Z
-submariner-operator             submariner   2021-06-16T13:39:06Z
-
-$ kubectl get charts.helm.soer3n.info -n helm -l repoGroup=foo,repo=nextcloud
-
-NAME        GROUP   REPO        CREATED_AT
-nextcloud   foo     nextcloud   2021-06-16T13:38:52Z
-
-# and also for releases:
-
-$ kubectl apply -f config/samples/helm_v1alpha1_release.yaml
-
-
-$ kubectl get releases.helm.soer3n.info -n helm -l chart=submariner-operator,repo=submariner
-
-NAME              GROUP   REPO         CHART                 CREATED_AT
-release-sample2           submariner   submariner-operator   2021-06-16T13:57:58Z
-
-```
-
-
-
-## Roadmap
+## TODOs
 
 - add assertions for tests; currently there are more or less only the normal cases covered
 - handle func calls with context.Context if actually needed
-- add details to contribution guideline
-- implement web user interface  (start of [backend server implementation](pkg/api/) is already present))
-- syncing state of releases continiously (check if there changes due to manual changes)
+- syncing state of releases continiously (check if there changes due to manual actions)
 - switching to previous revision and back
-- auto-sync for new chart versions from repository (for sure with enabled flag)
+- auto-sync for new chart versions from repository
 - black- and whitelisting for charts when auto-sync for repository is enabled
-- loading charts from volume
-
-## Known Issues / Troubleshooting
-
-- charts with subfolders in templates are failing due to configmap rendering (slashes are not allowed as charactes in keys)
-- infinite loop when release related chart is not found 
 
 ## Contributing
 

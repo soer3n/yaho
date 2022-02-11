@@ -30,7 +30,3 @@ The releasegroup resource represents a collection of helm releases. The idea beh
 ### Values
 
 The values resource represents in general a values file for a release. There is some own logic there. The resource is splitted into two parts. The values and references to another values spec. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/helm/v1alpha1/values_types.go) for detailed information about the spec structure. The idea here is that these resources are managed like a construction kit for handling values for different releases. The main benefits are that you can stretch your values structure for a single release and that you can connect similar configurations for different releases. An example would be the definition of resource requests and limits.
-
-## Comparsion to helm as binary
-
-At first only kubectl is needed on your workstation for interacting with helm in a cluster. Out of that you have a consistent state of repositories and charts for everyone who is working with it in the affected cluster. The further development should focus on automating things (like syncing of repos, charts and deltas between the release resource and eventually manual or via helm cli edited resources related to a release) which will go into the direction of using helm in a declarative way for resource management.
