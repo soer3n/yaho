@@ -3,8 +3,7 @@
 
 # Yet Another Helm Operator 
 
-This operator is for managing helm repositories, releases and values in a declarative way. This project tries to picture helm as an kubernetes api extension. Through a custom resource for values reusing of them in different releases with same sub specifications is one feature. Another is to use kubernetes rbac for restricting helm usage for specific cluster configs. And there no local files which could differ from each other.
-
+This operator is for managing helm repositories, releases and values in a declarative way. This project tries to picture helm as an kubernetes api extension. Through a custom resource for values reusing of them in different releases with same sub specifications is one feature. Another is to use kubernetes rbac for restricting helm usage for specific cluster configs. And there are no local files which could differ in multiple workstations.
 
 ## Installation
 
