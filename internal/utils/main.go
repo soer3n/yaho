@@ -123,6 +123,7 @@ func convertDependencies(version types.ChartVersion) []*helmchart.Dependency {
 	return deps
 }
 
+// RandomString return a string with random chars of length n
 func RandomString(n int) string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 

@@ -138,7 +138,7 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 	}
 }
 
-// GetTestReleaseSpecs returns testcases for testing release cr
+// GetTestReleaseSpecsForConfigMaps returns testcases for testing release cr
 func GetTestReleaseSpecsForConfigMaps() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		{

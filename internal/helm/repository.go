@@ -87,7 +87,7 @@ func (hr Repo) getIndexByURL() (*repo.IndexFile, error) {
 	obj := &repo.IndexFile{}
 
 	if entry, err = hr.getEntryObj(); err != nil {
-		return obj, errors.Wrapf(err, "error on initializing object", "name", hr.Name, "url", hr.URL)
+		return obj, errors.Wrapf(err, "error on initializing object %v with url %v", hr.Name, hr.URL)
 	}
 
 	cr = &repo.ChartRepository{

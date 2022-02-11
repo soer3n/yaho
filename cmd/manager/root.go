@@ -13,6 +13,5 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewOperatorCmd())
-	cmd.AddCommand(NewAPICmd())
 	return cmd
 }
