@@ -3,7 +3,7 @@ package helm
 import (
 	"testing"
 
-	"github.com/soer3n/yaho/internal/helm"
+	"github.com/soer3n/yaho/internal/utils"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/cli"
@@ -16,7 +16,7 @@ func TestSetEnv(t *testing.T) {
 
 		val, _ := e.ReturnValue.(cli.EnvSettings)
 		input, _ := e.Input.(map[string]string)
-		settings := helm.GetEnvSettings(input)
+		settings := utils.GetEnvSettings(input)
 
 		// whole struct cannot be checked due to unexported fields
 		assert.Equal(val.Debug, settings.Debug)

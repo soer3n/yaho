@@ -3,7 +3,7 @@ package helm
 import (
 	"testing"
 
-	"github.com/soer3n/yaho/internal/helm"
+	"github.com/soer3n/yaho/internal/values"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 	"github.com/stretchr/testify/assert"
 
@@ -14,8 +14,8 @@ func TestValues(t *testing.T) {
 	assert := assert.New(t)
 
 	for _, testcase := range testcases.GetTestValueSpecs() {
-		vList := testcase.Input.([]*helm.ValuesRef)
-		testObj := helm.NewValueTemplate(vList, logf.Log)
+		vList := testcase.Input.([]*values.ValuesRef)
+		testObj := values.New(vList, logf.Log)
 		_, err := testObj.ManageValues()
 
 		assert.Equal(testcase.ReturnError, err)

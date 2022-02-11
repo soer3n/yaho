@@ -1,4 +1,4 @@
-package helm
+package repository
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	inttypes "github.com/soer3n/yaho/internal/types"
+	"github.com/soer3n/yaho/internal/chart"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
@@ -26,8 +26,8 @@ import (
 
 var nopLogger = func(_ string, _ ...interface{}) {}
 
-// NewHelmRepo represents initialization of internal repo struct
-func NewHelmRepo(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g inttypes.HTTPClientInterface, c kube.Client) *Repo {
+// New represents initialization of internal repo struct
+func New(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Repo {
 	var helmRepo *Repo
 
 	reqLogger.Info("Trying HelmRepo", "repo", instance.Spec.Name)
@@ -127,8 +127,8 @@ func (hr Repo) getIndexByURL() (*repo.IndexFile, error) {
 }
 
 // GetCharts represents returning list of internal chart structs for a given repo
-func (hr Repo) GetCharts(settings *cli.EnvSettings, selectors map[string]string) ([]*Chart, error) {
-	var chartList []*Chart
+func (hr Repo) GetCharts(settings *cli.EnvSettings, selectors map[string]string) ([]*chart.Chart, error) {
+	var chartList []*chart.Chart
 	var indexFile *repo.IndexFile
 	var chartAPIList helmv1alpha1.ChartList
 	var err error
@@ -144,7 +144,7 @@ func (hr Repo) GetCharts(settings *cli.EnvSettings, selectors map[string]string)
 	}
 
 	for i := range chartAPIList.Items {
-		chartList = append(chartList, NewChart(utils.ConvertChartVersions(&chartAPIList.Items[i]), settings, hr.logger, hr.Name, hr.K8sClient, hr.getter, kube.Client{
+		chartList = append(chartList, chart.New(utils.ConvertChartVersions(&chartAPIList.Items[i]), settings, hr.logger, hr.Name, hr.K8sClient, hr.getter, kube.Client{
 			Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
 			Log:     nopLogger,
 		}))
@@ -164,7 +164,7 @@ func (hr Repo) GetCharts(settings *cli.EnvSettings, selectors map[string]string)
 
 		for _, chartMetadata := range indexFile.Entries {
 			hr.logger.Info("initializing chart struct by metadata", "repo", hr.Name)
-			chartList = append(chartList, NewChart(chartMetadata, settings, hr.logger, hr.Name, hr.K8sClient, hr.getter, kube.Client{
+			chartList = append(chartList, chart.New(chartMetadata, settings, hr.logger, hr.Name, hr.K8sClient, hr.getter, kube.Client{
 				Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
 				Log:     nopLogger,
 			}))

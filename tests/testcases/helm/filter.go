@@ -1,7 +1,7 @@
 package helm
 
 import (
-	"github.com/soer3n/yaho/internal/helm"
+	"github.com/soer3n/yaho/internal/values"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
 )
 
@@ -10,12 +10,12 @@ func GetTestFilterSpecs() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		{
 			ReturnError: nil,
-			ReturnValue: []*helm.ValuesRef{
+			ReturnValue: []*values.ValuesRef{
 				{
 					Parent: "parent",
 				},
 			},
-			Input: []*helm.ValuesRef{
+			Input: []*values.ValuesRef{
 				{
 					Parent: "parent",
 				},

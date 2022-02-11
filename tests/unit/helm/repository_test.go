@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	"github.com/soer3n/yaho/internal/helm"
+	"github.com/soer3n/yaho/internal/repository"
 	helmmocks "github.com/soer3n/yaho/tests/mocks/helm"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +24,7 @@ func TestRepoGetCharts(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		val := apiObj.Input.(helmv1alpha1.Repo)
-		testObj := helm.NewHelmRepo(&val, settings, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj := repository.New(&val, settings, logf.Log, clientMock, httpMock, kube.Client{})
 		selectors := make(map[string]string)
 
 		// parse selectors string from api object meta data

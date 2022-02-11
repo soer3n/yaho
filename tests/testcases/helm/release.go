@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	"github.com/soer3n/yaho/internal/helm"
+	"github.com/soer3n/yaho/internal/values"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -27,18 +27,18 @@ import (
 
 // GetTestReleaseValueRefListSpec returns testcases for testing release cr with values
 func GetTestReleaseValueRefListSpec() []inttypes.TestCase {
-	values := map[string]interface{}{
+	testValues := map[string]interface{}{
 		"values": "foo",
 		"key":    map[string]string{"bar": "fuz"},
 	}
-	castedValues, _ := json.Marshal(values)
+	castedValues, _ := json.Marshal(testValues)
 	var template map[string]interface{}
 
 	return []inttypes.TestCase{
 		{
 			ReturnValue: template,
 			ReturnError: nil,
-			Input: []*helm.ValuesRef{
+			Input: []*values.ValuesRef{
 				{
 					Ref: &helmv1alpha1.Values{
 						ObjectMeta: metav1.ObjectMeta{

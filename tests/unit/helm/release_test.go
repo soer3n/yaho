@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	"github.com/soer3n/yaho/internal/helm"
+	"github.com/soer3n/yaho/internal/release"
+	"github.com/soer3n/yaho/internal/values"
 	"github.com/soer3n/yaho/tests/mocks"
 	helmmocks "github.com/soer3n/yaho/tests/mocks/helm"
 	unstructuredmocks "github.com/soer3n/yaho/tests/mocks/unstructured"
@@ -26,7 +27,7 @@ func TestReleaseConfigMaps(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj.Input.(*helmv1alpha1.Release)
-		testObj := helm.NewHelmRelease(current, settings, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj := release.New(current, settings, logf.Log, clientMock, httpMock, kube.Client{})
 		selectors := ""
 
 		// parse selectors string from api object meta data
@@ -56,7 +57,7 @@ func TestReleaseUpdate(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj.Input.(*helmv1alpha1.Release)
-		testObj := helm.NewHelmRelease(current, settings, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj := release.New(current, settings, logf.Log, clientMock, httpMock, kube.Client{})
 		selectors := ""
 
 		// parse selectors string from api object meta data
@@ -106,8 +107,8 @@ func TestReleaseInitValuesTemplate(t *testing.T) {
 
 	for _, apiObj := range apiObjList {
 
-		current := apiObj.Input.([]*helm.ValuesRef)
-		testObj := helm.NewHelmRelease(testRelease, settings, logf.Log, &clientMock, &httpMock, kube.Client{})
+		current := apiObj.Input.([]*values.ValuesRef)
+		testObj := release.New(testRelease, settings, logf.Log, &clientMock, &httpMock, kube.Client{})
 		testObj.InitValuesTemplate(current, "namespace", "v0.0.1")
 		expect := apiObj.ReturnValue.(map[string]interface{})
 		assert.Equal(expect, testObj.Values)

@@ -27,7 +27,8 @@ import (
 
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	helmutils "github.com/soer3n/yaho/internal/helm"
+	"github.com/soer3n/yaho/internal/chart"
+	"github.com/soer3n/yaho/internal/repository"
 	oputils "github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -85,7 +86,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	var hc *helmutils.Repo
+	var hc *repository.Repo
 	var requeue bool
 
 	g := http.Client{
@@ -96,14 +97,14 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		},
 	}
 
-	settings := helmutils.GetEnvSettings(map[string]string{})
+	settings := oputils.GetEnvSettings(map[string]string{})
 
 	c := kube.Client{
 		Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
 		Log:     nopLogger,
 	}
 
-	hc = helmutils.NewHelmRepo(instance, settings, reqLogger, r.Client, &g, c)
+	hc = repository.New(instance, settings, reqLogger, r.Client, &g, c)
 
 	if requeue, err = r.handleFinalizer(hc, instance); err != nil {
 		reqLogger.Info("Failed on handling finalizer", "repo", instance.Spec.Name)
@@ -127,11 +128,11 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	return r.syncStatus(context.Background(), instance, err)
 }
 
-func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, helmRepo *helmutils.Repo) error {
-	var chartList []*helmutils.Chart
+func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, helmRepo *repository.Repo) error {
+	var chartList []*chart.Chart
 	var err error
 
-	settings := helmutils.GetEnvSettings(map[string]string{})
+	settings := oputils.GetEnvSettings(map[string]string{})
 
 	// helmRepo := hc.GetRepo(instance.Spec.Name)
 	label, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
@@ -243,20 +244,12 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.
 	return ctrl.Result{}, nil
 }
 
-func (r *RepoReconciler) handleFinalizer(hc *helmutils.Repo, instance *helmv1alpha1.Repo) (bool, error) {
-	var del bool
-	var err error
+func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1alpha1.Repo) (bool, error) {
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
-		if del, err = helmutils.HandleFinalizer(hc); err != nil {
-			return true, err
-		}
-
-		if del {
-			controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
-			return true, nil
-		}
+		controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
+		return true, nil
 	}
 
 	if !oputils.Contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {

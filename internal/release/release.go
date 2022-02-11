@@ -1,4 +1,4 @@
-package helm
+package release
 
 import (
 	"context"
@@ -12,15 +12,15 @@ import (
 
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	inttypes "github.com/soer3n/yaho/internal/types"
+	"github.com/soer3n/yaho/internal/chart"
 	"github.com/soer3n/yaho/internal/utils"
+	"github.com/soer3n/yaho/internal/values"
 	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
+	helmchart "helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -28,8 +28,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// NewHelmRelease represents initialization of internal release struct
-func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g inttypes.HTTPClientInterface, c kube.Client) *Release {
+const configMapLabelKey = "helm.soer3n.info/chart"
+
+// const configMapRepoLabelKey = "helm.soer3n.info/repo"
+const configMapLabelSubName = "helm.soer3n.info/subname"
+
+// New represents initialization of internal release struct
+func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Release {
 	var helmRelease *Release
 
 	reqLogger.Info("init new release", "name", instance.Spec.Name, "repo", instance.Spec.Repo)
@@ -44,14 +49,14 @@ func NewHelmRelease(instance *helmv1alpha1.Release, settings *cli.EnvSettings, r
 		logger:    reqLogger.WithValues("release", instance.Spec.Name),
 	}
 
-	helmRelease.Config, _ = initActionConfig(settings, c)
+	helmRelease.Config, _ = utils.InitActionConfig(settings, c)
 
 	helmRelease.logger.Info("parsed config", "name", instance.Spec.Name, "cache", helmRelease.Settings.RepositoryCache)
 
 	if instance.Spec.ValuesTemplate != nil {
 		if instance.Spec.ValuesTemplate.ValueRefs != nil {
-			helmRelease.ValuesTemplate = &ValueTemplate{
-				valuesRef: []*ValuesRef{},
+			helmRelease.ValuesTemplate = &values.ValueTemplate{
+				ValuesRef: []*values.ValuesRef{},
 			}
 		}
 	}
@@ -64,7 +69,7 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 	hc.logger.Info("config install: "+fmt.Sprint(hc.Config), "name", hc.Name, "repo", hc.Repo)
 
 	var release *release.Release
-	var helmChart *chart.Chart
+	var helmChart *helmchart.Chart
 	var specValues map[string]interface{}
 	var err error
 	var ok bool
@@ -119,8 +124,8 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 }
 
 // InitValuesTemplate represents initialization of value template by list of refs from kubernetes api
-func (hc *Release) InitValuesTemplate(refList []*ValuesRef, version, namespace string) {
-	hc.ValuesTemplate = NewValueTemplate(refList, hc.logger)
+func (hc *Release) InitValuesTemplate(refList []*values.ValuesRef, version, namespace string) {
+	hc.ValuesTemplate = values.New(refList, hc.logger)
 	hc.Namespace.Name = namespace
 	hc.Version = version
 }
@@ -219,11 +224,11 @@ func (hc Release) getRelease() (*release.Release, error) {
 	return client.Run(hc.Name)
 }
 
-func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*chart.Chart, error) {
-	helmChart := &chart.Chart{
-		Metadata:  &chart.Metadata{},
-		Files:     []*chart.File{},
-		Templates: []*chart.File{},
+func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*helmchart.Chart, error) {
+	helmChart := &helmchart.Chart{
+		Metadata:  &helmchart.Metadata{},
+		Files:     []*helmchart.File{},
+		Templates: []*helmchart.File{},
 		Values:    make(map[string]interface{}),
 	}
 
@@ -261,7 +266,7 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 
 	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + chartName + "-" + versionObj.Name)
 	helmChart.Values = defaultValues
-	cv := mergeValues(vals, helmChart)
+	cv := values.MergeValues(vals, helmChart)
 	helmChart.Values = cv
 
 	if len(versionObj.Dependencies) > 0 {
@@ -277,8 +282,8 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	return helmChart, nil
 }
 
-func (hc Release) getFiles(chartName, chartVersion string, helmChart *helmv1alpha1.Chart) []*chart.File {
-	files := []*chart.File{}
+func (hc Release) getFiles(chartName, chartVersion string, helmChart *helmv1alpha1.Chart) []*helmchart.File {
+	files := []*helmchart.File{}
 
 	temp := hc.appendFilesFromConfigMap(chartName + "-" + chartVersion + "-tmpl")
 	files = append(files, temp...)
@@ -289,7 +294,7 @@ func (hc Release) getFiles(chartName, chartVersion string, helmChart *helmv1alph
 	return files
 }
 
-func (hc Release) addDependencies(chart *chart.Chart, deps []*helmv1alpha1.ChartDep, vals chartutil.Values, selectors map[string]string) error {
+func (hc Release) addDependencies(chart *helmchart.Chart, deps []*helmv1alpha1.ChartDep, vals chartutil.Values, selectors map[string]string) error {
 	var chartList helmv1alpha1.ChartList
 	var err error
 
@@ -355,12 +360,12 @@ func (hc Release) addDependencies(chart *chart.Chart, deps []*helmv1alpha1.Chart
 	return nil
 }
 
-func (hc Release) appendFilesFromConfigMap(name string) []*chart.File {
+func (hc Release) appendFilesFromConfigMap(name string) []*helmchart.File {
 	var err error
 
 	// configmap := &v1.ConfigMap{}
 	configmapList := v1.ConfigMapList{}
-	files := []*chart.File{}
+	files := []*helmchart.File{}
 
 	selector := labels.NewSelector()
 	requirement, _ := labels.NewRequirement(configMapLabelKey, selection.Equals, []string{name})
@@ -384,7 +389,7 @@ func (hc Release) appendFilesFromConfigMap(name string) []*chart.File {
 				baseName = baseName + configmap.ObjectMeta.Labels[configMapLabelSubName] + "/"
 			}
 
-			file := &chart.File{
+			file := &helmchart.File{
 				Name: baseName + key,
 				Data: data,
 			}
@@ -425,92 +430,9 @@ func (hc Release) getRepo() (helmv1alpha1.Repo, error) {
 	return *repoObj, nil
 }
 
-// GetParsedConfigMaps represents parsing and returning of chart related data for a release
-func (hc *Release) GetParsedConfigMaps(namespace string) ([]v1.ConfigMap, []helmv1alpha1.Chart) {
-	var chartRequested *chart.Chart
-	var repoObj helmv1alpha1.Repo
-	var chartObj helmv1alpha1.Chart
-	chartObjList := &helmv1alpha1.ChartList{}
-	chartObjList.Items = []helmv1alpha1.Chart{}
-	var chartURL string
-	var specValues map[string]interface{}
-	var err error
-
-	configmapList := []v1.ConfigMap{}
-	installConfig := hc.Config
-	releaseClient := action.NewInstall(installConfig)
-	releaseClient.ReleaseName = hc.Name
-	hc.Client = releaseClient
-	chartVersion := &ChartVersion{}
-
-	if repoObj, err = hc.getRepo(); err != nil {
-		return configmapList, chartObjList.Items
-	}
-
-	options := &action.ChartPathOptions{}
-	options.RepoURL = hc.Repo
-	options.Version = hc.Version
-
-	if specValues, err = hc.getValues(); err != nil {
-		return configmapList, chartObjList.Items
-	}
-
-	if chartRequested, err = hc.getChart(hc.Chart, options, specValues); err != nil {
-
-		if chartURL, err = getChartURL(hc.K8sClient, hc.Chart, hc.Version, hc.Namespace.Name); err != nil {
-			return configmapList, chartObjList.Items
-		}
-
-		releaseClient.ReleaseName = hc.Name
-		releaseClient.Version = hc.Version
-		releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.URL
-		credentials := &Auth{}
-
-		if repoObj.Spec.AuthSecret != "" {
-			credentials = hc.getCredentials(repoObj.Spec.AuthSecret)
-		}
-
-		if chartRequested, err = getChartByURL(chartURL, credentials, hc.getter); err != nil {
-			return configmapList, chartObjList.Items
-		}
-	}
-
-	if err = hc.K8sClient.Get(context.Background(), types.NamespacedName{
-		Namespace: namespace,
-		Name:      hc.Chart,
-	}, &chartObj); err != nil {
-		return configmapList, chartObjList.Items
-	}
-
-	chartVersion.Version = &repo.ChartVersion{
-		Metadata: &chart.Metadata{
-			Name:    hc.Chart,
-			Version: hc.Version,
-		},
-	}
-
-	chartVersion.Templates = chartRequested.Templates
-	chartVersion.CRDs = chartRequested.CRDs()
-	chartVersion.DefaultValues = chartRequested.Values
-	deps := chartRequested.Dependencies()
-	version := utils.GetChartVersion(hc.Version, &chartObj)
-
-	for _, v := range version.Dependencies {
-		if err := hc.validateChartSpec(deps, v, chartObjList); err != nil {
-			return configmapList, chartObjList.Items
-		}
-	}
-
-	chartVersion.Version.Metadata.Version = version.Name
-	configmapList = chartVersion.createConfigMaps(hc.Namespace.Name, deps)
-	// chartObjList = append(chartObjList, &chartObj)
-
-	return configmapList, chartObjList.Items
-}
-
-func (hc Release) getCredentials(secret string) *Auth {
+func (hc Release) getCredentials(secret string) *chart.Auth {
 	secretObj := &v1.Secret{}
-	creds := &Auth{}
+	creds := &chart.Auth{}
 
 	if err := hc.K8sClient.Get(context.Background(), types.NamespacedName{Namespace: hc.Namespace.Name, Name: secret}, secretObj); err != nil {
 		return nil
@@ -532,7 +454,7 @@ func (hc Release) getCredentials(secret string) *Auth {
 	return creds
 }
 
-func (hc Release) validateChartSpec(deps []*chart.Chart, version *helmv1alpha1.ChartDep, chartObjList *helmv1alpha1.ChartList) error {
+func (hc Release) validateChartSpec(deps []*helmchart.Chart, version *helmv1alpha1.ChartDep, chartObjList *helmv1alpha1.ChartList) error {
 	subChartObj := &helmv1alpha1.Chart{}
 
 	for _, d := range deps {
@@ -567,7 +489,7 @@ func (hc Release) validateChartSpec(deps []*chart.Chart, version *helmv1alpha1.C
 	return nil
 }
 
-func (hc Release) upgrade(helmChart *chart.Chart, vals chartutil.Values, namespace string) error {
+func (hc Release) upgrade(helmChart *helmchart.Chart, vals chartutil.Values, namespace string) error {
 	var rel *release.Release
 	var err error
 

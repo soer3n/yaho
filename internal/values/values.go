@@ -1,4 +1,4 @@
-package helm
+package values
 
 import (
 	"encoding/json"
@@ -6,14 +6,32 @@ import (
 
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	"github.com/soer3n/yaho/internal/utils"
+	helmchart "helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/chartutil"
 )
 
-// NewValueTemplate represents initialization of internal struct for managing helm values
-func NewValueTemplate(valuesList []*ValuesRef, logger logr.Logger) *ValueTemplate {
+// New represents initialization of internal struct for managing helm values
+func New(valuesList []*ValuesRef, logger logr.Logger) *ValueTemplate {
 	return &ValueTemplate{
-		valuesRef: valuesList,
+		ValuesRef: valuesList,
 		logger:    logger.WithValues("template", valuesList),
 	}
+}
+
+// MergeValues returns map of input values and input chart default values
+func MergeValues(specValues map[string]interface{}, helmChart *helmchart.Chart) map[string]interface{} {
+	// parsing values; goroutines are nessecarry due to tail recursion in called funcs
+	// init buffered channel for coalesce values
+	c := make(chan map[string]interface{}, 1)
+
+	// run coalesce values in separate goroutine to avoid memory leak in main goroutine
+	go func(c chan map[string]interface{}, specValues map[string]interface{}, helmChart *helmchart.Chart) {
+		cv, _ := chartutil.CoalesceValues(helmChart, specValues)
+		c <- cv
+	}(c, specValues, helmChart)
+
+	return <-c
 }
 
 // ManageValues represents parsing of a map with interfaces into HelmValueTemplate struct
@@ -26,7 +44,7 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 		map[string]string{
 			"parent": "base",
 		}).
-		Filter(hv.valuesRef)
+		Filter(hv.ValuesRef)
 
 	merged = make(map[string]interface{})
 	var wg sync.WaitGroup
@@ -55,7 +73,7 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 
 	for i := range c {
 		go func(d chan map[string]interface{}, i, merged map[string]interface{}) {
-			d <- mergeMaps(i, merged)
+			d <- utils.MergeMaps(i, merged)
 		}(d, i, merged)
 		merged = <-d
 	}
@@ -73,7 +91,7 @@ func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface
 			map[string]string{
 				"parent": valueMap.Ref.ObjectMeta.Name,
 			}).
-			Filter(hv.valuesRef)
+			Filter(hv.ValuesRef)
 
 		for _, v := range temp {
 			merged = make(map[string]interface{})
@@ -87,7 +105,7 @@ func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface
 
 			go func(v *ValuesRef, merged, valMap map[string]interface{}, refKey string, c chan<- map[string]interface{}) {
 				merged = hv.transformToMap(v.Ref, merged, true, refKey)
-				c <- mergeMaps(merged, valMap)
+				c <- utils.MergeMaps(merged, valMap)
 			}(v, merged, valMap, refKey, c)
 			valMap = <-c
 		}
@@ -136,9 +154,9 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 		}
 
 		if unstructed {
-			valMap = mergeUntypedMaps(convertedMap, valMap, mapKey)
+			valMap = utils.MergeUntypedMaps(convertedMap, valMap, mapKey)
 		}
 	}
 
-	return mergeUntypedMaps(childMap, valMap, parentKey)
+	return utils.MergeUntypedMaps(childMap, valMap, parentKey)
 }

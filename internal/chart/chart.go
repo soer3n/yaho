@@ -1,9 +1,9 @@
-package helm
+package chart
 
 import (
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	"github.com/soer3n/yaho/internal/types"
+	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
@@ -12,8 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// NewChart represents initialization of internal chart struct
-func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, logger logr.Logger, repo string, k8sclient client.Client, g types.HTTPClientInterface, c kube.Client) *Chart {
+// New represents initialization of internal chart struct
+func New(versions []*repo.ChartVersion, settings *cli.EnvSettings, logger logr.Logger, repo string, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Chart {
 	var chartVersions []ChartVersion
 	var config *action.Configuration
 	var err error
@@ -26,7 +26,7 @@ func NewChart(versions []*repo.ChartVersion, settings *cli.EnvSettings, logger l
 		chartVersions = append(chartVersions, item)
 	}
 
-	if config, err = initActionConfig(settings, c); err != nil {
+	if config, err = utils.InitActionConfig(settings, c); err != nil {
 		logger.Info("Error on getting action config for chart")
 		return &Chart{}
 	}
@@ -58,7 +58,7 @@ func (chart Chart) CreateConfigMaps() []v1.ConfigMap {
 	returnList := []v1.ConfigMap{}
 
 	for _, version := range chart.Versions {
-		versionConfigMaps := version.createConfigMaps(chart.Settings.Namespace(), nil)
+		versionConfigMaps := version.CreateConfigMaps(chart.Settings.Namespace(), nil)
 		returnList = append(returnList, versionConfigMaps...)
 	}
 

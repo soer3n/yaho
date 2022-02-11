@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	"github.com/soer3n/yaho/internal/helm"
+	"github.com/soer3n/yaho/internal/values"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,7 +30,7 @@ func GetTestValueSpecs() []inttypes.TestCase {
 
 	return []inttypes.TestCase{
 		{
-			Input: []*helm.ValuesRef{
+			Input: []*values.ValuesRef{
 				{
 					Ref: &helmv1alpha1.Values{
 						ObjectMeta: metav1.ObjectMeta{

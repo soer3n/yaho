@@ -3,14 +3,14 @@ package mocks
 import (
 	"net/http"
 
-	"github.com/soer3n/yaho/internal/types"
+	"github.com/soer3n/yaho/internal/utils"
 	"github.com/stretchr/testify/mock"
 )
 
 // HTTPClientMock represents mock struct for http client
 type HTTPClientMock struct {
 	mock.Mock
-	types.HTTPClientInterface
+	utils.HTTPClientInterface
 }
 
 // HTTPResponseMock represents struct for mocking an http response

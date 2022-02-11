@@ -4,7 +4,8 @@ import (
 	"log"
 	"testing"
 
-	"github.com/soer3n/yaho/internal/helm"
+	"github.com/soer3n/yaho/internal/release"
+	"github.com/soer3n/yaho/internal/utils"
 	helmmocks "github.com/soer3n/yaho/tests/mocks/helm"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 	"github.com/stretchr/testify/assert"
@@ -18,8 +19,8 @@ func TestFinalizerHandleRelease(t *testing.T) {
 	clientMock, httpMock := helmmocks.GetFinalizerMock()
 	assert := assert.New(t)
 
-	settings := helm.GetEnvSettings(map[string]string{})
-	testObj := helm.NewHelmRelease(testcases.GetTestFinalizerRelease(), settings, logf.Log, clientMock, httpMock, kube.Client{})
+	settings := utils.GetEnvSettings(map[string]string{})
+	testObj := release.New(testcases.GetTestFinalizerRelease(), settings, logf.Log, clientMock, httpMock, kube.Client{})
 	testObj.Config = testcases.GetTestFinalizerFakeActionConfig(t)
 
 	if err := testObj.Config.Releases.Create(testcases.GetTestFinalizerDeployedReleaseObj()); err != nil {
@@ -29,20 +30,7 @@ func TestFinalizerHandleRelease(t *testing.T) {
 
 	for _, v := range testcases.GetTestFinalizerSpecsRelease() {
 
-		ok, err := helm.HandleFinalizer(testObj)
-		assert.Equal(v.ReturnValue, ok)
-		assert.Equal(v.ReturnError, err)
-	}
-}
-
-func TestFinalizerHandleRepo(t *testing.T) {
-	// clientMock, httpMock := helmmocks.GetFinalizerMock()
-	assert := assert.New(t)
-
-	for _, v := range testcases.GetTestFinalizerSpecsRepo() {
-
-		ok, err := helm.HandleFinalizer(v.Input)
-		assert.Equal(v.ReturnValue, ok)
+		err := testObj.RemoveRelease()
 		assert.Equal(v.ReturnError, err)
 	}
 }

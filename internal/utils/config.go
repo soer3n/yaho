@@ -1,27 +1,17 @@
-package helm
+package utils
 
 import (
-	"context"
 	actionlog "log"
-	"net/http"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	inttypes "github.com/soer3n/yaho/internal/types"
-	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
-	"k8s.io/apimachinery/pkg/types"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func initActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configuration, error) {
+func InitActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configuration, error) {
 	/*
 		/ we cannot use helm init func here due to data race issues on concurrent execution (helm's kube client tries to update the namespace field on each initialization)
 
@@ -41,56 +31,9 @@ func initActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configu
 	return conf, nil
 }
 
-func getChartByURL(url string, opts *Auth, g inttypes.HTTPClientInterface) (*chart.Chart, error) {
-	var resp *http.Response
-	var err error
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return &chart.Chart{}, err
-	}
-
-	if opts != nil {
-		if opts.User != "" && opts.Password != "" {
-			req.SetBasicAuth(opts.User, opts.Password)
-		}
-	}
-
-	if resp, err = g.Do(req); err != nil {
-		return &chart.Chart{}, err
-	}
-
-	return loader.LoadArchive(resp.Body)
-}
-
-func getChartURL(rc client.Client, chart, version, namespace string) (string, error) {
-	var err error
-
-	chartObj := &helmv1alpha1.Chart{}
-
-	if err = rc.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: chart}, chartObj); err != nil {
-		return "", err
-	}
-
-	return utils.GetChartVersion(version, chartObj).URL, nil
-}
-
-func mergeValues(specValues map[string]interface{}, helmChart *chart.Chart) map[string]interface{} {
-	// parsing values; goroutines are nessecarry due to tail recursion in called funcs
-	// init buffered channel for coalesce values
-	c := make(chan map[string]interface{}, 1)
-
-	// run coalesce values in separate goroutine to avoid memory leak in main goroutine
-	go func(c chan map[string]interface{}, specValues map[string]interface{}, helmChart *chart.Chart) {
-		cv, _ := chartutil.CoalesceValues(helmChart, specValues)
-		c <- cv
-	}(c, specValues, helmChart)
-
-	return <-c
-}
-
+// MergeMaps returns distinct map of two as input
 // have to be called as a goroutine to avoid memory leaks
-func mergeMaps(source, dest map[string]interface{}) map[string]interface{} {
+func MergeMaps(source, dest map[string]interface{}) map[string]interface{} {
 	if source == nil || dest == nil {
 		return dest
 	}
@@ -99,7 +42,7 @@ func mergeMaps(source, dest map[string]interface{}) map[string]interface{} {
 		// when key already exists we have to compare also sub values
 		if temp, ok := v.(map[string]interface{}); ok {
 			merge, _ := dest[k].(map[string]interface{})
-			dest[k] = mergeMaps(merge, temp)
+			dest[k] = MergeMaps(merge, temp)
 			continue
 		}
 
@@ -109,12 +52,13 @@ func mergeMaps(source, dest map[string]interface{}) map[string]interface{} {
 	return dest
 }
 
+// MergeUntypedMaps returns distinct map of two as input
 // have to be called as a goroutine to avoid memory leaks
-func mergeUntypedMaps(dest, source map[string]interface{}, key string) map[string]interface{} {
+func MergeUntypedMaps(dest, source map[string]interface{}, key string) map[string]interface{} {
 	for k, v := range source {
 		if key == "" {
 			if temp, ok := dest[k].(map[string]interface{}); ok {
-				temp = mergeUntypedMaps(temp, map[string]interface{}{
+				temp = MergeUntypedMaps(temp, map[string]interface{}{
 					k: v,
 				}, key)
 				dest[k] = temp

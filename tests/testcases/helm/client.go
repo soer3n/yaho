@@ -1,21 +1,13 @@
 package helm
 
 import (
-	"github.com/soer3n/yaho/internal/helm"
+	"github.com/soer3n/yaho/internal/release"
 	"helm.sh/helm/v3/pkg/repo"
 )
 
-// GetTestClientRepo returns repo cr for testing client
-func GetTestClientRepo() *helm.Repo {
-	return &helm.Repo{
-		Name: "boo",
-		URL:  "https://unknown.domain/charts",
-	}
-}
-
 // GetTestClientRelease returns release cr for testing client
-func GetTestClientRelease() *helm.Release {
-	return &helm.Release{
+func GetTestClientRelease() *release.Release {
+	return &release.Release{
 		Name:    "far",
 		Repo:    "boo",
 		Chart:   "foo",

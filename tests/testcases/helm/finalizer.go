@@ -90,21 +90,5 @@ func GetTestFinalizerSpecsRelease() []inttypes.TestCase {
 			ReturnValue: true,
 			Input:       GetTestClientRelease(),
 		},
-		{
-			ReturnError: nil,
-			ReturnValue: true,
-			Input:       GetTestClientRepo(),
-		},
-	}
-}
-
-// GetTestFinalizerSpecsRepo returns testcases with repo cr for testing finalizer handling
-func GetTestFinalizerSpecsRepo() []inttypes.TestCase {
-	return []inttypes.TestCase{
-		{
-			ReturnError: nil,
-			ReturnValue: true,
-			Input:       GetTestClientRepo(),
-		},
 	}
 }

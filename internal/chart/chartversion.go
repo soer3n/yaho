@@ -1,4 +1,4 @@
-package helm
+package chart
 
 import (
 	"encoding/json"
@@ -89,7 +89,7 @@ func (chartVersion ChartVersion) createDependenciesList(chartMeta *chart.Metadat
 	return deps
 }
 
-func (chartVersion ChartVersion) createConfigMaps(namespace string, deps []*chart.Chart) []v1.ConfigMap {
+func (chartVersion ChartVersion) CreateConfigMaps(namespace string, deps []*chart.Chart) []v1.ConfigMap {
 	returnList := []v1.ConfigMap{}
 
 	returnList = append(returnList, chartVersion.createTemplateConfigMap("tmpl", namespace, chartVersion.Templates)...)

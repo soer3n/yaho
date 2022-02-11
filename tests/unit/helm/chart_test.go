@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	"github.com/soer3n/yaho/internal/helm"
+	"github.com/soer3n/yaho/internal/chart"
 	helmmocks "github.com/soer3n/yaho/tests/mocks/helm"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +23,7 @@ func TestChartCreateConfigMaps(t *testing.T) {
 
 	for _, v := range testcases.GetTestRepoChartVersions() {
 		ver := v.Input.([]*repo.ChartVersion)
-		testObj := helm.NewChart(ver, settings, logf.Log, "test", clientMock, httpMock, kube.Client{})
+		testObj := chart.New(ver, settings, logf.Log, "test", clientMock, httpMock, kube.Client{})
 		maps := testObj.CreateConfigMaps()
 		assert.NotNil(maps)
 	}
@@ -38,7 +38,7 @@ func TestChartAddOrUpdateMap(t *testing.T) {
 	for _, v := range testcases.GetTestHelmChartMaps() {
 		for _, i := range testcases.GetTestRepoChartVersions() {
 			ver := i.Input.([]*repo.ChartVersion)
-			testObj := helm.NewChart(ver, settings, logf.Log, "test", clientMock, httpMock, kube.Client{})
+			testObj := chart.New(ver, settings, logf.Log, "test", clientMock, httpMock, kube.Client{})
 			rel, _ := v.Input.(map[string]*helmv1alpha1.Chart)
 			maps := testObj.AddOrUpdateChartMap(rel, testcases.GetTestChartRepo())
 			expectedLen, _ := v.ReturnValue.(int)
