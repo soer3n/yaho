@@ -1,0 +1,34 @@
+---
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Repo
+metadata:
+  name: cilium
+  namespace: helm
+spec:
+  name: cilium
+  url: https://helm.cilium.io/
+
+---
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Config
+metadata:
+  name: cilium-config
+  namespace: helm
+spec:
+  namespace:
+    install: false
+    allowed:
+    - kube-system
+  flags:
+    atomic: false
+    skipCRDs: false
+    subNotes: true
+    disableOpenAPIValidation: false
+    dryRun: false
+    disableHooks: false
+    wait: false
+    cleanupOnFail: false
+    recreate: false
+    timeout: 3600
+    force: false
+    description: "deployed with helm operator"

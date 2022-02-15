@@ -3,7 +3,9 @@ package helm
 import (
 	"testing"
 
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/internal/values"
+	helmmocks "github.com/soer3n/yaho/tests/mocks/helm"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 	"github.com/stretchr/testify/assert"
 
@@ -12,10 +14,11 @@ import (
 
 func TestValues(t *testing.T) {
 	assert := assert.New(t)
+	clientMock, _ := helmmocks.GetReleaseMock()
 
 	for _, testcase := range testcases.GetTestValueSpecs() {
-		vList := testcase.Input.([]*values.ValuesRef)
-		testObj := values.New(vList, logf.Log)
+		release := testcase.Input.(*helmv1alpha1.Release)
+		testObj := values.New(release, logf.Log, clientMock)
 		_, err := testObj.ManageValues()
 
 		assert.Equal(testcase.ReturnError, err)

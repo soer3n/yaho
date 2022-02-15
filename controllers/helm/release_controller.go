@@ -21,21 +21,17 @@ import (
 	"context"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/internal/release"
-	oputils "github.com/soer3n/yaho/internal/utils"
-	"github.com/soer3n/yaho/internal/values"
+	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/kube"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -85,7 +81,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	var helmRelease *release.Release
 	var requeue bool
 
 	g := http.Client{
@@ -104,13 +99,13 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	_ = os.Setenv("HELM_NAMESPACE", releaseNamespace.Name)
 
-	settings := oputils.GetEnvSettings(map[string]string{})
+	settings := utils.GetEnvSettings(map[string]string{})
 	c := kube.Client{
 		Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
 		Log:     nopLogger,
 	}
 
-	helmRelease = release.New(instance, settings, reqLogger, r.Client, &g, c)
+	helmRelease := release.New(instance, settings, reqLogger, r.Client, &g, c)
 
 	if requeue, err = r.handleFinalizer(helmRelease, instance); err != nil {
 		reqLogger.Error(err, "Handle finalizer for release %v failed.", helmRelease.Name)
@@ -127,40 +122,12 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	var refList []*values.ValuesRef
-	var valuesList []*helmv1alpha1.Values
-
-	if instance.Spec.ValuesTemplate != nil && instance.Spec.ValuesTemplate.ValueRefs != nil {
-		if valuesList, err = r.getValuesByReference(instance.Spec.ValuesTemplate.ValueRefs, instance.ObjectMeta.Namespace); err != nil {
-			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "failed", err.Error())
-		}
-	}
-
-	reqLogger.Info("list of references", "name", instance.Spec.Name, "chart", instance.Spec.Chart, "repo", instance.Spec.Repo, "refs", refList)
-	return r.update(helmRelease, releaseNamespace, valuesList, instance)
-}
-
-func (r *ReleaseReconciler) update(helmRelease *release.Release, releaseNamespace helmv1alpha1.Namespace, valuesList []*helmv1alpha1.Values, instance *helmv1alpha1.Release) (ctrl.Result, error) {
-	refList, _ := r.getRefList(valuesList, instance)
-	helmRelease.InitValuesTemplate(refList, instance.Spec.Version, instance.ObjectMeta.Namespace)
-	controller, _ := r.getControllerRepo(instance.Spec.Repo, instance.ObjectMeta.Namespace)
-
 	if instance.Spec.ValuesTemplate == nil {
 		instance.Spec.ValuesTemplate = &helmv1alpha1.ValueTemplate{}
 	}
 
-	cm, c := helmRelease.GetParsedConfigMaps(instance.ObjectMeta.Namespace)
-
-	for _, chart := range c {
-		if err := r.updateChart(chart, controller); err != nil {
-			return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
-		}
-	}
-
-	for _, configmap := range cm {
-		if err := r.deployConfigMap(configmap, controller); err != nil {
-			return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
-		}
+	if err := helmRelease.UpdateAffectedResources(r.Scheme); err != nil {
+		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 	}
 
 	// set flags for helm action from spec
@@ -174,46 +141,6 @@ func (r *ReleaseReconciler) update(helmRelease *release.Release, releaseNamespac
 	return r.syncStatus(context.Background(), instance, metav1.ConditionTrue, "success", "all up to date")
 }
 
-func (r *ReleaseReconciler) getRefList(valuesList []*helmv1alpha1.Values, instance *helmv1alpha1.Release) ([]*values.ValuesRef, error) {
-	var refList, subRefList []*values.ValuesRef
-	var err error
-	for _, valueObj := range valuesList {
-
-		if subRefList, err = r.collectValues(valueObj, 0, instance); err != nil {
-			return refList, err
-		}
-
-		if err = r.updateValuesAnnotations(valueObj, instance); err != nil {
-			return refList, err
-		}
-
-		refList = append(refList, subRefList...)
-	}
-
-	return refList, nil
-}
-
-func (r *ReleaseReconciler) getControllerRepo(name, namespace string) (*helmv1alpha1.Repo, error) {
-	instance := &helmv1alpha1.Repo{}
-
-	err := r.Get(context.Background(), types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}, instance)
-
-	if err != nil {
-		if errors.IsNotFound(err) {
-			r.Log.Info("HelmRepo resource not found. Ignoring since object must be deleted")
-			return instance, err
-		}
-		// Error reading the object - requeue the request.
-		r.Log.Error(err, "Failed to get ControllerRepo")
-		return instance, err
-	}
-
-	return instance, nil
-}
-
 func (r *ReleaseReconciler) handleFinalizer(helmRelease *release.Release, instance *helmv1alpha1.Release) (bool, error) {
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
@@ -225,134 +152,13 @@ func (r *ReleaseReconciler) handleFinalizer(helmRelease *release.Release, instan
 		return true, nil
 	}
 
-	if !oputils.Contains(instance.GetFinalizers(), "finalizer.releases.helm.soer3n.info") {
+	if !utils.Contains(instance.GetFinalizers(), "finalizer.releases.helm.soer3n.info") {
 		r.Log.Info("Adding Finalizer for the Release")
 		controllerutil.AddFinalizer(instance, "finalizer.releases.helm.soer3n.info")
 		return true, nil
 	}
 
 	return false, nil
-}
-
-func (r *ReleaseReconciler) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Repo) error {
-	if err := controllerutil.SetControllerReference(instance, &configmap, r.Scheme); err != nil {
-		return err
-	}
-
-	current := &v1.ConfigMap{}
-	err := r.Client.Get(context.Background(), client.ObjectKey{
-		Namespace: configmap.ObjectMeta.Namespace,
-		Name:      configmap.ObjectMeta.Name,
-	}, current)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			if err = r.Client.Create(context.TODO(), &configmap); err != nil {
-				return err
-			}
-		}
-		return err
-	}
-
-	return nil
-}
-
-func (r *ReleaseReconciler) updateChart(chart helmv1alpha1.Chart, instance *helmv1alpha1.Repo) error {
-	current := &helmv1alpha1.Chart{}
-	err := r.Client.Get(context.Background(), client.ObjectKey{
-		Namespace: chart.ObjectMeta.Namespace,
-		Name:      chart.ObjectMeta.Name,
-	}, current)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			if err = r.Client.Create(context.TODO(), &chart); err != nil {
-				return err
-			}
-		}
-		return err
-	}
-
-	if err = r.Client.Update(context.TODO(), &chart); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *ReleaseReconciler) collectValues(specValues *helmv1alpha1.Values, count int32, release *helmv1alpha1.Release) ([]*values.ValuesRef, error) {
-	var list []*values.ValuesRef
-
-	// secure against infinite loop
-	if count > 10 {
-		return list, nil
-	}
-
-	entry := &values.ValuesRef{
-		Ref:    specValues,
-		Parent: "base",
-	}
-
-	list = append(list, entry)
-
-	for _, ref := range specValues.Spec.Refs {
-
-		helmRef := &helmv1alpha1.Values{}
-
-		if err := r.Client.Get(context.Background(), client.ObjectKey{
-			Namespace: specValues.ObjectMeta.Namespace,
-			Name:      ref,
-		}, helmRef); err != nil {
-			return list, err
-		}
-
-		if err := r.updateValuesAnnotations(helmRef, release); err != nil {
-			r.Log.Info("annotations error: %v", err)
-			return list, err
-		}
-
-		if helmRef.Spec.Refs != nil {
-			nestedRef, err := r.collectValues(helmRef, (count + 1), release)
-			if err != nil {
-				return list, err
-			}
-
-			list = append(list, nestedRef...)
-		}
-
-		entry := &values.ValuesRef{
-			Ref:    helmRef,
-			Parent: specValues.ObjectMeta.Name,
-		}
-
-		list = append(list, entry)
-	}
-
-	return list, nil
-}
-
-func (r *ReleaseReconciler) updateValuesAnnotations(obj *helmv1alpha1.Values, release *helmv1alpha1.Release) error {
-	var patch []byte
-	var value string
-	var ok bool
-
-	currentAnnotations := obj.ObjectMeta.GetAnnotations()
-
-	if value, ok = currentAnnotations["releases"]; !ok {
-		if currentAnnotations == nil {
-			obj.ObjectMeta.Annotations = make(map[string]string)
-		}
-
-		obj.ObjectMeta.Annotations["releases"] = release.ObjectMeta.Name
-		patch := []byte(`{"metadata":{"annotations":{"releases": "` + obj.ObjectMeta.Annotations["releases"] + `"}}}`)
-		return r.Client.Patch(context.TODO(), obj, client.RawPatch(types.MergePatchType, patch))
-	}
-
-	if !oputils.Contains(strings.Split(value, ","), release.ObjectMeta.Name) {
-		obj.ObjectMeta.Annotations["releases"] = currentAnnotations["releases"] + "," + release.ObjectMeta.Name
-		patch = []byte(`{"metadata":{"annotations":{"releases": "` + obj.ObjectMeta.Annotations["releases"] + `"}}}`)
-		return r.Client.Patch(context.TODO(), obj, client.RawPatch(types.MergePatchType, patch))
-	}
-
-	return nil
 }
 
 func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Release, stats metav1.ConditionStatus, reason, message string) (ctrl.Result, error) {
@@ -369,37 +175,6 @@ func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alph
 
 	r.Log.Info("Don't reconcile releases after sync.")
 	return ctrl.Result{}, nil
-}
-
-func (r *ReleaseReconciler) getValuesByReference(refs []string, namespace string) ([]*helmv1alpha1.Values, error) {
-	var list []*helmv1alpha1.Values
-
-	for _, ref := range refs {
-
-		helmRef := &helmv1alpha1.Values{}
-
-		err := r.Client.Get(context.Background(), client.ObjectKey{
-			Namespace: namespace,
-			Name:      ref,
-		}, helmRef)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				helmRef.ObjectMeta.Namespace = namespace
-				helmRef.ObjectMeta.Name = ref
-				err = r.Client.Create(context.TODO(), helmRef)
-
-				if err != nil {
-					return list, err
-				}
-			}
-
-			return list, err
-		}
-
-		list = append(list, helmRef)
-	}
-
-	return list, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

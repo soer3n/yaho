@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -242,6 +243,331 @@ func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) 
 				},
 			},
 		}
+	})
+
+	firstVals := map[string]string{"foo": "bar"}
+	secVals := map[string]string{"foo": "bar"}
+	thirdVals := map[string]interface{}{"baf": "muh", "boo": map[string]string{
+		"fuz": "xyz",
+	}, "mah": map[string]interface{}{
+		"bah": map[string]string{
+			"aah": "wah",
+		},
+	}}
+	fourthVals := map[string]string{"foo": "bar"}
+
+	firstValsRaw, _ := json.Marshal(firstVals)
+	secValsRaw, _ := json.Marshal(secVals)
+	thirdValsRaw, _ := json.Marshal(thirdVals)
+	fourthValsRaw, _ := json.Marshal(fourthVals)
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "notpresent", Namespace: ""}, &helmv1alpha1.Values{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Values)
+		c.ObjectMeta = metav1.ObjectMeta{
+			Name:        "notpresent",
+			Namespace:   "",
+			Annotations: map[string]string{},
+		}
+		c.Spec = helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: firstValsRaw,
+			},
+		}
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "second", Namespace: ""}, &helmv1alpha1.Values{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Values)
+
+		c.ObjectMeta = metav1.ObjectMeta{
+			Name:        "second",
+			Namespace:   "",
+			Annotations: map[string]string{},
+		}
+		c.Spec = helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: secValsRaw,
+			},
+			Refs: map[string]string{
+				"boo": "second",
+			},
+		}
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "third", Namespace: ""}, &helmv1alpha1.Values{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Values)
+
+		c.ObjectMeta = metav1.ObjectMeta{
+			Name:        "third",
+			Namespace:   "",
+			Annotations: map[string]string{},
+		}
+		c.Spec = helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: thirdValsRaw,
+			},
+			Refs: map[string]string{
+				"boo": "third",
+			},
+		}
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "fourth", Namespace: ""}, &helmv1alpha1.Values{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Values)
+
+		c.ObjectMeta = metav1.ObjectMeta{
+			Name:        "fourth",
+			Namespace:   "",
+			Annotations: map[string]string{},
+		}
+		c.Spec = helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: fourthValsRaw,
+			},
+			Refs: map[string]string{
+				"boo": "fourth",
+			},
+		}
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "foo", Namespace: "release"}, &helmv1alpha1.Values{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Values)
+
+		c.ObjectMeta = metav1.ObjectMeta{
+			Name:        "foo",
+			Namespace:   "release",
+			Annotations: map[string]string{},
+		}
+		c.Spec = helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: fourthValsRaw,
+			},
+			Refs: map[string]string{
+				"boo": "fourth",
+			},
+		}
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "second", Namespace: "release"}, &helmv1alpha1.Values{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Values)
+
+		c.ObjectMeta = metav1.ObjectMeta{
+			Name:        "second",
+			Namespace:   "release",
+			Annotations: map[string]string{},
+		}
+		c.Spec = helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: fourthValsRaw,
+			},
+			Refs: map[string]string{
+				"boo": "fourth",
+			},
+		}
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "third", Namespace: "release"}, &helmv1alpha1.Values{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Values)
+
+		c.ObjectMeta = metav1.ObjectMeta{
+			Name:        "third",
+			Namespace:   "release",
+			Annotations: map[string]string{},
+		}
+		c.Spec = helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: fourthValsRaw,
+			},
+		}
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "fourth", Namespace: "release"}, &helmv1alpha1.Values{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Values)
+
+		c.ObjectMeta = metav1.ObjectMeta{
+			Name:        "fourth",
+			Namespace:   "release",
+			Annotations: map[string]string{},
+		}
+		c.Spec = helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: fourthValsRaw,
+			},
+		}
+	})
+
+	patch := []byte(`{"metadata":{"annotations":{"releases": ""}}}`)
+	clientMock.On("Patch", context.Background(), &helmv1alpha1.Values{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "notpresent",
+			Namespace:   "",
+			Annotations: map[string]string{"releases": ""},
+		},
+		Spec: helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: firstValsRaw,
+			},
+		},
+	}, client.RawPatch(types.MergePatchType, patch)).Return(nil).Run(func(args mock.Arguments) {
+
+	})
+
+	clientMock.On("Patch", context.Background(), &helmv1alpha1.Values{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "second",
+			Namespace:   "",
+			Annotations: map[string]string{"releases": ""},
+		},
+		Spec: helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: secValsRaw,
+			},
+			Refs: map[string]string{
+				"boo": "second",
+			},
+		},
+	}, client.RawPatch(types.MergePatchType, patch)).Return(nil).Run(func(args mock.Arguments) {
+
+	})
+
+	clientMock.On("Patch", context.Background(), &helmv1alpha1.Values{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "third",
+			Namespace:   "",
+			Annotations: map[string]string{"releases": ""},
+		},
+		Spec: helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: thirdValsRaw,
+			},
+			Refs: map[string]string{
+				"boo": "third",
+			},
+		},
+	}, client.RawPatch(types.MergePatchType, patch)).Return(nil).Run(func(args mock.Arguments) {
+
+	})
+
+	clientMock.On("Patch", context.Background(), &helmv1alpha1.Values{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "fourth",
+			Namespace:   "",
+			Annotations: map[string]string{"releases": ""},
+		},
+		Spec: helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: fourthValsRaw,
+			},
+			Refs: map[string]string{
+				"boo": "fourth",
+			},
+		},
+	}, client.RawPatch(types.MergePatchType, patch)).Return(nil).Run(func(args mock.Arguments) {
+
+	})
+
+	patch = []byte(`{"metadata":{"annotations":{"releases": "release"}}}`)
+	clientMock.On("Patch", context.Background(), &helmv1alpha1.Values{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "notpresent",
+			Namespace:   "release",
+			Annotations: map[string]string{"releases": "release"},
+		},
+		Spec: helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: firstValsRaw,
+			},
+			Refs: map[string]string{
+				"boo": "fourth",
+			},
+		},
+	}, client.RawPatch(types.MergePatchType, patch)).Return(nil).Run(func(args mock.Arguments) {
+
+	})
+
+	clientMock.On("Patch", context.Background(), &helmv1alpha1.Values{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "foo",
+			Namespace:   "release",
+			Annotations: map[string]string{"releases": "release"},
+		},
+		Spec: helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: firstValsRaw,
+			},
+			Refs: map[string]string{
+				"boo": "fourth",
+			},
+		},
+	}, client.RawPatch(types.MergePatchType, patch)).Return(nil).Run(func(args mock.Arguments) {
+
+	})
+
+	clientMock.On("Patch", context.Background(), &helmv1alpha1.Values{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "second",
+			Namespace:   "release",
+			Annotations: map[string]string{"releases": "release"},
+		},
+		Spec: helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: secValsRaw,
+			},
+			Refs: map[string]string{
+				"boo": "fourth",
+			},
+		},
+	}, client.RawPatch(types.MergePatchType, patch)).Return(nil).Run(func(args mock.Arguments) {
+
+	})
+
+	clientMock.On("Patch", context.Background(), &helmv1alpha1.Values{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "third",
+			Namespace:   "release",
+			Annotations: map[string]string{"releases": "release"},
+		},
+		Spec: helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: firstValsRaw,
+			},
+		},
+	}, client.RawPatch(types.MergePatchType, patch)).Return(nil).Run(func(args mock.Arguments) {
+
+	})
+
+	clientMock.On("Patch", context.Background(), &helmv1alpha1.Values{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "fourth",
+			Namespace:   "release",
+			Annotations: map[string]string{"releases": "release"},
+		},
+		Spec: helmv1alpha1.ValuesSpec{
+			ValuesMap: &runtime.RawExtension{
+				Raw: fourthValsRaw,
+			},
+		},
+	}, client.RawPatch(types.MergePatchType, patch)).Return(nil).Run(func(args mock.Arguments) {
+
+	})
+
+	clientMock.On("Update", context.Background(), &helmv1alpha1.Chart{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "dep",
+			Namespace: "",
+			Labels:    map[string]string{"repoGroup": "group"},
+		},
+		Spec: helmv1alpha1.ChartSpec{
+			Name: "chart",
+			Versions: []helmv1alpha1.ChartVersion{
+				{
+					Name: "0.0.1",
+					URL:  "https://foo.bar/charts/foo-0.0.1.tgz",
+				},
+			},
+			APIVersion: "0.0.1",
+		},
+	}).Return(nil).Run(func(args mock.Arguments) {
+
 	})
 
 	var payload []byte

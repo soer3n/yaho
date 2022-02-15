@@ -3,11 +3,7 @@ package release
 import (
 	"context"
 	b64 "encoding/base64"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -22,8 +18,7 @@ import (
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -40,7 +35,11 @@ func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger lo
 	reqLogger.Info("init new release", "name", instance.Spec.Name, "repo", instance.Spec.Repo)
 
 	helmRelease = &Release{
-		Name:      instance.Spec.Name,
+		Name: instance.Spec.Name,
+		Namespace: Namespace{
+			Name: instance.ObjectMeta.Namespace,
+		},
+		Version:   instance.Spec.Version,
 		Repo:      instance.Spec.Repo,
 		Chart:     instance.Spec.Chart,
 		Settings:  settings,
@@ -53,13 +52,7 @@ func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger lo
 
 	helmRelease.logger.Info("parsed config", "name", instance.Spec.Name, "cache", helmRelease.Settings.RepositoryCache)
 
-	if instance.Spec.ValuesTemplate != nil {
-		if instance.Spec.ValuesTemplate.ValueRefs != nil {
-			helmRelease.ValuesTemplate = &values.ValueTemplate{
-				ValuesRef: []*values.ValuesRef{},
-			}
-		}
-	}
+	helmRelease.ValuesTemplate = values.New(instance, helmRelease.logger, helmRelease.K8sClient)
 
 	return helmRelease
 }
@@ -123,13 +116,6 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 	return nil
 }
 
-// InitValuesTemplate represents initialization of value template by list of refs from kubernetes api
-func (hc *Release) InitValuesTemplate(refList []*values.ValuesRef, version, namespace string) {
-	hc.ValuesTemplate = values.New(refList, hc.logger)
-	hc.Namespace.Name = namespace
-	hc.Version = version
-}
-
 func (hc *Release) setInstallFlags(client *action.Install) {
 	if hc.Flags == nil {
 		hc.logger.Info("no flags set for release", "name", hc.Name, "chart", hc.Chart, "repo", hc.Repo)
@@ -165,57 +151,32 @@ func (hc *Release) setUpgradeFlags(client *action.Upgrade) {
 	client.CleanupOnFail = hc.Flags.CleanupOnFail
 }
 
+func (hc *Release) getControllerRepo(name, namespace string) (*helmv1alpha1.Repo, error) {
+	instance := &helmv1alpha1.Repo{}
+
+	err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
+		Name:      name,
+		Namespace: namespace,
+	}, instance)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			hc.logger.Info("HelmRepo resource not found. Ignoring since object must be deleted")
+			return instance, err
+		}
+		// Error reading the object - requeue the request.
+		hc.logger.Error(err, "Failed to get ControllerRepo")
+		return instance, err
+	}
+
+	return instance, nil
+}
+
 // Remove represents removing release related resource
 func (hc Release) Remove() error {
 	client := action.NewUninstall(hc.Config)
 	_, err := client.Run(hc.Name)
 	return err
-}
-
-func (hc *Release) getValues() (map[string]interface{}, error) {
-	templateObj := hc.ValuesTemplate
-
-	returnValues, err := templateObj.ManageValues()
-	if err != nil {
-		return templateObj.Values, err
-	}
-
-	hc.Values = templateObj.Values
-	hc.ValuesTemplate.ValuesMap = templateObj.ValuesMap
-
-	return returnValues, nil
-}
-
-func (hc Release) getInstalledValues() (map[string]interface{}, error) {
-	client := action.NewGetValues(hc.Config)
-	return client.Run(hc.Name)
-}
-
-func (hc Release) valuesChanged(vals map[string]interface{}) (bool, error) {
-	var installedValues map[string]interface{}
-	var err error
-
-	if installedValues, err = hc.getInstalledValues(); err != nil {
-		return false, err
-	}
-
-	hc.logger.Info("values parsed", "name", hc.Name, "chart", hc.Chart, "repo", hc.Repo, "values", installedValues)
-
-	for key := range installedValues {
-		if _, ok := vals[key]; !ok {
-			hc.logger.Error(err, "missing key", "key", key)
-		}
-	}
-
-	if len(vals) < 1 && len(installedValues) < 1 {
-		return false, nil
-	}
-
-	if reflect.DeepEqual(installedValues, vals) {
-		return false, nil
-	}
-
-	return true, nil
 }
 
 func (hc Release) getRelease() (*release.Release, error) {
@@ -255,7 +216,7 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	files := hc.getFiles(chartName, versionObj.Name, chartObj)
 
 	if len(files) < 1 {
-		return helmChart, errors.New("no files detected for chart resource")
+		return helmChart, errors.NewBadRequest("no files detected for chart resource")
 	}
 
 	helmChart.Metadata.Name = chartName
@@ -280,142 +241,6 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	}
 
 	return helmChart, nil
-}
-
-func (hc Release) getFiles(chartName, chartVersion string, helmChart *helmv1alpha1.Chart) []*helmchart.File {
-	files := []*helmchart.File{}
-
-	temp := hc.appendFilesFromConfigMap(chartName + "-" + chartVersion + "-tmpl")
-	files = append(files, temp...)
-
-	temp = hc.appendFilesFromConfigMap(chartName + "-" + chartVersion + "-crds")
-	files = append(files, temp...)
-
-	return files
-}
-
-func (hc Release) addDependencies(chart *helmchart.Chart, deps []*helmv1alpha1.ChartDep, vals chartutil.Values, selectors map[string]string) error {
-	var chartList helmv1alpha1.ChartList
-	var err error
-
-	selectorObj := client.MatchingLabels{}
-
-	for k, selector := range selectors {
-		selectorObj[k] = selector
-	}
-
-	if err = hc.K8sClient.List(context.Background(), &chartList, selectorObj, client.InNamespace(hc.Namespace.Name)); err != nil {
-		return err
-	}
-
-	options := &action.ChartPathOptions{}
-
-	for _, item := range chartList.Items {
-		for _, dep := range deps {
-			if item.Spec.Name == dep.Name {
-				options.RepoURL = dep.Repo
-				options.Version = dep.Version
-				var valueObj chartutil.Values
-
-				depCondition := true
-				conditional := strings.Split(dep.Condition, ".")
-
-				if len(conditional) == 0 || len(conditional) > 2 {
-					hc.logger.Error(err, "failed to parse conditional for subchart", "name", hc.Name, "dependency", dep.Name)
-					continue
-				}
-
-				// parse sub values for dependency
-				subChartCondition, _ := vals[conditional[0]].(map[string]interface{})
-
-				// getting subchart default value configmap
-				subVals := hc.getDefaultValuesFromConfigMap("helm-default-" + dep.Name + "-" + dep.Version)
-
-				// parse conditional to boolean
-				if subChartCondition != nil {
-					keyAsString := string(fmt.Sprint(subChartCondition[conditional[1]]))
-					depCondition, _ = strconv.ParseBool(keyAsString)
-				}
-
-				// check conditional
-				if depCondition {
-
-					subChart, _ := hc.getChart(item.Spec.Name, options, subVals)
-
-					if valueObj, err = chartutil.ToRenderValues(subChart, subVals, chartutil.ReleaseOptions{}, nil); err != nil {
-						return err
-					}
-
-					// get values as interface{}
-					valueMap := valueObj.AsMap()["Values"]
-					// cast to struct
-					castedMap, _ := valueMap.(chartutil.Values)
-					subChart.Values = castedMap
-					chart.AddDependency(subChart)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-func (hc Release) appendFilesFromConfigMap(name string) []*helmchart.File {
-	var err error
-
-	// configmap := &v1.ConfigMap{}
-	configmapList := v1.ConfigMapList{}
-	files := []*helmchart.File{}
-
-	selector := labels.NewSelector()
-	requirement, _ := labels.NewRequirement(configMapLabelKey, selection.Equals, []string{name})
-	selector = selector.Add(*requirement)
-
-	if err = hc.K8sClient.List(context.Background(), &configmapList, &client.ListOptions{
-		LabelSelector: selector,
-	}); err != nil {
-		return files
-	}
-
-	for _, configmap := range configmapList.Items {
-		for key, data := range configmap.BinaryData {
-			if name == "helm-crds-"+hc.Chart+"-"+hc.Version {
-				key = "crds/" + key
-			}
-
-			baseName := "templates/"
-
-			if configmap.ObjectMeta.Labels[configMapLabelSubName] != "" {
-				baseName = baseName + configmap.ObjectMeta.Labels[configMapLabelSubName] + "/"
-			}
-
-			file := &helmchart.File{
-				Name: baseName + key,
-				Data: data,
-			}
-			files = append(files, file)
-		}
-	}
-
-	return files
-}
-
-func (hc Release) getDefaultValuesFromConfigMap(name string) map[string]interface{} {
-	var err error
-	values := make(map[string]interface{})
-	configmap := &v1.ConfigMap{}
-
-	if err = hc.K8sClient.Get(context.Background(), types.NamespacedName{Namespace: hc.Namespace.Name, Name: name}, configmap); err != nil {
-		return values
-	}
-
-	jsonMap := make(map[string]interface{})
-
-	if err = json.Unmarshal([]byte(configmap.Data["values"]), &jsonMap); err != nil {
-		panic(err)
-	}
-
-	return jsonMap
 }
 
 func (hc Release) getRepo() (helmv1alpha1.Repo, error) {

@@ -1,0 +1,13 @@
+---
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Release
+metadata:
+  name: cilium
+  namespace: helm
+spec:
+  name: cilium
+  namespace: kube-system
+  config: cilium-config
+  repo: cilium
+  chart: cilium
+  version: 1.11.0

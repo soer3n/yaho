@@ -6,14 +6,12 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/internal/release"
-	"github.com/soer3n/yaho/internal/values"
-	"github.com/soer3n/yaho/tests/mocks"
 	helmmocks "github.com/soer3n/yaho/tests/mocks/helm"
-	unstructuredmocks "github.com/soer3n/yaho/tests/mocks/unstructured"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
+	"k8s.io/kubectl/pkg/scheme"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -39,12 +37,13 @@ func TestReleaseConfigMaps(t *testing.T) {
 		}
 
 		testObj.Version = current.Spec.Version
-		cmList, chartUpdateList := testObj.GetParsedConfigMaps("")
+		_ = helmv1alpha1.AddToScheme(scheme.Scheme)
+		err := testObj.UpdateAffectedResources(scheme.Scheme)
 		// TODO: why is dependency chart not correctly parsed
-		expect, _ := apiObj.ReturnValue.(map[string]int)
-
-		assert.Len(cmList, expect["configmap"])
-		assert.Len(chartUpdateList, expect["chart"])
+		//expect, _ := apiObj.ReturnValue.(map[string]int)
+		assert.Nil(err)
+		// assert.Len(cmList, expect["configmap"])
+		// assert.Len(chartUpdateList, expect["chart"])
 	}
 }
 
@@ -83,34 +82,5 @@ func TestReleaseUpdate(t *testing.T) {
 			Install: false,
 		})
 		assert.Equal(apiObj.ReturnError, err)
-	}
-}
-
-func TestReleaseInitValuesTemplate(t *testing.T) {
-	clientMock := unstructuredmocks.K8SClientMock{}
-	httpMock := mocks.HTTPClientMock{}
-	settings := cli.New()
-	apiObjList := testcases.GetTestReleaseValueRefListSpec()
-	testRelease := &helmv1alpha1.Release{
-		Spec: helmv1alpha1.ReleaseSpec{
-			Name:    "test",
-			Chart:   "chart",
-			Repo:    "repo",
-			Version: "0.0.1",
-			ValuesTemplate: &helmv1alpha1.ValueTemplate{
-				ValueRefs: []string{"notpresent"},
-			},
-		},
-	}
-
-	assert := assert.New(t)
-
-	for _, apiObj := range apiObjList {
-
-		current := apiObj.Input.([]*values.ValuesRef)
-		testObj := release.New(testRelease, settings, logf.Log, &clientMock, &httpMock, kube.Client{})
-		testObj.InitValuesTemplate(current, "namespace", "v0.0.1")
-		expect := apiObj.ReturnValue.(map[string]interface{})
-		assert.Equal(expect, testObj.Values)
 	}
 }

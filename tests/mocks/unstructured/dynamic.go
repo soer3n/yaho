@@ -26,6 +26,20 @@ func (client *K8SClientMock) Get(ctx context.Context, key types.NamespacedName, 
 	return err
 }
 
+// Patch represents mock func for similar dynamic runtime client func
+func (client *K8SClientMock) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+	args := client.Called(ctx, obj, patch)
+	err := args.Error(0)
+	return err
+}
+
+// Update represents mock func for similar dynamic runtime client func
+func (client *K8SClientMock) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+	args := client.Called(ctx, obj)
+	err := args.Error(0)
+	return err
+}
+
 // Resource represents mock func for similar dynamic runtime client func for getting a resource struct
 func (getter *K8SDynamicClientMock) Resource(resource schema.GroupVersionResource) dynamic.NamespaceableResourceInterface {
 	args := getter.Called(resource)

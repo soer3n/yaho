@@ -19,17 +19,13 @@ package helm
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	"github.com/soer3n/yaho/internal/chart"
 	"github.com/soer3n/yaho/internal/repository"
-	oputils "github.com/soer3n/yaho/internal/utils"
+	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
@@ -97,7 +93,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		},
 	}
 
-	settings := oputils.GetEnvSettings(map[string]string{})
+	settings := utils.GetEnvSettings(map[string]string{})
 
 	c := kube.Client{
 		Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
@@ -121,104 +117,13 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	err = r.deploy(instance, hc)
+	if err = hc.Deploy(instance, r.Scheme); err != nil {
+		return r.syncStatus(context.Background(), instance, err)
+	}
 
 	reqLogger.Info("Repo deployed", "name", instance.Spec.Name, "namespace", instance.ObjectMeta.Namespace)
 	reqLogger.Info("Don't reconcile repos.", "name", instance.Spec.Name)
 	return r.syncStatus(context.Background(), instance, err)
-}
-
-func (r *RepoReconciler) deploy(instance *helmv1alpha1.Repo, helmRepo *repository.Repo) error {
-	var chartList []*chart.Chart
-	var err error
-
-	settings := oputils.GetEnvSettings(map[string]string{})
-
-	// helmRepo := hc.GetRepo(instance.Spec.Name)
-	label, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
-	selector := map[string]string{"repo": helmRepo.Name}
-
-	if repoGroupLabelOk && label != "" {
-		selector["repoGroup"] = instance.ObjectMeta.Labels["repoGroup"]
-	}
-
-	if chartList, err = helmRepo.GetCharts(settings, selector); err != nil {
-		r.Log.Info("Error on getting charts", "repo", instance.Spec.Name)
-	}
-
-	chartObjMap := make(map[string]*helmv1alpha1.Chart)
-
-	for _, chart := range chartList {
-		chartObjMap = chart.AddOrUpdateChartMap(chartObjMap, instance)
-	}
-
-	// this is use just for using channels, goroutines and waitGroup
-	// could be senseful here if we have to deal with big repositories
-	var wg sync.WaitGroup
-	c := make(chan string, 1)
-
-	for _, chartObj := range chartObjMap {
-		wg.Add(1)
-
-		go func(helmChart *helmv1alpha1.Chart, instance *helmv1alpha1.Repo, c chan<- string) {
-			defer wg.Done()
-
-			if err := controllerutil.SetControllerReference(instance, helmChart, r.Scheme); err != nil {
-				r.Log.Error(err, "failed to set controller ref")
-			}
-
-			installedChart := &helmv1alpha1.Chart{}
-			err := r.Client.Get(context.Background(), client.ObjectKey{
-				Namespace: helmChart.ObjectMeta.Namespace,
-				Name:      helmChart.Spec.Name,
-			}, installedChart)
-			if err != nil {
-				if errors.IsNotFound(err) {
-					r.Log.Info("Trying to install HelmChart " + helmChart.Name)
-
-					if err = r.Client.Create(context.TODO(), helmChart); err != nil {
-						r.Log.Info(err.Error())
-						c <- installedChart.Spec.Name
-					}
-				}
-
-				c <- ""
-				return
-			}
-
-			installedChart.Spec = helmChart.Spec
-
-			err = r.Client.Update(context.TODO(), installedChart)
-
-			if err != nil {
-				c <- installedChart.Spec.Name
-			} else {
-				r.Log.Info("chart is up to date", "chart", installedChart.Spec.Name)
-				c <- ""
-			}
-		}(chartObj, instance, c)
-	}
-
-	go func() {
-		wg.Wait()
-		close(c)
-	}()
-
-	failedChartList := []string{}
-
-	for i := range c {
-		if i != "" {
-			failedChartList = append(failedChartList, i)
-		}
-	}
-
-	r.Log.Info("chart parsing for %s completed.", "chart", instance.ObjectMeta.Name)
-
-	if len(failedChartList) > 0 {
-		return fmt.Errorf("problems with charts: %v", strings.Join(failedChartList, ","))
-	}
-
-	return nil
 }
 
 func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Repo, err error) (ctrl.Result, error) {
@@ -252,7 +157,7 @@ func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1al
 		return true, nil
 	}
 
-	if !oputils.Contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
+	if !utils.Contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
 		r.Log.Info("Adding Finalizer for the Quarantine Resource")
 		controllerutil.AddFinalizer(instance, "finalizer.repo.helm.soer3n.info")
 		return true, nil

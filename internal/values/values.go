@@ -9,14 +9,32 @@ import (
 	"github.com/soer3n/yaho/internal/utils"
 	helmchart "helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chartutil"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // New represents initialization of internal struct for managing helm values
-func New(valuesList []*ValuesRef, logger logr.Logger) *ValueTemplate {
-	return &ValueTemplate{
-		ValuesRef: valuesList,
+func New(instance *helmv1alpha1.Release, logger logr.Logger, k8sClient client.Client) *ValueTemplate {
+
+	valuesList := []*helmv1alpha1.Values{}
+
+	hv := &ValueTemplate{
+		// ValuesRef: valuesList,
 		logger:    logger.WithValues("template", valuesList),
+		k8sClient: k8sClient,
 	}
+
+	if instance.Spec.ValuesTemplate != nil && instance.Spec.ValuesTemplate.ValueRefs != nil {
+		valuesList = hv.getValuesByReference(instance.Spec.ValuesTemplate.ValueRefs, instance.ObjectMeta.Namespace)
+	}
+
+	refList, err := hv.getRefList(valuesList, instance)
+
+	if err != nil {
+		hv.logger.Error(err, "error on parsing values list")
+	}
+
+	hv.ValuesRef = refList
+	return hv
 }
 
 // MergeValues returns map of input values and input chart default values
@@ -145,7 +163,7 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 			return valMap
 		}
 
-		hv.logger.Info("converting map succeeded", "map", convertedMap)
+		hv.logger.Info("converting map succeeded", "map length", len(convertedMap))
 
 		mapKey := ""
 

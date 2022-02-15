@@ -1,6 +1,6 @@
 ## Usage
 
-There is an more complex configuration sample in [these](examples/) directory. You should deploy all needed repositories before deploying a release or releasegroup. Kubectl can be used for filtering repos, charts and releases due to set labels by controllers.
+There is an more complex configuration sample in [these](../examples/) directory. You should deploy all needed repositories before deploying a release or releasegroup. Kubectl can be used for filtering repos, charts and releases due to set labels by controllers.
 
 ```
 

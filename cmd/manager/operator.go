@@ -15,11 +15,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package manager
+package main
 
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
@@ -41,8 +42,26 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
-// NewOperatorCmd represents the operator subcommand
-func NewOperatorCmd() *cobra.Command {
+func main() {
+	command := newRootCmd()
+
+	if err := command.Execute(); err != nil {
+		log.Fatal(err.Error())
+	}
+}
+
+func newRootCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "manager",
+		Short: "manager app",
+		Long:  `manager app`,
+	}
+
+	cmd.AddCommand(newOperatorCmd())
+	return cmd
+}
+
+func newOperatorCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "operator",
 		Short: "runs the operator",

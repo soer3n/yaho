@@ -12,6 +12,29 @@ import (
 
 // GetTestValueSpecs returns expected spec for testing helm values parsing
 func GetTestValueSpecs() []inttypes.TestCase {
+
+	releaseSpec := []inttypes.TestCase{
+		{
+			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "release",
+					Namespace: "release",
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:  "release",
+					Chart: "chart",
+					Repo:  "repo",
+					ValuesTemplate: &helmv1alpha1.ValueTemplate{
+						ValueRefs: []string{
+							"foo", "second", "third", "fourth",
+						},
+					},
+				},
+			},
+			ReturnError: nil,
+		},
+	}
+
 	firstVals := map[string]string{"foo": "bar"}
 	secVals := map[string]string{"foo": "bar"}
 	thirdVals := map[string]interface{}{"baf": "muh", "boo": map[string]string{
@@ -28,7 +51,7 @@ func GetTestValueSpecs() []inttypes.TestCase {
 	thirdValsRaw, _ := json.Marshal(thirdVals)
 	fourthValsRaw, _ := json.Marshal(fourthVals)
 
-	return []inttypes.TestCase{
+	_ = []inttypes.TestCase{
 		{
 			Input: []*values.ValuesRef{
 				{
@@ -98,4 +121,6 @@ func GetTestValueSpecs() []inttypes.TestCase {
 			ReturnError: nil,
 		},
 	}
+
+	return releaseSpec
 }

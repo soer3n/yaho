@@ -3,6 +3,7 @@ package values
 import (
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ValueTemplate represents struct for possible value inputs
@@ -12,6 +13,7 @@ type ValueTemplate struct {
 	ValuesMap  map[string]string
 	ValueFiles []string
 	logger     logr.Logger
+	k8sClient  client.Client
 }
 
 // ValuesRef represents struct for filtering values kubernetes resources by json tag

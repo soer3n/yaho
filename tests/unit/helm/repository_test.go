@@ -32,7 +32,7 @@ func TestRepoGetCharts(t *testing.T) {
 			selectors[k] = v
 		}
 
-		_, err := testObj.GetCharts(settings, selectors)
+		_, err := testObj.GetCharts(selectors)
 		assert.Equal(err, apiObj.ReturnError)
 	}
 }
