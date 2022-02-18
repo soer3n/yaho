@@ -52,13 +52,47 @@ func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger lo
 
 	helmRelease.logger.Info("parsed config", "name", instance.Spec.Name, "cache", helmRelease.Settings.RepositoryCache)
 
+	if instance.Spec.Config != nil {
+		if err := helmRelease.setOptions(instance.Spec.Config, &instance.Spec.Namespace); err != nil {
+			helmRelease.logger.Error(err, "set options", "name", instance.Spec.Name)
+		}
+	}
+
+	helmRelease.logger.Info("set options", "name", instance.Spec.Name)
+
 	helmRelease.ValuesTemplate = values.New(instance, helmRelease.logger, helmRelease.K8sClient)
 
 	return helmRelease
 }
 
+func (hc *Release) setOptions(name, namespace *string) error {
+
+	instance := &helmv1alpha1.Config{}
+
+	hc.logger.Info(hc.Namespace.Name)
+
+	err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
+		Name:      *name,
+		Namespace: hc.Namespace.Name,
+	}, instance)
+
+	if err != nil {
+		return err
+	}
+
+	hc.Flags = instance.Spec.Flags
+
+	for _, v := range instance.Spec.Namespace.Allowed {
+		if v == *namespace {
+			return nil
+		}
+	}
+
+	return errors.NewBadRequest("namespace not in allowed list")
+}
+
 // Update represents update or installation process of a release
-func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
+func (hc *Release) Update() error {
 	hc.logger.Info("config install: "+fmt.Sprint(hc.Config), "name", hc.Name, "repo", hc.Repo)
 
 	var release *release.Release
@@ -95,7 +129,7 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 		}
 
 		if ok {
-			return hc.upgrade(helmChart, vals, namespace.Name)
+			return hc.upgrade(helmChart, vals)
 		}
 
 		return nil
@@ -103,8 +137,8 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 
 	client := action.NewInstall(installConfig)
 	client.ReleaseName = hc.Name
-	client.Namespace = namespace.Name
-	client.CreateNamespace = namespace.Install
+	client.Namespace = hc.Namespace.Name
+	client.CreateNamespace = false
 	hc.setInstallFlags(client)
 
 	if release, err = client.Run(helmChart, vals); err != nil {
@@ -112,7 +146,7 @@ func (hc *Release) Update(namespace helmv1alpha1.Namespace) error {
 		return err
 	}
 
-	hc.logger.Info("release successfully installed.", "name", release.Name, "namespace", namespace, "chart", hc.Chart, "repo", hc.Repo)
+	hc.logger.Info("release successfully installed.", "name", release.Name, "namespace", release.Namespace, "chart", hc.Chart, "repo", hc.Repo)
 	return nil
 }
 
@@ -314,12 +348,12 @@ func (hc Release) validateChartSpec(deps []*helmchart.Chart, version *helmv1alph
 	return nil
 }
 
-func (hc Release) upgrade(helmChart *helmchart.Chart, vals chartutil.Values, namespace string) error {
+func (hc Release) upgrade(helmChart *helmchart.Chart, vals chartutil.Values) error {
 	var rel *release.Release
 	var err error
 
 	client := action.NewUpgrade(hc.Config)
-	client.Namespace = namespace
+	client.Namespace = hc.Namespace.Name
 	hc.setUpgradeFlags(client)
 
 	if rel, err = client.Run(hc.Name, helmChart, vals); err != nil {

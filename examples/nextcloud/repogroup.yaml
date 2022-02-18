@@ -10,3 +10,29 @@ spec:
       url: https://nextcloud.github.io/helm/
     - name: bitnami
       url: https://charts.bitnami.com/bitnami
+
+---
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Config
+metadata:
+  name: nextcloud-config
+  namespace: helm
+spec:
+  namespace:
+    install: false
+    allowed:
+    - share
+    - nextcloud
+  flags:
+    atomic: false
+    skipCRDs: false
+    subNotes: true
+    disableOpenAPIValidation: false
+    dryRun: false
+    disableHooks: false
+    wait: false
+    cleanupOnFail: false
+    recreate: false
+    timeout: 3600
+    force: false
+    description: "test description"

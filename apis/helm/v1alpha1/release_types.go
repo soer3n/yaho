@@ -18,8 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package v1alpha1
 
 import (
-	"time"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -32,39 +30,17 @@ type ReleaseSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	Name           string         `json:"name"`
-	Namespace      Namespace      `json:"namespace,omitempty"`
+	Namespace      string         `json:"namespace,omitempty"`
 	Repo           string         `json:"repo"`
 	Chart          string         `json:"chart"`
 	Version        string         `json:"version,omitempty"`
+	Config         *string        `json:"config,omitempty"`
 	ValuesTemplate *ValueTemplate `json:"releaseSpec,omitempty"`
-	Flags          *Flags         `json:"flags,omitempty"`
 }
 
 // ValueTemplate represents data for install process of a release
 type ValueTemplate struct {
 	ValueRefs []string `json:"valueRefs,omitempty"`
-}
-
-// Flags represents data for parsing flags for creating release resources
-type Flags struct {
-	Atomic                   bool          `json:"atomic,omitempty"`
-	SkipCRDs                 bool          `json:"skipCRDs,omitempty"`
-	SubNotes                 bool          `json:"subNotes,omitempty"`
-	DisableOpenAPIValidation bool          `json:"disableOpenAPIValidation,omitempty"`
-	DryRun                   bool          `json:"dryRun,omitempty"`
-	DisableHooks             bool          `json:"disableHooks,omitempty"`
-	Wait                     bool          `json:"wait,omitempty"`
-	Timeout                  time.Duration `json:"timeout,omitempty"`
-	Force                    bool          `json:"force,omitempty"`
-	Description              string        `json:"description,omitempty"`
-	Recreate                 bool          `json:"recreate,omitempty"`
-	CleanupOnFail            bool          `json:"cleanupOnFail,omitempty"`
-}
-
-// Namespace represents struct for release namespace data
-type Namespace struct {
-	Name    string `json:"name,omitempty"`
-	Install bool   `json:"install,omitempty"`
 }
 
 // ReleaseStatus defines the observed state of Release

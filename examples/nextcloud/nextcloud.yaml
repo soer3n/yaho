@@ -5,28 +5,13 @@ metadata:
   namespace: helm
 spec:
   name: nextcloud
-  namespace:
-    install: true
-    name: share
+  namespace: share
+  config: nextcloud-config
   repo: nextcloud
   chart: nextcloud
   version: 2.6.5
-  releaseSpec:
-    valueRefs:
-    - values-nextcloud
-    - values-redis
-    - values-db-nextcloud
-    - values-nginx-nextcloud
-  flags:
-    atomic: false
-    skipCRDs: false
-    subNotes: true
-    disableOpenAPIValidation: false
-    dryRun: false
-    disableHooks: false
-    wait: false
-    cleanupOnFail: false
-    recreate: false
-    timeout: 3600
-    force: false
-    description: "test description"
+  values:
+  - values-nextcloud
+  - values-redis
+  - values-db-nextcloud
+  - values-nginx-nextcloud

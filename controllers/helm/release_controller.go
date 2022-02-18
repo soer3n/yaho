@@ -93,11 +93,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	releaseNamespace := instance.Spec.Namespace
 
-	if releaseNamespace.Name == "" {
-		releaseNamespace.Name = instance.ObjectMeta.Namespace
+	if releaseNamespace == "" {
+		releaseNamespace = instance.ObjectMeta.Namespace
 	}
 
-	_ = os.Setenv("HELM_NAMESPACE", releaseNamespace.Name)
+	_ = os.Setenv("HELM_NAMESPACE", releaseNamespace)
 
 	settings := utils.GetEnvSettings(map[string]string{})
 	c := kube.Client{
@@ -131,9 +131,9 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// set flags for helm action from spec
-	helmRelease.Flags = instance.Spec.Flags
+	// helmRelease.Flags = instance.Spec.Flags
 
-	if err := helmRelease.Update(releaseNamespace); err != nil {
+	if err := helmRelease.Update(); err != nil {
 		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
 	}
 

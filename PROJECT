@@ -1,34 +1,69 @@
 domain: soer3n.info
-layout: go.kubebuilder.io/v3
+layout:
+- go.kubebuilder.io/v3
 multigroup: true
-projectName: apps-operators
-repo: github.com/soer3n/apps-operator
-resources:
-- crdVersion: v1
-  group: helm
-  kind: Repo
-  version: v1alpha1
-- crdVersion: v1
-  group: helm
-  kind: RepoGroup
-  version: v1alpha1
-- crdVersion: v1
-  group: helm
-  kind: Release
-  version: v1alpha1
-- crdVersion: v1
-  group: helm
-  kind: ReleaseGroup
-  version: v1alpha1
-- crdVersion: v1
-  group: helm
-  kind: Chart
-  version: v1alpha1
-- crdVersion: v1
-  group: helm
-  kind: Values
-  version: v1alpha1
-version: 3-alpha
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
+projectName: apps-operators
+repo: github.com/soer3n/apps-operator
+resources:
+- api:
+    crdVersion: v1
+  domain: soer3n.info
+  group: helm
+  kind: Repo
+  path: github.com/soer3n/yaho/apis/helm/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+  domain: soer3n.info
+  group: helm
+  kind: RepoGroup
+  path: github.com/soer3n/yaho/apis/helm/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+  domain: soer3n.info
+  group: helm
+  kind: Release
+  path: github.com/soer3n/yaho/apis/helm/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+  domain: soer3n.info
+  group: helm
+  kind: ReleaseGroup
+  path: github.com/soer3n/yaho/apis/helm/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+  domain: soer3n.info
+  group: helm
+  kind: Chart
+  path: github.com/soer3n/yaho/apis/helm/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+  domain: soer3n.info
+  group: helm
+  kind: Values
+  path: github.com/soer3n/yaho/apis/helm/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: soer3n.info
+  group: helm.soer3n.info
+  kind: Config
+  path: github.com/soer3n/apps-operator/apis/helm.soer3n.info/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: soer3n.info
+  group: helm
+  kind: Config
+  path: github.com/soer3n/apps-operator/apis/helm/v1alpha1
+  version: v1alpha1
+version: "3"
