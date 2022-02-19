@@ -3,6 +3,7 @@ package chart
 import (
 	"encoding/json"
 	"strings"
+	"sync"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"helm.sh/helm/v3/pkg/chart"
@@ -89,21 +90,37 @@ func (chartVersion ChartVersion) createDependenciesList(chartMeta *chart.Metadat
 	return deps
 }
 
-func (chartVersion ChartVersion) CreateConfigMaps(namespace string, deps []*chart.Chart) []v1.ConfigMap {
-	returnList := []v1.ConfigMap{}
+func (chartVersion ChartVersion) CreateConfigMaps(cm chan v1.ConfigMap, mu *sync.Mutex, namespace string, deps []*chart.Chart) error {
 
-	returnList = append(returnList, chartVersion.createTemplateConfigMap("tmpl", namespace, chartVersion.Templates)...)
-	returnList = append(returnList, chartVersion.createTemplateConfigMap("crds", namespace, chartVersion.CRDs)...)
-	returnList = append(returnList, chartVersion.createDefaultValueConfigMap(namespace, chartVersion.DefaultValues))
+	wg := &sync.WaitGroup{}
 
-	cms := chartVersion.createDependenciesConfigMaps(namespace, deps)
-	returnList = append(returnList, cms...)
+	wg.Add(4)
 
-	return returnList
+	go func() {
+		chartVersion.createTemplateConfigMap(cm, mu, "tmpl", namespace, chartVersion.Templates)
+		wg.Done()
+	}()
+
+	go func() {
+		chartVersion.createTemplateConfigMap(cm, mu, "crds", namespace, chartVersion.CRDs)
+		wg.Done()
+	}()
+
+	go func() {
+		chartVersion.createDefaultValueConfigMap(cm, mu, namespace, chartVersion.DefaultValues)
+		wg.Done()
+	}()
+
+	go func() {
+		chartVersion.createDependenciesConfigMaps(cm, mu, namespace, deps)
+		wg.Done()
+	}()
+
+	wg.Wait()
+	return nil
 }
 
-func (chartVersion ChartVersion) createDependenciesConfigMaps(namespace string, deps []*chart.Chart) []v1.ConfigMap {
-	cmList := []v1.ConfigMap{}
+func (chartVersion ChartVersion) createDependenciesConfigMaps(cm chan v1.ConfigMap, mu *sync.Mutex, namespace string, deps []*chart.Chart) {
 	immutable := new(bool)
 	*immutable = true
 
@@ -115,7 +132,7 @@ func (chartVersion ChartVersion) createDependenciesConfigMaps(namespace string, 
 			binaryData[path[len(path)-1]] = entry.Data
 		}
 
-		cmList = append(cmList, v1.ConfigMap{
+		cm <- v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "helm-tmpl-" + dep.Name() + "-" + dep.Metadata.Version,
 				Namespace: namespace,
@@ -125,7 +142,7 @@ func (chartVersion ChartVersion) createDependenciesConfigMaps(namespace string, 
 			},
 			Immutable:  immutable,
 			BinaryData: binaryData,
-		})
+		}
 
 		binaryData = make(map[string][]byte)
 
@@ -134,18 +151,18 @@ func (chartVersion ChartVersion) createDependenciesConfigMaps(namespace string, 
 			binaryData[path[len(path)-1]] = entry.Data
 		}
 
-		cmList = append(cmList, v1.ConfigMap{
+		cm <- v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "helm-crds-" + dep.Name() + "-" + dep.Metadata.Version,
 				Namespace: namespace,
 			},
 			Immutable:  immutable,
 			BinaryData: binaryData,
-		})
+		}
 
 		castedValues, _ := json.Marshal(dep.Values)
 
-		cmList = append(cmList, v1.ConfigMap{
+		cm <- v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "helm-default-" + dep.Name() + "-" + dep.Metadata.Version,
 				Namespace: namespace,
@@ -154,16 +171,13 @@ func (chartVersion ChartVersion) createDependenciesConfigMaps(namespace string, 
 			Data: map[string]string{
 				"values": string(castedValues),
 			},
-		})
+		}
 
-		subConfigMaps := chartVersion.createDependenciesConfigMaps(namespace, dep.Dependencies())
-		cmList = append(cmList, subConfigMaps...)
+		go chartVersion.createDependenciesConfigMaps(cm, mu, namespace, dep.Dependencies())
 	}
-
-	return cmList
 }
 
-func (chartVersion ChartVersion) createTemplateConfigMap(name string, namespace string, list []*chart.File) []v1.ConfigMap {
+func (chartVersion ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, mu *sync.Mutex, name string, namespace string, list []*chart.File) {
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
@@ -179,7 +193,6 @@ func (chartVersion ChartVersion) createTemplateConfigMap(name string, namespace 
 	}
 
 	configMapMap := make(map[string]v1.ConfigMap)
-	configMapList := []v1.ConfigMap{}
 
 	binaryData := make(map[string][]byte)
 
@@ -218,16 +231,15 @@ func (chartVersion ChartVersion) createTemplateConfigMap(name string, namespace 
 	}
 
 	baseConfigmap.BinaryData = binaryData
-	configMapList = append(configMapList, baseConfigmap)
+	cm <- baseConfigmap
 
-	for _, c := range configMapMap {
-		configMapList = append(configMapList, c)
+	for _, configmap := range configMapMap {
+		cm <- configmap
 	}
 
-	return configMapList
 }
 
-func (chartVersion ChartVersion) createDefaultValueConfigMap(namespace string, values map[string]interface{}) v1.ConfigMap {
+func (chartVersion ChartVersion) createDefaultValueConfigMap(cm chan v1.ConfigMap, mu *sync.Mutex, namespace string, values map[string]interface{}) {
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
@@ -243,5 +255,5 @@ func (chartVersion ChartVersion) createDefaultValueConfigMap(namespace string, v
 	castedValues, _ := json.Marshal(values)
 	configmap.Data["values"] = string(castedValues)
 
-	return configmap
+	cm <- configmap
 }

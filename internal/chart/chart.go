@@ -8,7 +8,6 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/repo"
-	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -51,16 +50,4 @@ func (chart *Chart) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Cha
 	}
 
 	return chartObjMap
-}
-
-// CreateConfigMaps represents the creation of needed configmaps related to a chart
-func (chart Chart) CreateConfigMaps() []v1.ConfigMap {
-	returnList := []v1.ConfigMap{}
-
-	for _, version := range chart.Versions {
-		versionConfigMaps := version.CreateConfigMaps(chart.Settings.Namespace(), nil)
-		returnList = append(returnList, versionConfigMaps...)
-	}
-
-	return returnList
 }

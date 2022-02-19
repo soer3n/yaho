@@ -1,6 +1,8 @@
 package release
 
 import (
+	"sync"
+
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/internal/utils"
@@ -33,6 +35,8 @@ type Release struct {
 	K8sClient      client.Client
 	getter         utils.HTTPClientInterface
 	logger         logr.Logger
+	wg             *sync.WaitGroup
+	mu             *sync.Mutex
 }
 
 // Namespace represents struct with release namespace name and if it should be installed

@@ -122,19 +122,16 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
-	if instance.Spec.ValuesTemplate == nil {
-		instance.Spec.ValuesTemplate = &helmv1alpha1.ValueTemplate{}
+	if instance.Spec.Values == nil {
+		instance.Spec.Values = []string{}
 	}
 
 	if err := helmRelease.UpdateAffectedResources(r.Scheme); err != nil {
-		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
+		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "prepareFailed", err.Error())
 	}
 
-	// set flags for helm action from spec
-	// helmRelease.Flags = instance.Spec.Flags
-
 	if err := helmRelease.Update(); err != nil {
-		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "failed", err.Error())
+		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "updateFailed", err.Error())
 	}
 
 	r.Log.Info("Don't reconcile releases.")
@@ -162,7 +159,8 @@ func (r *ReleaseReconciler) handleFinalizer(helmRelease *release.Release, instan
 }
 
 func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Release, stats metav1.ConditionStatus, reason, message string) (ctrl.Result, error) {
-	if meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", stats) && instance.Status.Conditions[0].Message == message {
+	c := meta.FindStatusCondition(instance.Status.Conditions, "synced")
+	if c != nil && c.Message == message && c.Status == stats {
 		return ctrl.Result{}, nil
 	}
 

@@ -29,18 +29,13 @@ type ReleaseSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Name           string         `json:"name"`
-	Namespace      string         `json:"namespace,omitempty"`
-	Repo           string         `json:"repo"`
-	Chart          string         `json:"chart"`
-	Version        string         `json:"version,omitempty"`
-	Config         *string        `json:"config,omitempty"`
-	ValuesTemplate *ValueTemplate `json:"releaseSpec,omitempty"`
-}
-
-// ValueTemplate represents data for install process of a release
-type ValueTemplate struct {
-	ValueRefs []string `json:"valueRefs,omitempty"`
+	Name      string   `json:"name"`
+	Namespace string   `json:"namespace,omitempty"`
+	Repo      string   `json:"repo"`
+	Chart     string   `json:"chart"`
+	Version   string   `json:"version,omitempty"`
+	Config    *string  `json:"config,omitempty"`
+	Values    []string `json:"values,omitempty"`
 }
 
 // ReleaseStatus defines the observed state of Release

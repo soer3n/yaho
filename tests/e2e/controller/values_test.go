@@ -176,11 +176,9 @@ var _ = Context("Install a release with values", func() {
 					Chart:   testReleaseChartName,
 					Repo:    testRepoName,
 					Version: testReleaseChartVersion,
-					ValuesTemplate: &helmv1alpha1.ValueTemplate{
-						ValueRefs: []string{
-							"testresource",
-							"notpresent",
-						},
+					Values: []string{
+						"testresource",
+						"notpresent",
 					},
 				},
 			}
@@ -250,10 +248,8 @@ var _ = Context("Install a release with values", func() {
 					Chart:   testReleaseChartNameSecond,
 					Repo:    testRepoNameSecond,
 					Version: testReleaseChartVersionSecond,
-					ValuesTemplate: &helmv1alpha1.ValueTemplate{
-						ValueRefs: []string{
-							"testresource",
-						},
+					Values: []string{
+						"testresource",
 					},
 				},
 			}

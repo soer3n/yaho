@@ -134,9 +134,7 @@ var _ = Context("Install a release", func() {
 				Name:      testReleaseName,
 				Namespace: namespace,
 			}, existigRelease)
-			existigRelease.Spec.ValuesTemplate = &helmv1alpha1.ValueTemplate{
-				ValueRefs: []string{"notpresent"},
-			}
+			existigRelease.Spec.Values = []string{"notpresent"}
 			Expect(err).NotTo(HaveOccurred(), "failed to get test resource")
 
 			err = testClient.Update(context.Background(), existigRelease)

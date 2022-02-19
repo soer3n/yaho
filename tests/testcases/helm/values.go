@@ -24,10 +24,8 @@ func GetTestValueSpecs() []inttypes.TestCase {
 					Name:  "release",
 					Chart: "chart",
 					Repo:  "repo",
-					ValuesTemplate: &helmv1alpha1.ValueTemplate{
-						ValueRefs: []string{
-							"foo", "second", "third", "fourth",
-						},
+					Values: []string{
+						"foo", "second", "third", "fourth",
 					},
 				},
 			},

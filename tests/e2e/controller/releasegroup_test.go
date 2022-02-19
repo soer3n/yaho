@@ -97,10 +97,8 @@ var _ = Context("Install a releasegroup", func() {
 							Chart:   testReleaseChartNameSecond,
 							Repo:    testRepoNameSecond,
 							Version: testReleaseChartVersionSecond,
-							ValuesTemplate: &helmv1alpha1.ValueTemplate{
-								ValueRefs: []string{
-									"notpresent",
-								},
+							Values: []string{
+								"notpresent",
 							},
 						},
 					},

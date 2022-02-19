@@ -15,20 +15,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func TestChartCreateConfigMaps(t *testing.T) {
-	settings := cli.New()
-	clientMock, httpMock := helmmocks.GetChartMock()
-
-	assert := assert.New(t)
-
-	for _, v := range testcases.GetTestRepoChartVersions() {
-		ver := v.Input.([]*repo.ChartVersion)
-		testObj := chart.New(ver, settings, logf.Log, "test", clientMock, httpMock, kube.Client{})
-		maps := testObj.CreateConfigMaps()
-		assert.NotNil(maps)
-	}
-}
-
 func TestChartAddOrUpdateMap(t *testing.T) {
 	settings := cli.New()
 	clientMock, httpMock := helmmocks.GetChartMock()

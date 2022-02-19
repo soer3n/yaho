@@ -112,8 +112,8 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 				helmRelease.ObjectMeta.Labels["repoGroup"] = instance.Spec.LabelSelector
 			}
 
-			if release.ValuesTemplate != nil {
-				helmRelease.Spec.ValuesTemplate = release.ValuesTemplate
+			if release.Values != nil {
+				helmRelease.Spec.Values = release.Values
 			}
 
 			err := controllerutil.SetControllerReference(instance, helmRelease, r.Scheme)

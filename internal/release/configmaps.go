@@ -20,18 +20,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// getParsedConfigMaps represents parsing and returning of chart related data for a release
-func (hc *Release) getParsedConfigMaps(namespace string) ([]v1.ConfigMap, []helmv1alpha1.Chart) {
+// parsedConfigMaps represents parsing and returning of chart related data for a release
+func (hc *Release) parseConfigMaps(c chan helmv1alpha1.Chart, cm chan v1.ConfigMap) error {
 	var chartRequested *helmchart.Chart
 	var repoObj helmv1alpha1.Repo
 	var chartObj helmv1alpha1.Chart
-	chartObjList := &helmv1alpha1.ChartList{}
-	chartObjList.Items = []helmv1alpha1.Chart{}
-	var chartURL string
 	var specValues map[string]interface{}
 	var err error
 
-	configmapList := []v1.ConfigMap{}
 	installConfig := hc.Config
 	releaseClient := action.NewInstall(installConfig)
 	releaseClient.ReleaseName = hc.Name
@@ -39,7 +35,7 @@ func (hc *Release) getParsedConfigMaps(namespace string) ([]v1.ConfigMap, []helm
 	chartVersion := &chart.ChartVersion{}
 
 	if repoObj, err = hc.getRepo(); err != nil {
-		return configmapList, chartObjList.Items
+		return err
 	}
 
 	options := &action.ChartPathOptions{}
@@ -47,34 +43,20 @@ func (hc *Release) getParsedConfigMaps(namespace string) ([]v1.ConfigMap, []helm
 	options.Version = hc.Version
 
 	if specValues, err = hc.getValues(); err != nil {
-		return configmapList, chartObjList.Items
+		return err
 	}
 
 	if chartRequested, err = hc.getChart(hc.Chart, options, specValues); err != nil {
-
-		if chartURL, err = chart.GetChartURL(hc.K8sClient, hc.Chart, hc.Version, hc.Namespace.Name); err != nil {
-			return configmapList, chartObjList.Items
-		}
-
-		releaseClient.ReleaseName = hc.Name
-		releaseClient.Version = hc.Version
-		releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.URL
-		credentials := &chart.Auth{}
-
-		if repoObj.Spec.AuthSecret != "" {
-			credentials = hc.getCredentials(repoObj.Spec.AuthSecret)
-		}
-
-		if chartRequested, err = chart.GetChartByURL(chartURL, credentials, hc.getter); err != nil {
-			return configmapList, chartObjList.Items
+		if chartRequested, err = hc.loadChart(releaseClient, repoObj); err != nil {
+			return err
 		}
 	}
 
 	if err = hc.K8sClient.Get(context.Background(), types.NamespacedName{
-		Namespace: namespace,
+		Namespace: hc.Namespace.Name,
 		Name:      hc.Chart,
 	}, &chartObj); err != nil {
-		return configmapList, chartObjList.Items
+		return err
 	}
 
 	chartVersion.Version = &repo.ChartVersion{
@@ -89,18 +71,25 @@ func (hc *Release) getParsedConfigMaps(namespace string) ([]v1.ConfigMap, []helm
 	chartVersion.DefaultValues = chartRequested.Values
 	deps := chartRequested.Dependencies()
 	version := utils.GetChartVersion(hc.Version, &chartObj)
-
-	for _, v := range version.Dependencies {
-		if err := hc.validateChartSpec(deps, v, chartObjList); err != nil {
-			return configmapList, chartObjList.Items
-		}
-	}
-
 	chartVersion.Version.Metadata.Version = version.Name
-	configmapList = chartVersion.CreateConfigMaps(hc.Namespace.Name, deps)
-	// chartObjList = append(chartObjList, &chartObj)
 
-	return configmapList, chartObjList.Items
+	go func() {
+		for _, v := range version.Dependencies {
+			if err := hc.validateChartSpec(c, deps, v); err != nil {
+				hc.logger.Error(err, "error on validating dep chart")
+			}
+		}
+		close(c)
+	}()
+
+	go func() {
+		if err := chartVersion.CreateConfigMaps(cm, hc.mu, hc.Namespace.Name, deps); err != nil {
+			hc.logger.Error(err, "error on creating or updating related resources")
+		}
+		close(cm)
+	}()
+
+	return nil
 }
 
 func (hc *Release) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Repo, scheme *runtime.Scheme) error {
@@ -149,20 +138,40 @@ func (hc *Release) updateChart(chart helmv1alpha1.Chart, instance *helmv1alpha1.
 
 func (hc *Release) UpdateAffectedResources(scheme *runtime.Scheme) error {
 
-	cm, c := hc.getParsedConfigMaps(hc.Namespace.Name)
+	chartChannel := make(chan helmv1alpha1.Chart)
+	cmChannel := make(chan v1.ConfigMap)
+	hc.wg.Add(3)
+
 	controller, _ := hc.getControllerRepo(hc.Repo, hc.Namespace.Name)
 
-	for _, chart := range c {
-		if err := hc.updateChart(chart, controller); err != nil {
-			return err
+	go func() {
+		if err := hc.parseConfigMaps(chartChannel, cmChannel); err != nil {
+			close(chartChannel)
+			close(cmChannel)
+			hc.logger.Error(err, "error on parsing affected resources")
 		}
-	}
+		hc.wg.Done()
+	}()
 
-	for _, configmap := range cm {
-		if err := hc.deployConfigMap(configmap, controller, scheme); err != nil {
-			return err
+	go func() {
+		for chart := range chartChannel {
+			if err := hc.updateChart(chart, controller); err != nil {
+				hc.logger.Error(err, "error on updating chart", "chart", chart.Name)
+			}
 		}
-	}
+		hc.wg.Done()
+	}()
+
+	go func() {
+		for configmap := range cmChannel {
+			if err := hc.deployConfigMap(configmap, controller, scheme); err != nil {
+				hc.logger.Error(err, "error on creating configmap", "configmap", configmap.ObjectMeta.Name)
+			}
+		}
+		hc.wg.Done()
+	}()
+
+	hc.wg.Wait()
 
 	return nil
 }

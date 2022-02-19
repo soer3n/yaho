@@ -56,17 +56,12 @@ spec:
                       type: string
                     namespace:
                       type: string
-                    releaseSpec:
-                      description: ValueTemplate represents data for install process
-                        of a release
-                      properties:
-                        valueRefs:
-                          items:
-                            type: string
-                          type: array
-                      type: object
                     repo:
                       type: string
+                    values:
+                      items:
+                        type: string
+                      type: array
                     version:
                       type: string
                   required:

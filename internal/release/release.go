@@ -5,6 +5,7 @@ import (
 	b64 "encoding/base64"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
@@ -46,6 +47,8 @@ func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger lo
 		K8sClient: k8sclient,
 		getter:    g,
 		logger:    reqLogger.WithValues("release", instance.Spec.Name),
+		wg:        &sync.WaitGroup{},
+		mu:        &sync.Mutex{},
 	}
 
 	helmRelease.Config, _ = utils.InitActionConfig(settings, c)
@@ -219,6 +222,31 @@ func (hc Release) getRelease() (*release.Release, error) {
 	return client.Run(hc.Name)
 }
 
+func (hc Release) loadChart(releaseClient *action.Install, repoObj helmv1alpha1.Repo) (*helmchart.Chart, error) {
+	var chartRequested *helmchart.Chart
+	var chartURL string
+	var err error
+
+	if chartURL, err = chart.GetChartURL(hc.K8sClient, hc.Chart, hc.Version, hc.Namespace.Name); err != nil {
+		return chartRequested, err
+	}
+
+	releaseClient.ReleaseName = hc.Name
+	releaseClient.Version = hc.Version
+	releaseClient.ChartPathOptions.RepoURL = repoObj.Spec.URL
+	credentials := &chart.Auth{}
+
+	if repoObj.Spec.AuthSecret != "" {
+		credentials = hc.getCredentials(repoObj.Spec.AuthSecret)
+	}
+
+	if chartRequested, err = chart.GetChartByURL(chartURL, credentials, hc.getter); err != nil {
+		return chartRequested, err
+	}
+
+	return chartRequested, nil
+}
+
 func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*helmchart.Chart, error) {
 	helmChart := &helmchart.Chart{
 		Metadata:  &helmchart.Metadata{},
@@ -313,23 +341,24 @@ func (hc Release) getCredentials(secret string) *chart.Auth {
 	return creds
 }
 
-func (hc Release) validateChartSpec(deps []*helmchart.Chart, version *helmv1alpha1.ChartDep, chartObjList *helmv1alpha1.ChartList) error {
-	subChartObj := &helmv1alpha1.Chart{}
+func (hc Release) validateChartSpec(c chan helmv1alpha1.Chart, deps []*helmchart.Chart, version *helmv1alpha1.ChartDep) error {
 
 	for _, d := range deps {
+
+		subChartObj := helmv1alpha1.Chart{}
 
 		if err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
 			Namespace: hc.Namespace.Name,
 			Name:      version.Name,
-		}, subChartObj); err != nil {
+		}, &subChartObj); err != nil {
 			return err
 		}
 
 		if version.Name == d.Name() {
 
-			subVersion := utils.GetChartVersion(d.Metadata.Version, subChartObj)
+			subVersion := utils.GetChartVersion(d.Metadata.Version, &subChartObj)
 			for _, sv := range subVersion.Dependencies {
-				if err := hc.validateChartSpec(d.Dependencies(), sv, chartObjList); err != nil {
+				if err := hc.validateChartSpec(c, d.Dependencies(), sv); err != nil {
 					return err
 				}
 			}
@@ -340,7 +369,7 @@ func (hc Release) validateChartSpec(deps []*helmchart.Chart, version *helmv1alph
 				and update parent chart resource
 			*/
 			version.Version = d.Metadata.Version
-			chartObjList.Items = append(chartObjList.Items, *subChartObj)
+			c <- subChartObj
 		}
 
 	}

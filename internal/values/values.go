@@ -23,8 +23,8 @@ func New(instance *helmv1alpha1.Release, logger logr.Logger, k8sClient client.Cl
 		k8sClient: k8sClient,
 	}
 
-	if instance.Spec.ValuesTemplate != nil && instance.Spec.ValuesTemplate.ValueRefs != nil {
-		valuesList = hv.getValuesByReference(instance.Spec.ValuesTemplate.ValueRefs, instance.ObjectMeta.Namespace)
+	if instance.Spec.Values != nil {
+		valuesList = hv.getValuesByReference(instance.Spec.Values, instance.ObjectMeta.Namespace)
 	}
 
 	refList, err := hv.getRefList(valuesList, instance)
