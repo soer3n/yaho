@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// GetChartByURL represents func for downloading chart
 func GetChartByURL(url string, opts *Auth, g utils.HTTPClientInterface) (*chart.Chart, error) {
 	var resp *http.Response
 	var err error
@@ -34,6 +35,7 @@ func GetChartByURL(url string, opts *Auth, g utils.HTTPClientInterface) (*chart.
 	return loader.LoadArchive(resp.Body)
 }
 
+// GetChartURL represents func for returning url for downloading a chart
 func GetChartURL(rc client.Client, chart, version, namespace string) (string, error) {
 	var err error
 

@@ -8,11 +8,11 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	"github.com/soer3n/yaho/internal/chart"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
@@ -20,7 +20,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -45,6 +44,8 @@ func New(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, reqLogger logr.
 		getter:     g,
 		helmClient: c,
 		logger:     reqLogger.WithValues("repo", instance.Spec.Name),
+		wg:         &sync.WaitGroup{},
+		mu:         sync.Mutex{},
 	}
 
 	if instance.Spec.AuthSecret != "" {
@@ -77,10 +78,9 @@ func New(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, reqLogger logr.
 	return helmRepo
 }
 
+// Deploy represents installation of subresources
 func (hr *Repo) Deploy(instance *helmv1alpha1.Repo, scheme *runtime.Scheme) error {
 
-	// settings := utils.GetEnvSettings(map[string]string{})
-	// helmRepo := hc.GetRepo(instance.Spec.Name)
 	label, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
 	selector := map[string]string{"repo": hr.Name}
 
@@ -88,7 +88,9 @@ func (hr *Repo) Deploy(instance *helmv1alpha1.Repo, scheme *runtime.Scheme) erro
 		selector["repoGroup"] = instance.ObjectMeta.Labels["repoGroup"]
 	}
 
-	if err := hr.deployCharts(instance, selector, scheme); err != nil {
+	repo := instance.DeepCopy()
+
+	if err := hr.deployCharts(*repo, selector, scheme); err != nil {
 		return err
 	}
 
@@ -97,7 +99,7 @@ func (hr *Repo) Deploy(instance *helmv1alpha1.Repo, scheme *runtime.Scheme) erro
 	return nil
 }
 
-func (hr Repo) getIndexByURL() (*repo.IndexFile, error) {
+func (hr *Repo) getIndexByURL() (*repo.IndexFile, error) {
 	var parsedURL *url.URL
 	var entry *repo.Entry
 	var cr *repo.ChartRepository
@@ -147,55 +149,7 @@ func (hr Repo) getIndexByURL() (*repo.IndexFile, error) {
 	return obj, nil
 }
 
-// GetCharts represents returning list of internal chart structs for a given repo
-func (hr Repo) GetCharts(selectors map[string]string) ([]*chart.Chart, error) {
-	var chartList []*chart.Chart
-	var indexFile *repo.IndexFile
-	var chartAPIList helmv1alpha1.ChartList
-	var err error
-
-	selectorObj := client.MatchingLabels{}
-
-	for k, selector := range selectors {
-		selectorObj[k] = selector
-	}
-
-	if err = hr.K8sClient.List(context.Background(), &chartAPIList, client.InNamespace(hr.Namespace.Name), selectorObj); err != nil {
-		return chartList, err
-	}
-
-	for i := range chartAPIList.Items {
-		chartList = append(chartList, chart.New(utils.ConvertChartVersions(&chartAPIList.Items[i]), hr.Settings, hr.logger, hr.Name, hr.K8sClient, hr.getter, kube.Client{
-			Factory: cmdutil.NewFactory(hr.Settings.RESTClientGetter()),
-			Log:     nopLogger,
-		}))
-		hr.logger.Info("new..", "name", chartAPIList.Items[i].ObjectMeta.Name)
-	}
-
-	if chartList == nil {
-
-		if indexFile, err = hr.getIndexByURL(); err != nil {
-			hr.logger.Error(err, "error on getting repo index file")
-			return chartList, err
-		}
-
-		if indexFile == nil {
-			return chartList, nil
-		}
-
-		for _, chartMetadata := range indexFile.Entries {
-			hr.logger.Info("initializing chart struct by metadata", "repo", hr.Name)
-			chartList = append(chartList, chart.New(chartMetadata, hr.Settings, hr.logger, hr.Name, hr.K8sClient, hr.getter, kube.Client{
-				Factory: cmdutil.NewFactory(hr.Settings.RESTClientGetter()),
-				Log:     nopLogger,
-			}))
-		}
-	}
-
-	return chartList, nil
-}
-
-func (hr Repo) getEntryObj() (*repo.Entry, error) {
+func (hr *Repo) getEntryObj() (*repo.Entry, error) {
 	obj := &repo.Entry{
 		Name: hr.Name,
 		URL:  hr.URL,

@@ -2,12 +2,13 @@ package helm
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"testing"
+
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/internal/values"
@@ -93,7 +94,7 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 		},
 		{
 			ReturnValue: []v1.ConfigMap{},
-			ReturnError: errors.New("chart not found"),
+			ReturnError: k8serrors.NewBadRequest("chart not loaded on action update"),
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -111,7 +112,7 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 		},
 		{
 			ReturnValue: []v1.ConfigMap{},
-			ReturnError: errors.New("chart not found"),
+			ReturnError: k8serrors.NewBadRequest("chart not loaded on action update"),
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -175,7 +176,7 @@ func GetTestReleaseSpecsForConfigMaps() []inttypes.TestCase {
 				"configmap": 0,
 				"chart":     0,
 			},
-			ReturnError: errors.New("chart not found"),
+			ReturnError: k8serrors.NewBadRequest("chart not loaded on action update affected resources"),
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -196,7 +197,7 @@ func GetTestReleaseSpecsForConfigMaps() []inttypes.TestCase {
 				"configmap": 0,
 				"chart":     0,
 			},
-			ReturnError: errors.New("chart not found"),
+			ReturnError: k8serrors.NewBadRequest("chart not loaded on action update affected resources"),
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{

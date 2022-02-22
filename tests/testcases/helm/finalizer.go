@@ -41,8 +41,10 @@ func GetTestFinalizerRelease() *helmv1alpha1.Release {
 			Namespace: "",
 		},
 		Spec: helmv1alpha1.ReleaseSpec{
-			Name: "release", Repo: "repo",
-			Chart: "chart",
+			Name:    "release",
+			Repo:    "repo",
+			Chart:   "chart",
+			Version: "0.0.1",
 		},
 	}
 }

@@ -10,11 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func TestRepoGetCharts(t *testing.T) {
+func TestRepoDeployCharts(t *testing.T) {
 	clientMock, httpMock := helmmocks.GetRepoMock()
 	settings := cli.New()
 	apiObjList := testcases.GetTestRepoSpecs()
@@ -32,7 +33,7 @@ func TestRepoGetCharts(t *testing.T) {
 			selectors[k] = v
 		}
 
-		_, err := testObj.GetCharts(selectors)
+		err := testObj.Deploy(&val, &runtime.Scheme{})
 		assert.Equal(err, apiObj.ReturnError)
 	}
 }

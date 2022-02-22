@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"sync"
+
 	"github.com/go-logr/logr"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/cli"
@@ -25,6 +27,8 @@ type Repo struct {
 	getter     utils.HTTPClientInterface
 	helmClient kube.Client
 	logger     logr.Logger
+	wg         *sync.WaitGroup
+	mu         sync.Mutex
 }
 
 // Auth represents struct with auth data for a repo

@@ -25,7 +25,7 @@ func TestReleaseConfigMaps(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj.Input.(*helmv1alpha1.Release)
-		testObj := release.New(current, settings, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj, _ := release.New(current, settings, logf.Log, clientMock, httpMock, kube.Client{})
 		selectors := ""
 
 		// parse selectors string from api object meta data
@@ -41,7 +41,7 @@ func TestReleaseConfigMaps(t *testing.T) {
 		err := testObj.UpdateAffectedResources(scheme.Scheme)
 		// TODO: why is dependency chart not correctly parsed
 		//expect, _ := apiObj.ReturnValue.(map[string]int)
-		assert.Nil(err)
+		assert.Equal(apiObj.ReturnError, err)
 		// assert.Len(cmList, expect["configmap"])
 		// assert.Len(chartUpdateList, expect["chart"])
 	}
@@ -56,7 +56,7 @@ func TestReleaseUpdate(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj.Input.(*helmv1alpha1.Release)
-		testObj := release.New(current, settings, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj, _ := release.New(current, settings, logf.Log, clientMock, httpMock, kube.Client{})
 		selectors := ""
 
 		// parse selectors string from api object meta data

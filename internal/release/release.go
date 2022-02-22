@@ -30,8 +30,12 @@ const configMapLabelKey = "helm.soer3n.info/chart"
 const configMapLabelSubName = "helm.soer3n.info/subname"
 
 // New represents initialization of internal release struct
-func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Release {
+func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) (*Release, error) {
 	var helmRelease *Release
+	var helmChart *helmchart.Chart
+	var repoObj *helmv1alpha1.Repo
+	var specValues map[string]interface{}
+	var err error
 
 	reqLogger.Info("init new release", "name", instance.Spec.Name, "repo", instance.Spec.Repo)
 
@@ -42,7 +46,6 @@ func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger lo
 		},
 		Version:   instance.Spec.Version,
 		Repo:      instance.Spec.Repo,
-		Chart:     instance.Spec.Chart,
 		Settings:  settings,
 		K8sClient: k8sclient,
 		getter:    g,
@@ -51,12 +54,18 @@ func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger lo
 		mu:        &sync.Mutex{},
 	}
 
+	helmRelease.releaseNamespace = instance.ObjectMeta.Namespace
+
+	if instance.Spec.Namespace != nil {
+		helmRelease.releaseNamespace = *instance.Spec.Namespace
+	}
+
 	helmRelease.Config, _ = utils.InitActionConfig(settings, c)
 
 	helmRelease.logger.Info("parsed config", "name", instance.Spec.Name, "cache", helmRelease.Settings.RepositoryCache)
 
 	if instance.Spec.Config != nil {
-		if err := helmRelease.setOptions(instance.Spec.Config, &instance.Spec.Namespace); err != nil {
+		if err := helmRelease.setOptions(instance.Spec.Config, instance.Spec.Namespace); err != nil {
 			helmRelease.logger.Error(err, "set options", "name", instance.Spec.Name)
 		}
 	}
@@ -65,7 +74,35 @@ func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger lo
 
 	helmRelease.ValuesTemplate = values.New(instance, helmRelease.logger, helmRelease.K8sClient)
 
-	return helmRelease
+	if specValues, err = helmRelease.getValues(); err != nil {
+		return helmRelease, err
+	}
+
+	helmRelease.Values = specValues
+
+	options := &action.ChartPathOptions{
+		Version:               instance.Spec.Version,
+		InsecureSkipTLSverify: false,
+		Verify:                false,
+	}
+
+	if helmChart, err = helmRelease.getChart(instance.Spec.Chart, options, specValues); err != nil {
+
+		if repoObj, err = helmRelease.getControllerRepo(instance.Spec.Repo, instance.ObjectMeta.Namespace); err != nil {
+			return helmRelease, err
+		}
+
+		releaseClient := action.NewInstall(helmRelease.Config)
+		releaseClient.ReleaseName = instance.Spec.Name
+
+		if helmChart, err = helmRelease.loadChart(instance.Spec.Chart, releaseClient, repoObj); err != nil {
+			return helmRelease, err
+		}
+	}
+
+	helmRelease.Chart = helmChart
+
+	return helmRelease, nil
 }
 
 func (hc *Release) setOptions(name, namespace *string) error {
@@ -96,33 +133,22 @@ func (hc *Release) setOptions(name, namespace *string) error {
 
 // Update represents update or installation process of a release
 func (hc *Release) Update() error {
+
+	if hc.Chart == nil {
+		return errors.NewBadRequest("chart not loaded on action update")
+	}
+
 	hc.logger.Info("config install: "+fmt.Sprint(hc.Config), "name", hc.Name, "repo", hc.Repo)
 
 	var release *release.Release
-	var helmChart *helmchart.Chart
-	var specValues map[string]interface{}
 	var err error
 	var ok bool
 
 	installConfig := hc.Config
 
-	if specValues, err = hc.getValues(); err != nil {
-		return err
-	}
-
-	options := &action.ChartPathOptions{
-		Version:               hc.Version,
-		InsecureSkipTLSverify: false,
-		Verify:                false,
-	}
-
-	if helmChart, err = hc.getChart(hc.Chart, options, specValues); err != nil {
-		return err
-	}
-
 	hc.logger.Info("configupdate: "+fmt.Sprint(hc.Config), "name", hc.Name, "repo", hc.Repo)
 
-	vals := helmChart.Values
+	vals := hc.Chart.Values
 	release, _ = hc.getRelease()
 
 	// Check if something changed regarding the existing release
@@ -132,30 +158,34 @@ func (hc *Release) Update() error {
 		}
 
 		if ok {
-			return hc.upgrade(helmChart, vals)
+			if err := hc.upgrade(hc.Chart, vals); err != nil {
+				return err
+			}
+			hc.logger.Info("release updated.", "name", release.Name, "namespace", release.Namespace, "chart", hc.Chart.Name(), "repo", hc.Repo)
 		}
 
+		hc.logger.Info("nothing changed for release.", "name", release.Name, "namespace", release.Namespace, "chart", hc.Chart.Name(), "repo", hc.Repo)
 		return nil
 	}
 
 	client := action.NewInstall(installConfig)
 	client.ReleaseName = hc.Name
-	client.Namespace = hc.Namespace.Name
+	client.Namespace = hc.releaseNamespace
 	client.CreateNamespace = false
 	hc.setInstallFlags(client)
 
-	if release, err = client.Run(helmChart, vals); err != nil {
-		hc.logger.Error(err, "error on installing chart", "release", hc.Name, "chart", hc.Chart, "repo", hc.Repo)
+	if release, err = client.Run(hc.Chart, vals); err != nil {
+		hc.logger.Error(err, "error on installing chart", "release", hc.Name, "chart", hc.Chart.Name(), "repo", hc.Repo)
 		return err
 	}
 
-	hc.logger.Info("release successfully installed.", "name", release.Name, "namespace", release.Namespace, "chart", hc.Chart, "repo", hc.Repo)
+	hc.logger.Info("release successfully installed.", "name", release.Name, "namespace", release.Namespace, "chart", hc.Chart.Name(), "repo", hc.Repo)
 	return nil
 }
 
 func (hc *Release) setInstallFlags(client *action.Install) {
 	if hc.Flags == nil {
-		hc.logger.Info("no flags set for release", "name", hc.Name, "chart", hc.Chart, "repo", hc.Repo)
+		hc.logger.Info("no flags set for release", "name", hc.Name, "chart", hc.Chart.Name(), "repo", hc.Repo)
 		return
 	}
 
@@ -171,7 +201,7 @@ func (hc *Release) setInstallFlags(client *action.Install) {
 
 func (hc *Release) setUpgradeFlags(client *action.Upgrade) {
 	if hc.Flags == nil {
-		hc.logger.Info("no flags set for release", "name", hc.Name, "chart", hc.Chart, "repo", hc.Repo)
+		hc.logger.Info("no flags set for release", "name", hc.Name, "chart", hc.Chart.Name(), "repo", hc.Repo)
 		return
 	}
 
@@ -222,12 +252,12 @@ func (hc Release) getRelease() (*release.Release, error) {
 	return client.Run(hc.Name)
 }
 
-func (hc Release) loadChart(releaseClient *action.Install, repoObj helmv1alpha1.Repo) (*helmchart.Chart, error) {
+func (hc Release) loadChart(name string, releaseClient *action.Install, repoObj *helmv1alpha1.Repo) (*helmchart.Chart, error) {
 	var chartRequested *helmchart.Chart
 	var chartURL string
 	var err error
 
-	if chartURL, err = chart.GetChartURL(hc.K8sClient, hc.Chart, hc.Version, hc.Namespace.Name); err != nil {
+	if chartURL, err = chart.GetChartURL(hc.K8sClient, name, hc.Version, hc.Namespace.Name); err != nil {
 		return chartRequested, err
 	}
 
@@ -248,6 +278,7 @@ func (hc Release) loadChart(releaseClient *action.Install, repoObj helmv1alpha1.
 }
 
 func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*helmchart.Chart, error) {
+	// prepare
 	helmChart := &helmchart.Chart{
 		Metadata:  &helmchart.Metadata{},
 		Files:     []*helmchart.File{},
@@ -264,6 +295,7 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 		return helmChart, err
 	}
 
+	// goroutine 1 - send + done channel
 	repoSelector := make(map[string]string)
 
 	if _, ok := chartObj.ObjectMeta.Labels["repoGroup"]; ok {
@@ -274,47 +306,46 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 		}
 	}
 
+	// goroutine 2 - send + done channel
 	versionObj := utils.GetChartVersion(chartPathOptions.Version, chartObj)
-	files := hc.getFiles(chartName, versionObj.Name, chartObj)
-
-	if len(files) < 1 {
-		return helmChart, errors.NewBadRequest("no files detected for chart resource")
-	}
-
-	helmChart.Metadata.Name = chartName
-	helmChart.Metadata.Version = versionObj.Name
-	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
-	helmChart.Files = files
-	helmChart.Templates = hc.appendFilesFromConfigMap(chartName + "-" + versionObj.Name + "-tmpl")
 
 	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + chartName + "-" + versionObj.Name)
 	helmChart.Values = defaultValues
 	cv := values.MergeValues(vals, helmChart)
 	helmChart.Values = cv
 
+	// receive from channel 1 + 2 - starts on done channel event
 	if len(versionObj.Dependencies) > 0 {
 		if err := hc.addDependencies(helmChart, versionObj.Dependencies, cv, repoSelector); err != nil {
 			return helmChart, err
 		}
 	}
 
+	// goroutine 3 - send (parseFiles())
+	files := hc.getFiles(chartName, versionObj.Name, chartObj)
+
+	// goroutine 4 - receive
+	// select for 3 channels
+	if len(files) < 1 {
+		return helmChart, errors.NewBadRequest("no files detected for chart resource")
+	}
+
+	// receive from channel 3
+	helmChart.Metadata.Name = chartName
+	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
+	helmChart.Files = files
+
+	// receive from channel 2
+	helmChart.Metadata.Version = versionObj.Name
+	// receive from channel 3 instead of parsing it again
+	helmChart.Templates = hc.appendFilesFromConfigMap(chartName, versionObj.Name, "tmpl")
+
+	// validate after channels are closed
 	if err := helmChart.Validate(); err != nil {
 		return helmChart, err
 	}
 
 	return helmChart, nil
-}
-
-func (hc Release) getRepo() (helmv1alpha1.Repo, error) {
-	var err error
-
-	repoObj := &helmv1alpha1.Repo{}
-
-	if err = hc.K8sClient.Get(context.Background(), types.NamespacedName{Namespace: hc.Namespace.Name, Name: hc.Repo}, repoObj); err != nil {
-		return *repoObj, err
-	}
-
-	return *repoObj, nil
 }
 
 func (hc Release) getCredentials(secret string) *chart.Auth {
@@ -390,6 +421,6 @@ func (hc Release) upgrade(helmChart *helmchart.Chart, vals chartutil.Values) err
 		return err
 	}
 
-	hc.logger.Info("successfully upgraded.", "name", rel.Name, "chart", hc.Chart, "repo", hc.Repo)
+	hc.logger.Info("successfully upgraded.", "name", rel.Name, "chart", hc.Chart.Name(), "repo", hc.Repo)
 	return nil
 }

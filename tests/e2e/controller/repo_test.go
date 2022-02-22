@@ -2,6 +2,7 @@ package helm
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -21,7 +22,7 @@ var (
 
 var _ = Context("Install a repository", func() {
 	Describe("when no existing resource exist", func() {
-		It("should start with creating dependencies", func() {
+		FIt("should start with creating dependencies", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
 
@@ -95,6 +96,7 @@ func GetResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha
 			return nil
 		}
 
+		fmt.Println("status error")
 		return &errors.StatusError{}
 	}
 }

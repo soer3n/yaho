@@ -30,7 +30,7 @@ type ReleaseSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	Name      string   `json:"name"`
-	Namespace string   `json:"namespace,omitempty"`
+	Namespace *string  `json:"namespace,omitempty"`
 	Repo      string   `json:"repo"`
 	Chart     string   `json:"chart"`
 	Version   string   `json:"version,omitempty"`
@@ -42,7 +42,8 @@ type ReleaseSpec struct {
 type ReleaseStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Synced     string             `json:"synced,omitempty"`
+	Synced     bool               `json:"synced,omitempty"`
+	Status     string             `json:"status,omitempty"`
 	Conditions []metav1.Condition `json:"conditions"`
 }
 
@@ -51,6 +52,9 @@ type ReleaseStatus struct {
 // +kubebuilder:printcolumn:name="Group",type="string",JSONPath=`.metadata.labels['repoGroup']`
 // +kubebuilder:printcolumn:name="Repo",type="string",JSONPath=`.spec.repo`
 // +kubebuilder:printcolumn:name="Chart",type="string",JSONPath=`.spec.chart`
+// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=`.spec.version`
+// +kubebuilder:printcolumn:name="Synced",type="string",JSONPath=`.status.synced`
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=`.status.status`
 // +kubebuilder:printcolumn:name="Created_at",type="string",JSONPath=`.metadata.creationTimestamp`
 
 // Release is the Schema for the releases API

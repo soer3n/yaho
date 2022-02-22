@@ -26,6 +26,15 @@ spec:
     - jsonPath: .spec.chart
       name: Chart
       type: string
+    - jsonPath: .spec.version
+      name: Version
+      type: string
+    - jsonPath: .status.synced
+      name: Synced
+      type: string
+    - jsonPath: .status.status
+      name: Status
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Created_at
       type: string
@@ -142,11 +151,13 @@ spec:
                   - type
                   type: object
                 type: array
+              status:
+                type: string
               synced:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying
                   this file'
-                type: string
+                type: boolean
             required:
             - conditions
             type: object

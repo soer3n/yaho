@@ -37,19 +37,17 @@ func GetTestRepoChartVersions() []inttypes.TestCase {
 func GetTestHelmChartMaps() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		{
-			Input: map[string]*helmv1alpha1.Chart{
-				"foo": {
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "bar",
-						Namespace: "",
-					},
-					Spec: helmv1alpha1.ChartSpec{
-						Name: "baz",
-						Versions: []helmv1alpha1.ChartVersion{
-							{
-								Name: "0.0.2",
-								URL:  "nodomain.com",
-							},
+			Input: &helmv1alpha1.Chart{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bar",
+					Namespace: "",
+				},
+				Spec: helmv1alpha1.ChartSpec{
+					Name: "baz",
+					Versions: []helmv1alpha1.ChartVersion{
+						{
+							Name: "0.0.2",
+							URL:  "nodomain.com",
 						},
 					},
 				},
@@ -58,24 +56,22 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 			ReturnValue: 1,
 		},
 		{
-			Input: map[string]*helmv1alpha1.Chart{
-				"bar": {
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "bar",
-						Namespace: "",
-					},
-					Spec: helmv1alpha1.ChartSpec{
-						Name: "baz",
-						Versions: []helmv1alpha1.ChartVersion{
-							{
-								Name: "0.0.2",
-								URL:  "nodomain.com",
-								Dependencies: []*helmv1alpha1.ChartDep{
-									{
-										Name:    "dep",
-										Repo:    "repo",
-										Version: "0.1.1",
-									},
+			Input: &helmv1alpha1.Chart{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bar",
+					Namespace: "",
+				},
+				Spec: helmv1alpha1.ChartSpec{
+					Name: "baz",
+					Versions: []helmv1alpha1.ChartVersion{
+						{
+							Name: "0.0.2",
+							URL:  "nodomain.com",
+							Dependencies: []*helmv1alpha1.ChartDep{
+								{
+									Name:    "dep",
+									Repo:    "repo",
+									Version: "0.1.1",
 								},
 							},
 						},

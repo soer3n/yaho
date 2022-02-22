@@ -33,7 +33,7 @@ func (hc Release) valuesChanged(vals map[string]interface{}) (bool, error) {
 		return false, err
 	}
 
-	hc.logger.Info("values parsed", "name", hc.Name, "chart", hc.Chart, "repo", hc.Repo, "values length", len(installedValues))
+	hc.logger.Info("values parsed", "name", hc.Name, "chart", hc.Chart.Name(), "repo", hc.Repo, "values length", len(installedValues))
 
 	for key := range installedValues {
 		if _, ok := vals[key]; !ok {

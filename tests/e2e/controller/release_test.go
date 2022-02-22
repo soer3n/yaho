@@ -90,7 +90,7 @@ var _ = Context("Install a release", func() {
 				},
 				Spec: helmv1alpha1.ReleaseSpec{
 					Name:      "deployment-name",
-					Namespace: namespace,
+					Namespace: &namespace,
 					Chart:     testReleaseChartName,
 					Repo:      testRepoName,
 					Version:   testReleaseChartVersion,

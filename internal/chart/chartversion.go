@@ -18,12 +18,12 @@ const configMapLabelKey = "helm.soer3n.info/chart"
 const configMapLabelSubName = "helm.soer3n.info/subname"
 
 // AddOrUpdateChartMap represents update of version specific data of a map of chart structs if needed
-func (chartVersion ChartVersion) AddOrUpdateChartMap(chartObjMap map[string]*helmv1alpha1.Chart, instance *helmv1alpha1.Repo) (map[string]*helmv1alpha1.Chart, error) {
+func (chartVersion ChartVersion) AddOrUpdateChartMap(url string, apiObj *helmv1alpha1.Chart) error {
+
 	chartMeta := chartVersion.Version.Metadata
-	_, ok := chartObjMap[chartMeta.Name]
-	chartURL, err := repo.ResolveReferenceURL(instance.Spec.URL, chartVersion.Version.URLs[0])
+	chartURL, err := repo.ResolveReferenceURL(url, chartVersion.Version.URLs[0])
 	if err != nil {
-		return chartObjMap, err
+		return err
 	}
 
 	version := helmv1alpha1.ChartVersion{
@@ -34,45 +34,33 @@ func (chartVersion ChartVersion) AddOrUpdateChartMap(chartObjMap map[string]*hel
 		URL:          chartURL,
 	}
 
-	if ok {
-		chartObjMap[chartMeta.Name].Spec.Versions = append(chartObjMap[chartMeta.Name].Spec.Versions, version)
-		return chartObjMap, nil
+	if apiObj.Spec.Versions != nil {
+		apiObj.Spec.Versions = append(apiObj.Spec.Versions, version)
+		return nil
 	}
 
-	helmChart := &helmv1alpha1.Chart{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      chartMeta.Name,
-			Namespace: instance.ObjectMeta.Namespace,
-			Labels: map[string]string{
-				"chart":     chartMeta.Name,
-				"repo":      instance.Spec.Name,
-				"repoGroup": instance.ObjectMeta.Labels["repoGroup"],
-			},
+	apiObj.Spec = helmv1alpha1.ChartSpec{
+		Name:    chartMeta.Name,
+		Home:    chartMeta.Home,
+		Sources: chartVersion.Version.Sources,
+		Versions: []helmv1alpha1.ChartVersion{
+			version,
 		},
-		Spec: helmv1alpha1.ChartSpec{
-			Name:    chartMeta.Name,
-			Home:    chartMeta.Home,
-			Sources: chartVersion.Version.Sources,
-			Versions: []helmv1alpha1.ChartVersion{
-				version,
-			},
-			Description: chartMeta.Description,
-			Keywords:    chartMeta.Keywords,
-			Maintainers: chartMeta.Maintainers,
-			Icon:        chartMeta.Icon,
-			APIVersion:  chartMeta.APIVersion,
-			Condition:   chartMeta.Condition,
-			Tags:        chartMeta.Tags,
-			AppVersion:  chartMeta.AppVersion,
-			Deprecated:  chartMeta.Deprecated,
-			Annotations: chartMeta.Annotations,
-			KubeVersion: chartMeta.KubeVersion,
-			Type:        chartMeta.Type,
-		},
+		Description: chartMeta.Description,
+		Keywords:    chartMeta.Keywords,
+		Maintainers: chartMeta.Maintainers,
+		Icon:        chartMeta.Icon,
+		APIVersion:  chartMeta.APIVersion,
+		Condition:   chartMeta.Condition,
+		Tags:        chartMeta.Tags,
+		AppVersion:  chartMeta.AppVersion,
+		Deprecated:  chartMeta.Deprecated,
+		Annotations: chartMeta.Annotations,
+		KubeVersion: chartMeta.KubeVersion,
+		Type:        chartMeta.Type,
 	}
 
-	chartObjMap[chartMeta.Name] = helmChart
-	return chartObjMap, nil
+	return nil
 }
 
 func (chartVersion ChartVersion) createDependenciesList(chartMeta *chart.Metadata) []*helmv1alpha1.ChartDep {
@@ -90,29 +78,30 @@ func (chartVersion ChartVersion) createDependenciesList(chartMeta *chart.Metadat
 	return deps
 }
 
-func (chartVersion ChartVersion) CreateConfigMaps(cm chan v1.ConfigMap, mu *sync.Mutex, namespace string, deps []*chart.Chart) error {
+// CreateConfigMaps represents func for parsing configmaps and sending them to receive method
+func (chartVersion ChartVersion) CreateConfigMaps(cm chan v1.ConfigMap, namespace string, deps []*chart.Chart) error {
 
 	wg := &sync.WaitGroup{}
 
 	wg.Add(4)
 
 	go func() {
-		chartVersion.createTemplateConfigMap(cm, mu, "tmpl", namespace, chartVersion.Templates)
+		chartVersion.createTemplateConfigMap(cm, "tmpl", namespace, chartVersion.Templates)
 		wg.Done()
 	}()
 
 	go func() {
-		chartVersion.createTemplateConfigMap(cm, mu, "crds", namespace, chartVersion.CRDs)
+		chartVersion.createTemplateConfigMap(cm, "crds", namespace, chartVersion.CRDs)
 		wg.Done()
 	}()
 
 	go func() {
-		chartVersion.createDefaultValueConfigMap(cm, mu, namespace, chartVersion.DefaultValues)
+		chartVersion.createDefaultValueConfigMap(cm, namespace, chartVersion.DefaultValues)
 		wg.Done()
 	}()
 
 	go func() {
-		chartVersion.createDependenciesConfigMaps(cm, mu, namespace, deps)
+		chartVersion.createDependenciesConfigMaps(cm, namespace, deps)
 		wg.Done()
 	}()
 
@@ -120,7 +109,7 @@ func (chartVersion ChartVersion) CreateConfigMaps(cm chan v1.ConfigMap, mu *sync
 	return nil
 }
 
-func (chartVersion ChartVersion) createDependenciesConfigMaps(cm chan v1.ConfigMap, mu *sync.Mutex, namespace string, deps []*chart.Chart) {
+func (chartVersion ChartVersion) createDependenciesConfigMaps(cm chan v1.ConfigMap, namespace string, deps []*chart.Chart) {
 	immutable := new(bool)
 	*immutable = true
 
@@ -155,6 +144,9 @@ func (chartVersion ChartVersion) createDependenciesConfigMaps(cm chan v1.ConfigM
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "helm-crds-" + dep.Name() + "-" + dep.Metadata.Version,
 				Namespace: namespace,
+				Labels: map[string]string{
+					configMapLabelKey: chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version + "-crds",
+				},
 			},
 			Immutable:  immutable,
 			BinaryData: binaryData,
@@ -173,11 +165,11 @@ func (chartVersion ChartVersion) createDependenciesConfigMaps(cm chan v1.ConfigM
 			},
 		}
 
-		go chartVersion.createDependenciesConfigMaps(cm, mu, namespace, dep.Dependencies())
+		chartVersion.createDependenciesConfigMaps(cm, namespace, dep.Dependencies())
 	}
 }
 
-func (chartVersion ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, mu *sync.Mutex, name string, namespace string, list []*chart.File) {
+func (chartVersion ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, name string, namespace string, list []*chart.File) {
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
@@ -239,12 +231,15 @@ func (chartVersion ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, m
 
 }
 
-func (chartVersion ChartVersion) createDefaultValueConfigMap(cm chan v1.ConfigMap, mu *sync.Mutex, namespace string, values map[string]interface{}) {
+func (chartVersion ChartVersion) createDefaultValueConfigMap(cm chan v1.ConfigMap, namespace string, values map[string]interface{}) {
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
 		Name:      "helm-default-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 		Namespace: namespace,
+		Labels: map[string]string{
+			configMapLabelKey: chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version + "-default",
+		},
 	}
 	configmap := v1.ConfigMap{
 		Immutable:  immutable,

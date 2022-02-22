@@ -20,7 +20,7 @@ func TestFinalizerHandleRelease(t *testing.T) {
 	assert := assert.New(t)
 
 	settings := utils.GetEnvSettings(map[string]string{})
-	testObj := release.New(testcases.GetTestFinalizerRelease(), settings, logf.Log, clientMock, httpMock, kube.Client{})
+	testObj, _ := release.New(testcases.GetTestFinalizerRelease(), settings, logf.Log, clientMock, httpMock, kube.Client{})
 	testObj.Config = testcases.GetTestFinalizerFakeActionConfig(t)
 
 	if err := testObj.Config.Releases.Create(testcases.GetTestFinalizerDeployedReleaseObj()); err != nil {

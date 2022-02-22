@@ -61,8 +61,8 @@ type ReleaseReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	reqLogger := r.Log.WithValues("repos", req.NamespacedName)
-	_ = r.Log.WithValues("reposreq", req)
+	reqLogger := r.Log.WithValues("release", req.NamespacedName)
+	_ = r.Log.WithValues("releasereq", req)
 
 	// fetch app instance
 	instance := &helmv1alpha1.Release{}
@@ -93,11 +93,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	releaseNamespace := instance.Spec.Namespace
 
-	if releaseNamespace == "" {
-		releaseNamespace = instance.ObjectMeta.Namespace
+	if releaseNamespace == nil {
+		releaseNamespace = &instance.ObjectMeta.Namespace
 	}
 
-	_ = os.Setenv("HELM_NAMESPACE", releaseNamespace)
+	_ = os.Setenv("HELM_NAMESPACE", *releaseNamespace)
 
 	settings := utils.GetEnvSettings(map[string]string{})
 	c := kube.Client{
@@ -105,7 +105,13 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		Log:     nopLogger,
 	}
 
-	helmRelease := release.New(instance, settings, reqLogger, r.Client, &g, c)
+	instance.Status.Synced = false
+
+	helmRelease, err := release.New(instance, settings, reqLogger, r.Client, &g, c)
+
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	if requeue, err = r.handleFinalizer(helmRelease, instance); err != nil {
 		reqLogger.Error(err, "Handle finalizer for release %v failed.", helmRelease.Name)
@@ -127,14 +133,18 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if err := helmRelease.UpdateAffectedResources(r.Scheme); err != nil {
+		instance.Status.Status = "prepareFailed"
 		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "prepareFailed", err.Error())
 	}
 
 	if err := helmRelease.Update(); err != nil {
+		instance.Status.Status = "updateFailed"
 		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "updateFailed", err.Error())
 	}
 
 	r.Log.Info("Don't reconcile releases.")
+	instance.Status.Status = "success"
+	instance.Status.Synced = true
 	return r.syncStatus(context.Background(), instance, metav1.ConditionTrue, "success", "all up to date")
 }
 

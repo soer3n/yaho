@@ -78,7 +78,15 @@ func GetTestRepoSpecs() []inttypes.TestCase {
 func GetTestRepoIndexFile() *repo.IndexFile {
 	return &repo.IndexFile{
 		Entries: map[string]repo.ChartVersions{
-			"doo": []*repo.ChartVersion{},
+			"doo": []*repo.ChartVersion{
+				{
+					Metadata: &chart.Metadata{
+						Name:    "doo",
+						Version: "0.0.1",
+					},
+					URLs: []string{"nodomain.com"},
+				},
+			},
 		},
 	}
 }

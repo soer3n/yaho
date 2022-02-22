@@ -11,6 +11,7 @@ import (
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 )
 
+// InitActionConfig represents the initialization of an helm configuration
 func InitActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configuration, error) {
 	/*
 		/ we cannot use helm init func here due to data race issues on concurrent execution (helm's kube client tries to update the namespace field on each initialization)
