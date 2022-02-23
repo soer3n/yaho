@@ -54,7 +54,6 @@ func MergeMaps(source, dest map[string]interface{}) map[string]interface{} {
 }
 
 // MergeUntypedMaps returns distinct map of two as input
-// have to be called as a goroutine to avoid memory leaks
 func MergeUntypedMaps(dest, source map[string]interface{}, key string) map[string]interface{} {
 	for k, v := range source {
 		if key == "" {

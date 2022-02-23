@@ -20,12 +20,12 @@ func (hc *Release) getValues() (map[string]interface{}, error) {
 	return returnValues, nil
 }
 
-func (hc Release) getInstalledValues() (map[string]interface{}, error) {
+func (hc *Release) getInstalledValues() (map[string]interface{}, error) {
 	client := action.NewGetValues(hc.Config)
 	return client.Run(hc.Name)
 }
 
-func (hc Release) valuesChanged(vals map[string]interface{}) (bool, error) {
+func (hc *Release) valuesChanged(vals map[string]interface{}) (bool, error) {
 	var installedValues map[string]interface{}
 	var err error
 

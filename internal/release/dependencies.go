@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (hc Release) addDependencies(chart *helmchart.Chart, deps []*helmv1alpha1.ChartDep, vals chartutil.Values, selectors map[string]string) error {
+func (hc *Release) addDependencies(chart *helmchart.Chart, deps []*helmv1alpha1.ChartDep, vals chartutil.Values, selectors map[string]string) error {
 	var chartList helmv1alpha1.ChartList
 	var err error
 

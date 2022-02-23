@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/internal/chart"
@@ -20,59 +19,25 @@ func (hr *Repo) deployCharts(instance helmv1alpha1.Repo, selector map[string]str
 
 	var err error
 
-	chartChannel := make(chan *chart.Chart)
-	mapChannel := make(chan *helmv1alpha1.Chart)
-	c := make(chan error, 1)
+	mapChannel := make(chan helmv1alpha1.Chart)
+	hr.wg.Add(2)
 
-	hr.wg.Add(4)
-
-	// request charts from kubernetes api or if not present download it
-	go func() {
-		defer hr.mu.Unlock()
-		defer hr.wg.Done()
-		hr.mu.Lock()
-		if err = hr.getCharts(selector, chartChannel, mapChannel); err != nil {
-			hr.logger.Info("Error on getting charts", "repo", hr.Name)
-		}
-		close(chartChannel)
-	}()
-
-	// transform internal struct to custom resource
-	go func() {
-		defer hr.wg.Done()
-
-		for chart := range chartChannel {
-			hr.mu.Lock()
-			if err = hr.transformChart(chart, instance, mapChannel); err != nil {
-				hr.logger.Error(err, "error on updating chart version", "repo", hr.Name)
-			}
-			hr.mu.Unlock()
-		}
-		close(mapChannel)
-	}()
-
-	// goroutine 3
 	go func() {
 		defer hr.wg.Done()
 		for chartObj := range mapChannel {
-			hr.wg.Add(1)
-			// deploy send object
-			go func(chartObj *helmv1alpha1.Chart, instance helmv1alpha1.Repo, c chan<- error) {
-				defer hr.wg.Done()
-				if err := hr.updateChart(chartObj, instance, c, scheme); err != nil {
-					hr.logger.Error(err, "error on managing chart", "chart", chartObj.Name)
-				}
-			}(chartObj, instance, c)
+			if err := hr.updateChart(chartObj, instance, scheme); err != nil {
+				hr.logger.Error(err, "error on managing chart", "chart", chartObj.Name)
+			}
 		}
-		close(c)
 	}()
 
-	// goroutine 4 for printing errors
 	go func() {
 		defer hr.wg.Done()
-		for i := range c {
-			hr.logger.Error(i, "failed chart loading")
+		// request charts from kubernetes api or if not present download it
+		if err = hr.getCharts(selector, instance, mapChannel); err != nil {
+			hr.logger.Info("Error on getting charts", "repo", hr.Name)
 		}
+		close(mapChannel)
 	}()
 
 	hr.wg.Wait()
@@ -81,10 +46,9 @@ func (hr *Repo) deployCharts(instance helmv1alpha1.Repo, selector map[string]str
 }
 
 // GetCharts represents returning list of internal chart structs for a given repo
-func (hr *Repo) getCharts(selectors map[string]string, chartChannel chan *chart.Chart, mapChannel chan *helmv1alpha1.Chart) error {
+func (hr *Repo) getCharts(selectors map[string]string, instance helmv1alpha1.Repo, mapChannel chan helmv1alpha1.Chart) error {
 
 	var chartList []*chart.Chart
-	var indexFile *repo.IndexFile
 	var chartAPIList helmv1alpha1.ChartList
 	var err error
 
@@ -94,83 +58,87 @@ func (hr *Repo) getCharts(selectors map[string]string, chartChannel chan *chart.
 		selectorObj[k] = selector
 	}
 
-	if err = hr.K8sClient.List(context.Background(), &chartAPIList, client.InNamespace(hr.Namespace.Name), selectorObj); err != nil {
+	if err = hr.K8sClient.List(hr.ctx, &chartAPIList, client.InNamespace(hr.Namespace.Name), selectorObj); err != nil {
 		return err
 	}
 
 	if len(chartAPIList.Items) > 0 {
 		for _, v := range chartAPIList.Items {
-			mapChannel <- &v
+			mapChannel <- v
 		}
-		close(mapChannel)
-		close(chartChannel)
 		return nil
 	}
 
 	if chartList == nil {
 
-		if indexFile, err = hr.getIndexByURL(); err != nil {
-			hr.logger.Error(err, "error on getting repo index file")
-			return err
-		}
-
-		if indexFile == nil {
-			return nil
-		}
-
-		for k, chartMetadata := range indexFile.Entries {
-			chartChannel <- chart.New(k, hr.URL, chartMetadata, hr.Settings, hr.logger, hr.Name, hr.K8sClient, hr.getter, kube.Client{
+		for k, chartMetadata := range hr.loadRepositoryIndex().Entries {
+			obj := chart.New(k, hr.URL, chartMetadata, hr.Settings, hr.logger, hr.Name, hr.K8sClient, hr.getter, kube.Client{
 				Factory: cmdutil.NewFactory(hr.Settings.RESTClientGetter()),
 				Log:     nopLogger,
 			})
+
 			hr.logger.Info("initializing chart struct by metadata", "repo", hr.Name, "chart", k)
+
+			if err = hr.transformChart(obj, instance, mapChannel); err != nil {
+				hr.logger.Error(err, "error on updating chart version", "repo", hr.Name)
+			}
 		}
-		close(chartChannel)
 	}
 
 	return nil
 }
 
-func (hr *Repo) updateChart(helmChart *helmv1alpha1.Chart, instance helmv1alpha1.Repo, c chan<- error, scheme *runtime.Scheme) error {
+func (hr *Repo) loadRepositoryIndex() *repo.IndexFile {
+	indexFile, err := hr.getIndexByURL()
+
+	if err != nil {
+		hr.logger.Error(err, "error on getting repo index file")
+	}
+
+	return indexFile
+}
+
+func (hr *Repo) updateChart(helmChart helmv1alpha1.Chart, instance helmv1alpha1.Repo, scheme *runtime.Scheme) error {
 
 	repo := instance.DeepCopy()
-	if err := controllerutil.SetControllerReference(repo, helmChart, scheme); err != nil {
-		fmt.Println(err)
+	owned := helmChart.DeepCopy()
+	if err := controllerutil.SetControllerReference(repo, owned, scheme); err != nil {
+		hr.logger.Error(err, "failed to set owner ref for chart", "chart", owned.Name)
 	}
 
 	installedChart := &helmv1alpha1.Chart{}
 	err := hr.K8sClient.Get(context.Background(), client.ObjectKey{
-		Namespace: helmChart.ObjectMeta.Namespace,
-		Name:      helmChart.Spec.Name,
+		Namespace: owned.ObjectMeta.Namespace,
+		Name:      owned.Spec.Name,
 	}, installedChart)
 	if err != nil {
 		if errors.IsNotFound(err) {
 
-			if err = hr.K8sClient.Create(context.TODO(), helmChart); err != nil {
-				c <- err
+			if err = hr.K8sClient.Create(hr.ctx, owned); err != nil {
+				hr.logger.Error(err, "failed to create chart resource")
 			}
 		}
 
 		return nil
 	}
 
-	installedChart.Spec = helmChart.Spec
+	installedChart.Spec = owned.Spec
 
-	err = hr.K8sClient.Update(context.TODO(), installedChart)
+	err = hr.K8sClient.Update(hr.ctx, installedChart)
 
 	if err != nil {
-		c <- err
+		hr.logger.Error(err, "failed to update chart resource")
 	}
 
 	return nil
 }
 
 // AddOrUpdateChartMap represents update of a map of chart structs if needed
-func (hr *Repo) transformChart(instance *chart.Chart, repo helmv1alpha1.Repo, mapChannel chan *helmv1alpha1.Chart) error {
+func (hr *Repo) transformChart(instance *chart.Chart, repo helmv1alpha1.Repo, mapChannel chan helmv1alpha1.Chart) error {
 
 	apiObj := &helmv1alpha1.Chart{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      hr.Name,
+			Name:      instance.Name,
 			Namespace: hr.Namespace.Name,
 			Labels: map[string]string{
 				"chart":     instance.Name,
@@ -186,6 +154,6 @@ func (hr *Repo) transformChart(instance *chart.Chart, repo helmv1alpha1.Repo, ma
 		}
 	}
 
-	mapChannel <- apiObj
+	mapChannel <- *apiObj.DeepCopy()
 	return nil
 }

@@ -22,7 +22,7 @@ var (
 
 var _ = Context("Install a repository", func() {
 	Describe("when no existing resource exist", func() {
-		FIt("should start with creating dependencies", func() {
+		It("should start with creating dependencies", func() {
 			ctx := context.Background()
 			namespace := "test-" + randStringRunes(7)
 

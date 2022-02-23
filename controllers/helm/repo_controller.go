@@ -35,6 +35,7 @@ import (
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -65,6 +66,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	reqLogger := r.Log.WithValues("repos", req.NamespacedName)
 	_ = r.Log.WithValues("reposreq", req)
 
+	reqLogger.Info("start reconcile loop")
 	// fetch app instance
 	instance := &helmv1alpha1.Repo{}
 
@@ -100,7 +102,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		Log:     nopLogger,
 	}
 
-	hc = repository.New(instance, settings, reqLogger, r.Client, &g, c)
+	hc = repository.New(instance, ctx, settings, reqLogger, r.Client, &g, c)
 
 	if requeue, err = r.handleFinalizer(hc, instance); err != nil {
 		reqLogger.Info("Failed on handling finalizer", "repo", instance.Spec.Name)
@@ -109,21 +111,20 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	if requeue {
 		reqLogger.Info("Update resource after modifying finalizer.")
-		if err := r.Update(context.TODO(), instance); err != nil {
+		if err := r.Update(ctx, instance); err != nil {
 			reqLogger.Error(err, "error in reconciling")
-			return ctrl.Result{}, err
 		}
 
 		return ctrl.Result{}, nil
 	}
 
 	if err = hc.Deploy(instance, r.Scheme); err != nil {
-		return r.syncStatus(context.Background(), instance, err)
+		return r.syncStatus(ctx, instance, err)
 	}
 
 	reqLogger.Info("Repo deployed", "name", instance.Spec.Name, "namespace", instance.ObjectMeta.Namespace)
 	reqLogger.Info("Don't reconcile repos.", "name", instance.Spec.Name)
-	return r.syncStatus(context.Background(), instance, err)
+	return r.syncStatus(ctx, instance, err)
 }
 
 func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Repo, err error) (ctrl.Result, error) {
@@ -145,7 +146,7 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.
 
 	_ = r.Status().Update(ctx, instance)
 
-	r.Log.Info("Don't reconcile repo after status sync.")
+	r.Log.Info("Don't reconcile repo after status sync.", "repo", instance.ObjectMeta.Name)
 	return ctrl.Result{}, nil
 }
 
@@ -158,7 +159,7 @@ func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1al
 	}
 
 	if !utils.Contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
-		r.Log.Info("Adding Finalizer for the Quarantine Resource")
+		r.Log.Info("Adding Finalizer for the Repository Resource")
 		controllerutil.AddFinalizer(instance, "finalizer.repo.helm.soer3n.info")
 		return true, nil
 	}
@@ -170,5 +171,6 @@ func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1al
 func (r *RepoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&helmv1alpha1.Repo{}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 2}).
 		Complete(r)
 }

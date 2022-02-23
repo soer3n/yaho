@@ -19,7 +19,6 @@ package helm
 
 import (
 	"context"
-	"sync"
 
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
@@ -64,11 +63,11 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			reqLogger.Info("HelmRepo resource not found. Ignoring since object must be deleted")
+			reqLogger.Info("HelmRepoGroup resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		reqLogger.Error(err, "Failed to get HelmRepo")
+		reqLogger.Error(err, "Failed to get HelmRepoGroup")
 		return ctrl.Result{}, err
 	}
 
@@ -79,32 +78,19 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		LabelSelector: labels.NewSelector().Add(requirement[0]),
 	}
 
-	if err = r.List(context.Background(), repos, opts); err != nil {
-		reqLogger.Info("Error on listing repos for group %v", instance.Spec.LabelSelector)
+	if err := r.List(context.Background(), repos, opts); err != nil {
+		r.Log.Info("Error on listing repos for group %v", instance.Spec.LabelSelector)
 	}
 
-	r.removeUnwantedRepos(repos, instance)
-
-	reqLogger.Info("Trying to install HelmRepoSpecs", "groupname", instance.ObjectMeta.Name, "repos", instance.Spec.Repos)
-
-	r.deployRepos(instance)
-
-	return ctrl.Result{}, nil
-}
-
-func (r *RepoGroupReconciler) removeUnwantedRepos(repos *helmv1alpha1.RepoList, instance *helmv1alpha1.RepoGroup) {
-	var wg sync.WaitGroup
-	c := make(chan string, 10)
 	spec := instance.Spec.Repos
+	remove := make(chan helmv1alpha1.Repo)
+	create := make(chan helmv1alpha1.Repo)
+	quit := make(chan bool)
+	counter := 0
 
-	r.Log.Info("Trying to delete unwanted resoucres", "groupname", instance.ObjectMeta.Name, "repos", spec)
-
-	for _, repo := range repos.Items {
-		exists := false
-		wg.Add(1)
-
-		go func(spec []helmv1alpha1.RepoSpec, repo helmv1alpha1.Repo, c chan<- string) {
-			defer wg.Done()
+	go func() {
+		for _, repo := range repos.Items {
+			exists := false
 
 			for _, repository := range spec {
 				if repo.Name == repository.Name {
@@ -114,44 +100,15 @@ func (r *RepoGroupReconciler) removeUnwantedRepos(repos *helmv1alpha1.RepoList, 
 			}
 
 			if !exists {
-				c <- "Delete unwanted repo: " + repo.Name
-				if err := r.Delete(context.Background(), &helmv1alpha1.Repo{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      repo.Name,
-						Namespace: instance.Namespace,
-					},
-				}); err != nil {
-					c <- err.Error()
-				}
+				remove <- repo
 			}
-		}(spec, repo, c)
-
-	}
-
-	go func() {
-		wg.Wait()
-		close(c)
+		}
+		quit <- true
 	}()
 
-	for i := range c {
-		r.Log.Info(i)
-	}
-}
-
-func (r *RepoGroupReconciler) deployRepos(instance *helmv1alpha1.RepoGroup) {
-	var wg sync.WaitGroup
-	c := make(chan string, 10)
-	spec := instance.Spec.Repos
-
-	for _, repository := range spec {
-		wg.Add(1)
-
-		go func(repository helmv1alpha1.RepoSpec, c chan<- string) {
-			defer wg.Done()
-
-			c <- "Trying to install HelmRepo " + repository.Name
-
-			helmRepo := &helmv1alpha1.Repo{
+	go func() {
+		for _, repository := range spec {
+			create <- helmv1alpha1.Repo{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      repository.Name,
 					Namespace: instance.ObjectMeta.Namespace,
@@ -160,45 +117,61 @@ func (r *RepoGroupReconciler) deployRepos(instance *helmv1alpha1.RepoGroup) {
 						"repoGroup": instance.Spec.LabelSelector,
 					},
 				},
-				Spec: helmv1alpha1.RepoSpec{
-					Name: repository.Name,
-					URL:  repository.URL,
-				},
+				Spec: repository,
 			}
-
-			if repository.AuthSecret != "" {
-				helmRepo.Spec.AuthSecret = repository.AuthSecret
-			}
-
-			if err := controllerutil.SetControllerReference(instance, helmRepo, r.Scheme); err != nil {
-				c <- err.Error()
-			}
-
-			installedRepo := &helmv1alpha1.Repo{}
-			err := r.Client.Get(context.Background(), client.ObjectKey{
-				Namespace: helmRepo.ObjectMeta.Namespace,
-				Name:      helmRepo.Spec.Name,
-			}, installedRepo)
-			if err != nil {
-				if errors.IsNotFound(err) {
-					c <- err.Error()
-
-					if err = r.Client.Create(context.TODO(), helmRepo); err != nil {
-						c <- err.Error()
-					}
-				}
-			}
-		}(repository, c)
-	}
-
-	go func() {
-		wg.Wait()
-		close(c)
+		}
+		quit <- true
 	}()
 
-	for i := range c {
-		r.Log.Info(i)
+	for {
+		select {
+		case f := <-remove:
+			r.removeRepo(f, instance, ctx)
+		case g := <-create:
+			r.deployRepo(g, instance, ctx)
+		case v := <-quit:
+			if v {
+				counter++
+			}
+			if counter == 2 {
+				return ctrl.Result{}, nil
+			}
+		}
 	}
+}
+
+func (r *RepoGroupReconciler) removeRepo(repo helmv1alpha1.Repo, instance *helmv1alpha1.RepoGroup, ctx context.Context) {
+	if err := r.Delete(ctx, &repo); err != nil {
+		r.Log.Error(err, "error on remove", "group", instance.ObjectMeta.Name, "repo", repo.Name)
+	}
+	r.Log.Info("repo removed", "group", instance.ObjectMeta.Name, "repo", repo.Name)
+}
+
+func (r *RepoGroupReconciler) deployRepo(g helmv1alpha1.Repo, instance *helmv1alpha1.RepoGroup, ctx context.Context) {
+	repo := g.DeepCopy()
+	if err := controllerutil.SetControllerReference(instance, repo, r.Scheme); err != nil {
+		r.Log.Error(err, "error on setting ref", "group", instance.ObjectMeta.Name, "repo", repo.Name)
+		return
+	}
+
+	installedRepo := &helmv1alpha1.Repo{}
+	err := r.Client.Get(ctx, client.ObjectKey{
+		Namespace: repo.ObjectMeta.Namespace,
+		Name:      repo.Spec.Name,
+	}, installedRepo)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			r.Log.Info(err.Error(), "group", instance.ObjectMeta.Name, "repo", repo.Name)
+
+			if err = r.Client.Create(ctx, repo); err != nil {
+				r.Log.Error(err, "error on create", "group", instance.ObjectMeta.Name, "repo", repo.Name)
+			}
+
+			r.Log.Info("repo created", "group", instance.ObjectMeta.Name, "repo", repo.Name)
+		}
+		return
+	}
+	r.Log.Info("Repo already installed.", "group", instance.ObjectMeta.Name, "repo", repo.Name)
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -29,6 +30,7 @@ type Repo struct {
 	logger     logr.Logger
 	wg         *sync.WaitGroup
 	mu         sync.Mutex
+	ctx        context.Context
 }
 
 // Auth represents struct with auth data for a repo

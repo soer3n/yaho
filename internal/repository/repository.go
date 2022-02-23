@@ -27,7 +27,7 @@ import (
 var nopLogger = func(_ string, _ ...interface{}) {}
 
 // New represents initialization of internal repo struct
-func New(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Repo {
+func New(instance *helmv1alpha1.Repo, ctx context.Context, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Repo {
 	var helmRepo *Repo
 
 	reqLogger.Info("Trying HelmRepo", "repo", instance.Spec.Name)
@@ -46,13 +46,14 @@ func New(instance *helmv1alpha1.Repo, settings *cli.EnvSettings, reqLogger logr.
 		logger:     reqLogger.WithValues("repo", instance.Spec.Name),
 		wg:         &sync.WaitGroup{},
 		mu:         sync.Mutex{},
+		ctx:        ctx,
 	}
 
 	if instance.Spec.AuthSecret != "" {
 		secretObj := &v1.Secret{}
 		creds := &Auth{}
 
-		if err := k8sclient.Get(context.Background(), types.NamespacedName{Namespace: instance.ObjectMeta.Namespace, Name: instance.Spec.AuthSecret}, secretObj); err != nil {
+		if err := k8sclient.Get(ctx, types.NamespacedName{Namespace: instance.ObjectMeta.Namespace, Name: instance.Spec.AuthSecret}, secretObj); err != nil {
 			return nil
 		}
 

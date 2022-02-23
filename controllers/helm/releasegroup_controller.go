@@ -19,12 +19,12 @@ package helm
 
 import (
 	"context"
-	"sync"
 
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -74,90 +74,107 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	if _, ok := instance.Labels["release"]; !ok {
-		instance.Labels = map[string]string{
-			"release": instance.ObjectMeta.Name,
-		}
+	// fetch owned repos
+	releases := &helmv1alpha1.ReleaseList{}
+	requirement, _ := labels.ParseToRequirements("releaseGroup=" + instance.Spec.LabelSelector)
+	opts := &client.ListOptions{
+		LabelSelector: labels.NewSelector().Add(requirement[0]),
 	}
 
-	var wg sync.WaitGroup
-	c := make(chan string, 10)
+	if err := r.List(context.Background(), releases, opts); err != nil {
+		r.Log.Info("Error on listing releases for group %v", instance.Spec.LabelSelector)
+	}
+
 	spec := instance.Spec.Releases
+	remove := make(chan helmv1alpha1.Release)
+	create := make(chan helmv1alpha1.Release)
+	quit := make(chan bool)
+	counter := 0
 
-	for _, release := range spec {
-		wg.Add(1)
+	go func() {
+		for _, release := range releases.Items {
+			exists := false
 
-		go func(release helmv1alpha1.ReleaseSpec, c chan<- string) {
-			defer wg.Done()
+			for _, specRelease := range spec {
+				if release.Name == specRelease.Name {
+					exists = true
+					break
+				}
+			}
 
-			helmRelease := &helmv1alpha1.Release{
+			if !exists {
+				remove <- release
+			}
+		}
+		quit <- true
+	}()
+
+	go func() {
+		for _, release := range spec {
+			create <- helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      release.Name,
 					Namespace: instance.ObjectMeta.Namespace,
 					Labels: map[string]string{
-						"release": release.Name,
-						"chart":   release.Chart,
-						"repo":    release.Repo,
+						"release":      release.Name,
+						"releaseGroup": instance.Spec.LabelSelector,
 					},
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    release.Name,
-					Repo:    release.Repo,
-					Chart:   release.Chart,
-					Version: release.Version,
-				},
+				Spec: release,
 			}
-
-			if instance.Spec.LabelSelector != "" {
-				helmRelease.ObjectMeta.Labels["repoGroup"] = instance.Spec.LabelSelector
-			}
-
-			if release.Values != nil {
-				helmRelease.Spec.Values = release.Values
-			}
-
-			err := controllerutil.SetControllerReference(instance, helmRelease, r.Scheme)
-
-			if err == nil {
-
-				installedRelease := &helmv1alpha1.Release{}
-				err = r.Client.Get(context.Background(), client.ObjectKey{
-					Namespace: helmRelease.ObjectMeta.Namespace,
-					Name:      helmRelease.Spec.Name,
-				}, installedRelease)
-
-				if err != nil {
-					if errors.IsNotFound(err) {
-						if err = r.Client.Create(context.TODO(), helmRelease); err != nil {
-							c <- err.Error()
-						}
-						c <- "Successfully installed release " + helmRelease.Name
-					}
-				} else {
-
-					installedRelease.Spec = helmRelease.Spec
-					if err = r.Client.Update(context.TODO(), installedRelease); err != nil {
-						c <- err.Error()
-					}
-
-					c <- "Successfully updated release " + installedRelease.Name
-				}
-			}
-		}(release, c)
-	}
-
-	go func() {
-		wg.Wait()
-		close(c)
+		}
+		quit <- true
 	}()
 
-	for i := range c {
-		reqLogger.Info(i)
+	for {
+		select {
+		case f := <-remove:
+			r.removeRelease(f, instance, ctx)
+		case g := <-create:
+			r.deployRelease(g, instance, ctx)
+		case v := <-quit:
+			if v {
+				counter++
+			}
+			if counter == 2 {
+				return ctrl.Result{}, nil
+			}
+		}
+	}
+}
+
+func (r *ReleaseGroupReconciler) removeRelease(g helmv1alpha1.Release, instance *helmv1alpha1.ReleaseGroup, ctx context.Context) {
+	if err := r.Delete(ctx, &g); err != nil {
+		r.Log.Error(err, "error on remove", "group", instance.ObjectMeta.Name, "release", g.Name)
+	}
+	r.Log.Info("release removed", "group", instance.ObjectMeta.Name, "release", g.Name)
+}
+
+func (r *ReleaseGroupReconciler) deployRelease(g helmv1alpha1.Release, instance *helmv1alpha1.ReleaseGroup, ctx context.Context) {
+	release := g.DeepCopy()
+	if err := controllerutil.SetControllerReference(instance, release, r.Scheme); err != nil {
+		r.Log.Error(err, "error on setting ref", "group", instance.ObjectMeta.Name, "release", release.Name)
+		return
 	}
 
-	reqLogger.Info("Reconciled HelmReleaseGroup", "release group", instance.Name)
+	installedRepo := &helmv1alpha1.Release{}
+	err := r.Client.Get(ctx, client.ObjectKey{
+		Namespace: release.ObjectMeta.Namespace,
+		Name:      release.Spec.Name,
+	}, installedRepo)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			r.Log.Info(err.Error(), "group", instance.ObjectMeta.Name, "release", release.Name)
 
-	return ctrl.Result{}, nil
+			if err = r.Client.Create(ctx, release); err != nil {
+				r.Log.Error(err, "error on create", "group", instance.ObjectMeta.Name, "release", release.Name)
+			}
+
+			r.Log.Info("release created", "group", instance.ObjectMeta.Name, "release", release.Name)
+		}
+		return
+	}
+	r.Log.Info("Release already installed.", "group", instance.ObjectMeta.Name, "release", release.Name)
 }
 
 // SetupWithManager sets up the controller with the Manager.

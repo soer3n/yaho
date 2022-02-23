@@ -38,7 +38,7 @@ type Release struct {
 	getter           utils.HTTPClientInterface
 	logger           logr.Logger
 	wg               *sync.WaitGroup
-	mu               *sync.Mutex
+	mu               sync.Mutex
 }
 
 // Namespace represents struct with release namespace name and if it should be installed

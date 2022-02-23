@@ -161,7 +161,7 @@ func (hc *Release) UpdateAffectedResources(scheme *runtime.Scheme) error {
 	return nil
 }
 
-func (hc Release) appendFilesFromConfigMap(chart, version, suffix string) []*helmchart.File {
+func (hc *Release) appendFilesFromConfigMap(chart, version, suffix string) []*helmchart.File {
 	var err error
 	files := []*helmchart.File{}
 
@@ -203,7 +203,7 @@ func (hc Release) appendFilesFromConfigMap(chart, version, suffix string) []*hel
 	return files
 }
 
-func (hc Release) getDefaultValuesFromConfigMap(name string) map[string]interface{} {
+func (hc *Release) getDefaultValuesFromConfigMap(name string) map[string]interface{} {
 	var err error
 	values := make(map[string]interface{})
 	configmap := &v1.ConfigMap{}
@@ -221,7 +221,7 @@ func (hc Release) getDefaultValuesFromConfigMap(name string) map[string]interfac
 	return jsonMap
 }
 
-func (hc Release) getFiles(chartName, chartVersion string, helmChart *helmv1alpha1.Chart) []*helmchart.File {
+func (hc *Release) getFiles(chartName, chartVersion string, helmChart *helmv1alpha1.Chart) []*helmchart.File {
 	files := []*helmchart.File{}
 
 	temp := hc.appendFilesFromConfigMap(chartName, chartVersion, "tmpl")

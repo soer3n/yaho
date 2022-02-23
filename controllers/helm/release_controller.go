@@ -36,6 +36,7 @@ import (
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -134,18 +135,18 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if err := helmRelease.UpdateAffectedResources(r.Scheme); err != nil {
 		instance.Status.Status = "prepareFailed"
-		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "prepareFailed", err.Error())
+		return r.syncStatus(ctx, instance, metav1.ConditionFalse, "prepareFailed", err.Error())
 	}
 
 	if err := helmRelease.Update(); err != nil {
 		instance.Status.Status = "updateFailed"
-		return r.syncStatus(context.Background(), instance, metav1.ConditionFalse, "updateFailed", err.Error())
+		return r.syncStatus(ctx, instance, metav1.ConditionFalse, "updateFailed", err.Error())
 	}
 
-	r.Log.Info("Don't reconcile releases.")
+	reqLogger.Info("Don't reconcile releases.")
 	instance.Status.Status = "success"
 	instance.Status.Synced = true
-	return r.syncStatus(context.Background(), instance, metav1.ConditionTrue, "success", "all up to date")
+	return r.syncStatus(ctx, instance, metav1.ConditionTrue, "success", "all up to date")
 }
 
 func (r *ReleaseReconciler) handleFinalizer(helmRelease *release.Release, instance *helmv1alpha1.Release) (bool, error) {
@@ -189,5 +190,6 @@ func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alph
 func (r *ReleaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&helmv1alpha1.Release{}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 2}).
 		Complete(r)
 }

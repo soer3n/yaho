@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"context"
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
@@ -25,7 +26,7 @@ func TestRepoDeployCharts(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		val := apiObj.Input.(helmv1alpha1.Repo)
-		testObj := repository.New(&val, settings, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj := repository.New(&val, context.TODO(), settings, logf.Log, clientMock, httpMock, kube.Client{})
 		selectors := make(map[string]string)
 
 		// parse selectors string from api object meta data

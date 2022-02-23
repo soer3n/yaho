@@ -51,7 +51,7 @@ func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger lo
 		getter:    g,
 		logger:    reqLogger.WithValues("release", instance.Spec.Name),
 		wg:        &sync.WaitGroup{},
-		mu:        &sync.Mutex{},
+		mu:        sync.Mutex{},
 	}
 
 	helmRelease.releaseNamespace = instance.ObjectMeta.Namespace
@@ -240,19 +240,19 @@ func (hc *Release) getControllerRepo(name, namespace string) (*helmv1alpha1.Repo
 }
 
 // Remove represents removing release related resource
-func (hc Release) Remove() error {
+func (hc *Release) Remove() error {
 	client := action.NewUninstall(hc.Config)
 	_, err := client.Run(hc.Name)
 	return err
 }
 
-func (hc Release) getRelease() (*release.Release, error) {
+func (hc *Release) getRelease() (*release.Release, error) {
 	getConfig := hc.Config
 	client := action.NewGet(getConfig)
 	return client.Run(hc.Name)
 }
 
-func (hc Release) loadChart(name string, releaseClient *action.Install, repoObj *helmv1alpha1.Repo) (*helmchart.Chart, error) {
+func (hc *Release) loadChart(name string, releaseClient *action.Install, repoObj *helmv1alpha1.Repo) (*helmchart.Chart, error) {
 	var chartRequested *helmchart.Chart
 	var chartURL string
 	var err error
@@ -277,26 +277,37 @@ func (hc Release) loadChart(name string, releaseClient *action.Install, repoObj 
 	return chartRequested, nil
 }
 
-func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*helmchart.Chart, error) {
-	// prepare
-	helmChart := &helmchart.Chart{
-		Metadata:  &helmchart.Metadata{},
-		Files:     []*helmchart.File{},
-		Templates: []*helmchart.File{},
-		Values:    make(map[string]interface{}),
-	}
+func (hc *Release) getChart(chartName string, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*helmchart.Chart, error) {
 
+	helmChart := &helmchart.Chart{}
 	chartObj := &helmv1alpha1.Chart{}
+	repoSelector := make(map[string]string)
 
 	if err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
 		Namespace: hc.Namespace.Name,
 		Name:      chartName,
 	}, chartObj); err != nil {
-		return helmChart, err
+		return nil, err
 	}
 
-	// goroutine 1 - send + done channel
-	repoSelector := make(map[string]string)
+	hc.wg.Add(3)
+
+	go func() {
+		defer hc.wg.Done()
+		hc.setVersion(helmChart, chartName, chartObj)
+	}()
+
+	go func() {
+		defer hc.wg.Done()
+		hc.setValues(helmChart, chartName, vals)
+	}()
+
+	go func() {
+		defer hc.wg.Done()
+		hc.setFiles(helmChart, chartName, chartObj)
+	}()
+
+	hc.wg.Wait()
 
 	if _, ok := chartObj.ObjectMeta.Labels["repoGroup"]; ok {
 		if len(chartObj.ObjectMeta.Labels["repoGroup"]) > 1 {
@@ -306,39 +317,17 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 		}
 	}
 
-	// goroutine 2 - send + done channel
-	versionObj := utils.GetChartVersion(chartPathOptions.Version, chartObj)
+	tempVersion := utils.GetChartVersion(hc.Version, chartObj)
 
-	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + chartName + "-" + versionObj.Name)
-	helmChart.Values = defaultValues
-	cv := values.MergeValues(vals, helmChart)
-	helmChart.Values = cv
-
-	// receive from channel 1 + 2 - starts on done channel event
-	if len(versionObj.Dependencies) > 0 {
-		if err := hc.addDependencies(helmChart, versionObj.Dependencies, cv, repoSelector); err != nil {
+	if len(tempVersion.Dependencies) > 0 {
+		if err := hc.addDependencies(helmChart, tempVersion.Dependencies, helmChart.Values, repoSelector); err != nil {
 			return helmChart, err
 		}
 	}
 
-	// goroutine 3 - send (parseFiles())
-	files := hc.getFiles(chartName, versionObj.Name, chartObj)
-
-	// goroutine 4 - receive
-	// select for 3 channels
-	if len(files) < 1 {
+	if len(helmChart.Files) < 1 {
 		return helmChart, errors.NewBadRequest("no files detected for chart resource")
 	}
-
-	// receive from channel 3
-	helmChart.Metadata.Name = chartName
-	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
-	helmChart.Files = files
-
-	// receive from channel 2
-	helmChart.Metadata.Version = versionObj.Name
-	// receive from channel 3 instead of parsing it again
-	helmChart.Templates = hc.appendFilesFromConfigMap(chartName, versionObj.Name, "tmpl")
 
 	// validate after channels are closed
 	if err := helmChart.Validate(); err != nil {
@@ -348,7 +337,35 @@ func (hc Release) getChart(chartName string, chartPathOptions *action.ChartPathO
 	return helmChart, nil
 }
 
-func (hc Release) getCredentials(secret string) *chart.Auth {
+func (hc *Release) setValues(helmChart *helmchart.Chart, chartName string, vals map[string]interface{}) {
+	defer hc.mu.Unlock()
+	hc.mu.Lock()
+	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + chartName + "-" + hc.Version)
+	helmChart.Values = defaultValues
+	cv := values.MergeValues(vals, helmChart)
+	helmChart.Values = cv
+}
+
+func (hc *Release) setVersion(helmChart *helmchart.Chart, chartName string, chartObj *helmv1alpha1.Chart) {
+	defer hc.mu.Unlock()
+	hc.mu.Lock()
+	if helmChart.Metadata == nil {
+		helmChart.Metadata = &helmchart.Metadata{}
+	}
+	helmChart.Metadata.Version = hc.Version
+	helmChart.Metadata.Name = chartName
+	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
+	helmChart.Templates = hc.appendFilesFromConfigMap(chartName, hc.Version, "tmpl")
+}
+
+func (hc *Release) setFiles(helmChart *helmchart.Chart, chartName string, chartObj *helmv1alpha1.Chart) {
+	defer hc.mu.Unlock()
+	hc.mu.Lock()
+	files := hc.getFiles(chartName, hc.Version, chartObj)
+	helmChart.Files = files
+}
+
+func (hc *Release) getCredentials(secret string) *chart.Auth {
 	secretObj := &v1.Secret{}
 	creds := &chart.Auth{}
 
@@ -372,7 +389,7 @@ func (hc Release) getCredentials(secret string) *chart.Auth {
 	return creds
 }
 
-func (hc Release) validateChartSpec(c chan helmv1alpha1.Chart, deps []*helmchart.Chart, version *helmv1alpha1.ChartDep) error {
+func (hc *Release) validateChartSpec(c chan helmv1alpha1.Chart, deps []*helmchart.Chart, version *helmv1alpha1.ChartDep) error {
 
 	for _, d := range deps {
 
@@ -408,7 +425,7 @@ func (hc Release) validateChartSpec(c chan helmv1alpha1.Chart, deps []*helmchart
 	return nil
 }
 
-func (hc Release) upgrade(helmChart *helmchart.Chart, vals chartutil.Values) error {
+func (hc *Release) upgrade(helmChart *helmchart.Chart, vals chartutil.Values) error {
 	var rel *release.Release
 	var err error
 
