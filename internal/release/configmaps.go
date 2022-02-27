@@ -11,9 +11,7 @@ import (
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -21,6 +19,11 @@ import (
 
 // parsedConfigMaps represents parsing and returning of chart related data for a release
 func (hc *Release) parseConfigMaps(c chan helmv1alpha1.Chart, cm chan v1.ConfigMap) error {
+
+	if hc.Chart.Metadata == nil {
+		return errors.NewBadRequest("chart not loaded")
+	}
+
 	var chartObj helmv1alpha1.Chart
 	var err error
 
@@ -67,6 +70,8 @@ func (hc *Release) parseConfigMaps(c chan helmv1alpha1.Chart, cm chan v1.ConfigM
 }
 
 func (hc *Release) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Repo, scheme *runtime.Scheme) error {
+	defer hc.mu.Unlock()
+	hc.mu.Lock()
 	if err := controllerutil.SetControllerReference(instance, &configmap, scheme); err != nil {
 		return err
 	}
@@ -161,48 +166,6 @@ func (hc *Release) UpdateAffectedResources(scheme *runtime.Scheme) error {
 	return nil
 }
 
-func (hc *Release) appendFilesFromConfigMap(chart, version, suffix string) []*helmchart.File {
-	var err error
-	files := []*helmchart.File{}
-
-	if hc.Chart == nil {
-		hc.logger.Info("chart not yet initialized", "chart", chart, "version", version, "kind", suffix)
-	}
-
-	configmapList := v1.ConfigMapList{}
-
-	selector := labels.NewSelector()
-	requirement, _ := labels.NewRequirement(configMapLabelKey, selection.Equals, []string{chart + "-" + version + "-" + suffix})
-	selector = selector.Add(*requirement)
-
-	if err = hc.K8sClient.List(context.Background(), &configmapList, &client.ListOptions{
-		LabelSelector: selector,
-	}); err != nil {
-		return files
-	}
-
-	for _, configmap := range configmapList.Items {
-		for key, data := range configmap.BinaryData {
-			baseName := "templates/"
-			if suffix == "crds" {
-				baseName = "crds/"
-			}
-
-			if configmap.ObjectMeta.Labels[configMapLabelSubName] != "" {
-				baseName = baseName + configmap.ObjectMeta.Labels[configMapLabelSubName] + "/"
-			}
-
-			file := &helmchart.File{
-				Name: baseName + key,
-				Data: data,
-			}
-			files = append(files, file)
-		}
-	}
-
-	return files
-}
-
 func (hc *Release) getDefaultValuesFromConfigMap(name string) map[string]interface{} {
 	var err error
 	values := make(map[string]interface{})
@@ -219,16 +182,4 @@ func (hc *Release) getDefaultValuesFromConfigMap(name string) map[string]interfa
 	}
 
 	return jsonMap
-}
-
-func (hc *Release) getFiles(chartName, chartVersion string, helmChart *helmv1alpha1.Chart) []*helmchart.File {
-	files := []*helmchart.File{}
-
-	temp := hc.appendFilesFromConfigMap(chartName, chartVersion, "tmpl")
-	files = append(files, temp...)
-
-	temp = hc.appendFilesFromConfigMap(chartName, chartVersion, "crds")
-	files = append(files, temp...)
-
-	return files
 }

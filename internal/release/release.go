@@ -78,7 +78,7 @@ func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger lo
 		return helmRelease, err
 	}
 
-	helmRelease.Values = specValues
+	helmRelease.ValuesTemplate.Values = specValues
 
 	options := &action.ChartPathOptions{
 		Version:               instance.Spec.Version,
@@ -134,7 +134,7 @@ func (hc *Release) setOptions(name, namespace *string) error {
 // Update represents update or installation process of a release
 func (hc *Release) Update() error {
 
-	if hc.Chart == nil {
+	if hc.Chart == nil || hc.Chart.Metadata == nil {
 		return errors.NewBadRequest("chart not loaded on action update")
 	}
 
@@ -280,6 +280,7 @@ func (hc *Release) loadChart(name string, releaseClient *action.Install, repoObj
 func (hc *Release) getChart(chartName string, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*helmchart.Chart, error) {
 
 	helmChart := &helmchart.Chart{}
+	hc.Chart = &helmchart.Chart{}
 	chartObj := &helmv1alpha1.Chart{}
 	repoSelector := make(map[string]string)
 
@@ -294,17 +295,17 @@ func (hc *Release) getChart(chartName string, chartPathOptions *action.ChartPath
 
 	go func() {
 		defer hc.wg.Done()
-		hc.setVersion(helmChart, chartName, chartObj)
+		hc.setVersion(chartName, chartPathOptions, helmChart, chartObj)
 	}()
 
 	go func() {
 		defer hc.wg.Done()
-		hc.setValues(helmChart, chartName, vals)
+		hc.setValues(chartName, chartPathOptions, helmChart, vals)
 	}()
 
 	go func() {
 		defer hc.wg.Done()
-		hc.setFiles(helmChart, chartName, chartObj)
+		hc.setFiles(chartName, chartPathOptions, helmChart, chartObj)
 	}()
 
 	hc.wg.Wait()
@@ -317,7 +318,7 @@ func (hc *Release) getChart(chartName string, chartPathOptions *action.ChartPath
 		}
 	}
 
-	tempVersion := utils.GetChartVersion(hc.Version, chartObj)
+	tempVersion := utils.GetChartVersion(chartPathOptions.Version, chartObj)
 
 	if len(tempVersion.Dependencies) > 0 {
 		if err := hc.addDependencies(helmChart, tempVersion.Dependencies, helmChart.Values, repoSelector); err != nil {
@@ -337,32 +338,16 @@ func (hc *Release) getChart(chartName string, chartPathOptions *action.ChartPath
 	return helmChart, nil
 }
 
-func (hc *Release) setValues(helmChart *helmchart.Chart, chartName string, vals map[string]interface{}) {
+func (hc *Release) setVersion(chartName string, chartPathOptions *action.ChartPathOptions, helmChart *helmchart.Chart, chartObj *helmv1alpha1.Chart) {
 	defer hc.mu.Unlock()
 	hc.mu.Lock()
-	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + chartName + "-" + hc.Version)
-	helmChart.Values = defaultValues
-	cv := values.MergeValues(vals, helmChart)
-	helmChart.Values = cv
-}
 
-func (hc *Release) setVersion(helmChart *helmchart.Chart, chartName string, chartObj *helmv1alpha1.Chart) {
-	defer hc.mu.Unlock()
-	hc.mu.Lock()
 	if helmChart.Metadata == nil {
 		helmChart.Metadata = &helmchart.Metadata{}
 	}
-	helmChart.Metadata.Version = hc.Version
+	helmChart.Metadata.Version = chartPathOptions.Version
 	helmChart.Metadata.Name = chartName
 	helmChart.Metadata.APIVersion = chartObj.Spec.APIVersion
-	helmChart.Templates = hc.appendFilesFromConfigMap(chartName, hc.Version, "tmpl")
-}
-
-func (hc *Release) setFiles(helmChart *helmchart.Chart, chartName string, chartObj *helmv1alpha1.Chart) {
-	defer hc.mu.Unlock()
-	hc.mu.Lock()
-	files := hc.getFiles(chartName, hc.Version, chartObj)
-	helmChart.Files = files
 }
 
 func (hc *Release) getCredentials(secret string) *chart.Auth {

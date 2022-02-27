@@ -19,7 +19,7 @@ func New(instance *helmv1alpha1.Release, logger logr.Logger, k8sClient client.Cl
 
 	hv := &ValueTemplate{
 		// ValuesRef: valuesList,
-		logger:    logger.WithValues("template", valuesList),
+		logger:    logger,
 		k8sClient: k8sClient,
 	}
 
@@ -163,7 +163,7 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 			return valMap
 		}
 
-		hv.logger.Info("converting map succeeded", "map length", len(convertedMap))
+		hv.logger.Info("converting map succeeded", "map name", values.Name, "map length", len(convertedMap))
 
 		mapKey := ""
 

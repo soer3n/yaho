@@ -3,7 +3,9 @@ package release
 import (
 	"reflect"
 
+	"github.com/soer3n/yaho/internal/values"
 	"helm.sh/helm/v3/pkg/action"
+	helmchart "helm.sh/helm/v3/pkg/chart"
 )
 
 func (hc *Release) getValues() (map[string]interface{}, error) {
@@ -14,10 +16,19 @@ func (hc *Release) getValues() (map[string]interface{}, error) {
 		return templateObj.Values, err
 	}
 
-	hc.Values = templateObj.Values
+	hc.ValuesTemplate.Values = templateObj.Values
 	hc.ValuesTemplate.ValuesMap = templateObj.ValuesMap
 
 	return returnValues, nil
+}
+
+func (hc *Release) setValues(chartName string, chartPathOptions *action.ChartPathOptions, helmChart *helmchart.Chart, vals map[string]interface{}) {
+	defer hc.mu.Unlock()
+	hc.mu.Lock()
+	defaultValues := hc.getDefaultValuesFromConfigMap("helm-default-" + chartName + "-" + chartPathOptions.Version)
+	hc.Chart.Values = defaultValues
+	cv := values.MergeValues(vals, hc.Chart)
+	helmChart.Values = cv
 }
 
 func (hc *Release) getInstalledValues() (map[string]interface{}, error) {

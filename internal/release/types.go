@@ -13,13 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Releases represents struct for data needed for managing releases and list of installed
-type Releases struct {
-	Entries  []*Release
-	Config   *action.Configuration
-	Settings *cli.EnvSettings
-}
-
 // Release represents data needed for installing and updating a helm release
 type Release struct {
 	Name             string
@@ -27,7 +20,6 @@ type Release struct {
 	Chart            *helmchart.Chart
 	Version          string
 	ValuesTemplate   *values.ValueTemplate
-	Values           map[string]interface{}
 	Namespace        Namespace
 	releaseNamespace string
 	Flags            *helmv1alpha1.Flags
@@ -39,6 +31,25 @@ type Release struct {
 	logger           logr.Logger
 	wg               *sync.WaitGroup
 	mu               sync.Mutex
+}
+
+type spec struct {
+	Name             string
+	Repo             string
+	Version          string
+	releaseNamespace string
+}
+
+type helm struct {
+	client   *action.Install
+	flags    *helmv1alpha1.Flags
+	settings *cli.EnvSettings
+	config   *action.Configuration
+}
+
+type kubernetes struct {
+	client client.Client
+	logger logr.Logger
 }
 
 // Namespace represents struct with release namespace name and if it should be installed

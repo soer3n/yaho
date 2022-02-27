@@ -145,7 +145,7 @@ func (chartVersion ChartVersion) createDependenciesConfigMaps(cm chan v1.ConfigM
 				Name:      "helm-crds-" + dep.Name() + "-" + dep.Metadata.Version,
 				Namespace: namespace,
 				Labels: map[string]string{
-					configMapLabelKey: chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version + "-crds",
+					configMapLabelKey: dep.Metadata.Name + "-" + dep.Metadata.Version + "-crds",
 				},
 			},
 			Immutable:  immutable,

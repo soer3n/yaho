@@ -70,6 +70,7 @@ func (hc *Release) addDependencies(chart *helmchart.Chart, deps []*helmv1alpha1.
 					// cast to struct
 					castedMap, _ := valueMap.(chartutil.Values)
 					subChart.Values = castedMap
+					// hc.Chart.AddDependency(subChart)
 					chart.AddDependency(subChart)
 				}
 			}

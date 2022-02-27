@@ -2,6 +2,7 @@ package helm
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -176,7 +177,7 @@ func GetTestReleaseSpecsForConfigMaps() []inttypes.TestCase {
 				"configmap": 0,
 				"chart":     0,
 			},
-			ReturnError: k8serrors.NewBadRequest("chart not loaded on action update affected resources"),
+			ReturnError: nil,
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -197,7 +198,7 @@ func GetTestReleaseSpecsForConfigMaps() []inttypes.TestCase {
 				"configmap": 0,
 				"chart":     0,
 			},
-			ReturnError: k8serrors.NewBadRequest("chart not loaded on action update affected resources"),
+			ReturnError: errors.New("repo not found"),
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
