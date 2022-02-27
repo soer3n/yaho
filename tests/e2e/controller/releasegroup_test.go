@@ -15,7 +15,7 @@ import (
 var (
 	releaseGroupChart *helmv1alpha1.Chart
 	releaseGroup      *helmv1alpha1.ReleaseGroup
-	releaseGroupRepo  *helmv1alpha1.Repo
+	releaseGroupRepo  *helmv1alpha1.Repository
 )
 
 var _ = Context("Install a releasegroup", func() {
@@ -34,12 +34,12 @@ var _ = Context("Install a releasegroup", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("should create a new Repository resource with the specified name and specified url")
-			releaseGroupRepo = &helmv1alpha1.Repo{
+			releaseGroupRepo = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testRepoName,
 					Namespace: namespace,
 				},
-				Spec: helmv1alpha1.RepoSpec{
+				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoName,
 					URL:  testRepoURL,
 				},
@@ -49,12 +49,12 @@ var _ = Context("Install a releasegroup", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("should create a new Repository resource with the specified name and specified url")
-			releaseGroupRepo = &helmv1alpha1.Repo{
+			releaseGroupRepo = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testRepoNameSecond,
 					Namespace: namespace,
 				},
-				Spec: helmv1alpha1.RepoSpec{
+				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoNameSecond,
 					URL:  testRepoURLSecond,
 				},
@@ -63,7 +63,7 @@ var _ = Context("Install a releasegroup", func() {
 			err = testClient.Create(context.Background(), releaseGroupRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			deployment = &helmv1alpha1.Repo{}
+			deployment = &helmv1alpha1.Repository{}
 			releaseGroupChart = &helmv1alpha1.Chart{}
 			configmap := &v1.ConfigMap{}
 
@@ -169,12 +169,12 @@ var _ = Context("Install a releasegroup", func() {
 
 			By("should remove this Repository resource with the specified name and specified url")
 
-			releaseGroupRepo = &helmv1alpha1.Repo{
+			releaseGroupRepo = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testRepoName,
 					Namespace: namespace,
 				},
-				Spec: helmv1alpha1.RepoSpec{
+				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoName,
 					URL:  testRepoURL,
 				},

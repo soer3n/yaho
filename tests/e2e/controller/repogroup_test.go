@@ -39,7 +39,7 @@ var _ = Context("Install a repository group", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: testRepoName, Namespace: namespace},
 				Spec: helmv1alpha1.RepoGroupSpec{
 					LabelSelector: "foo",
-					Repos: []helmv1alpha1.RepoSpec{
+					Repos: []helmv1alpha1.RepositorySpec{
 						{
 							Name: testRepoName,
 							URL:  testRepoURL,
@@ -56,7 +56,7 @@ var _ = Context("Install a repository group", func() {
 
 			By("update group by adding another repository resource with the specified name and specified url")
 
-			repoGroupKind.Spec.Repos = append(repoGroupKind.Spec.Repos, helmv1alpha1.RepoSpec{
+			repoGroupKind.Spec.Repos = append(repoGroupKind.Spec.Repos, helmv1alpha1.RepositorySpec{
 				Name: testRepoNameSecond,
 				URL:  testRepoURLSecond,
 			})
@@ -64,8 +64,8 @@ var _ = Context("Install a repository group", func() {
 			err = testClient.Update(context.Background(), repoGroupKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
-			deployment = &helmv1alpha1.Repo{}
-			deployment2 := &helmv1alpha1.Repo{}
+			deployment = &helmv1alpha1.Repository{}
+			deployment2 := &helmv1alpha1.Repository{}
 
 			Eventually(
 				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: repoGroupKind.Namespace}, deployment),
@@ -85,7 +85,7 @@ var _ = Context("Install a repository group", func() {
 
 			By("should remove the first repository resource from the group")
 
-			repoGroupKind.Spec.Repos = []helmv1alpha1.RepoSpec{
+			repoGroupKind.Spec.Repos = []helmv1alpha1.RepositorySpec{
 				{
 					Name: testRepoNameSecond,
 					URL:  testRepoURLSecond,

@@ -6,20 +6,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: repoes.helm.soer3n.info
+  name: repositories.helm.soer3n.info
 spec:
   group: helm.soer3n.info
   names:
-    kind: Repo
-    listKind: RepoList
-    plural: repoes
-    singular: repo
+    kind: Repository
+    listKind: RepositoryList
+    plural: repositories
+    singular: repository
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Repo is the Schema for the repos API
+        description: Repository is the Schema for the repos API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -34,7 +34,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: RepoSpec defines the desired state of Repo
+            description: RepositorySpec defines the desired state of Repo
             properties:
               authSecret:
                 type: string
@@ -49,7 +49,7 @@ spec:
             - url
             type: object
           status:
-            description: RepoStatus defines the observed state of Repo
+            description: RepositoryStatus defines the observed state of Repo
             properties:
               conditions:
                 items:

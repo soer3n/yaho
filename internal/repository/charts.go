@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (hr *Repo) deployCharts(instance helmv1alpha1.Repo, selector map[string]string, scheme *runtime.Scheme) error {
+func (hr *Repo) deployCharts(instance helmv1alpha1.Repository, selector map[string]string, scheme *runtime.Scheme) error {
 
 	var err error
 
@@ -46,7 +46,7 @@ func (hr *Repo) deployCharts(instance helmv1alpha1.Repo, selector map[string]str
 }
 
 // GetCharts represents returning list of internal chart structs for a given repo
-func (hr *Repo) getCharts(selectors map[string]string, instance helmv1alpha1.Repo, mapChannel chan helmv1alpha1.Chart) error {
+func (hr *Repo) getCharts(selectors map[string]string, instance helmv1alpha1.Repository, mapChannel chan helmv1alpha1.Chart) error {
 
 	var chartList []*chart.Chart
 	var chartAPIList helmv1alpha1.ChartList
@@ -98,7 +98,7 @@ func (hr *Repo) loadRepositoryIndex() *repo.IndexFile {
 	return indexFile
 }
 
-func (hr *Repo) updateChart(helmChart helmv1alpha1.Chart, instance helmv1alpha1.Repo, scheme *runtime.Scheme) error {
+func (hr *Repo) updateChart(helmChart helmv1alpha1.Chart, instance helmv1alpha1.Repository, scheme *runtime.Scheme) error {
 
 	repo := instance.DeepCopy()
 	owned := helmChart.DeepCopy()
@@ -134,7 +134,7 @@ func (hr *Repo) updateChart(helmChart helmv1alpha1.Chart, instance helmv1alpha1.
 }
 
 // AddOrUpdateChartMap represents update of a map of chart structs if needed
-func (hr *Repo) transformChart(instance *chart.Chart, repo helmv1alpha1.Repo, mapChannel chan helmv1alpha1.Chart) error {
+func (hr *Repo) transformChart(instance *chart.Chart, repo helmv1alpha1.Repository, mapChannel chan helmv1alpha1.Chart) error {
 
 	apiObj := &helmv1alpha1.Chart{
 		ObjectMeta: metav1.ObjectMeta{

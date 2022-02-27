@@ -33,7 +33,7 @@ const configMapLabelSubName = "helm.soer3n.info/subname"
 func New(instance *helmv1alpha1.Release, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) (*Release, error) {
 	var helmRelease *Release
 	var helmChart *helmchart.Chart
-	var repoObj *helmv1alpha1.Repo
+	var repoObj *helmv1alpha1.Repository
 	var specValues map[string]interface{}
 	var err error
 
@@ -218,8 +218,8 @@ func (hc *Release) setUpgradeFlags(client *action.Upgrade) {
 	client.CleanupOnFail = hc.Flags.CleanupOnFail
 }
 
-func (hc *Release) getControllerRepo(name, namespace string) (*helmv1alpha1.Repo, error) {
-	instance := &helmv1alpha1.Repo{}
+func (hc *Release) getControllerRepo(name, namespace string) (*helmv1alpha1.Repository, error) {
+	instance := &helmv1alpha1.Repository{}
 
 	err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
 		Name:      name,
@@ -252,7 +252,7 @@ func (hc *Release) getRelease() (*release.Release, error) {
 	return client.Run(hc.Name)
 }
 
-func (hc *Release) loadChart(name string, releaseClient *action.Install, repoObj *helmv1alpha1.Repo) (*helmchart.Chart, error) {
+func (hc *Release) loadChart(name string, releaseClient *action.Install, repoObj *helmv1alpha1.Repository) (*helmchart.Chart, error) {
 	var chartRequested *helmchart.Chart
 	var chartURL string
 	var err error

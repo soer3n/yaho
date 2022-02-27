@@ -69,7 +69,7 @@ func (hc *Release) parseConfigMaps(c chan helmv1alpha1.Chart, cm chan v1.ConfigM
 	return nil
 }
 
-func (hc *Release) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Repo, scheme *runtime.Scheme) error {
+func (hc *Release) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha1.Repository, scheme *runtime.Scheme) error {
 	defer hc.mu.Unlock()
 	hc.mu.Lock()
 	if err := controllerutil.SetControllerReference(instance, &configmap, scheme); err != nil {
@@ -93,7 +93,7 @@ func (hc *Release) deployConfigMap(configmap v1.ConfigMap, instance *helmv1alpha
 	return nil
 }
 
-func (hc *Release) updateChart(chart helmv1alpha1.Chart, instance *helmv1alpha1.Repo) error {
+func (hc *Release) updateChart(chart helmv1alpha1.Chart, instance *helmv1alpha1.Repository) error {
 	current := &helmv1alpha1.Chart{}
 	err := hc.K8sClient.Get(context.Background(), client.ObjectKey{
 		Namespace: chart.ObjectMeta.Namespace,
@@ -118,7 +118,7 @@ func (hc *Release) updateChart(chart helmv1alpha1.Chart, instance *helmv1alpha1.
 // UpdateAffectedResources represents parsing and installing subresources
 func (hc *Release) UpdateAffectedResources(scheme *runtime.Scheme) error {
 
-	var controller *helmv1alpha1.Repo
+	var controller *helmv1alpha1.Repository
 
 	if hc.Chart == nil {
 		return errors.NewBadRequest("chart not loaded on action update affected resources")

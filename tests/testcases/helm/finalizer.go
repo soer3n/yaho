@@ -20,13 +20,13 @@ import (
 var verbose = flag.Bool("test.log", false, "enable test logging")
 
 // GetTestFinalizerRepo returns repo cr for testing finalizer handling
-func GetTestFinalizerRepo() *helmv1alpha1.Repo {
-	return &helmv1alpha1.Repo{
+func GetTestFinalizerRepo() *helmv1alpha1.Repository {
+	return &helmv1alpha1.Repository{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "",
 		},
-		Spec: helmv1alpha1.RepoSpec{
+		Spec: helmv1alpha1.RepositorySpec{
 			Name: "repo",
 			URL:  "https://foo.bar/charts",
 		},

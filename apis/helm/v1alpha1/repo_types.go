@@ -24,8 +24,8 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// RepoSpec defines the desired state of Repo
-type RepoSpec struct {
+// RepositorySpec defines the desired state of Repo
+type RepositorySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	Name       string `json:"name"`
@@ -33,8 +33,8 @@ type RepoSpec struct {
 	AuthSecret string `json:"authSecret,omitempty"`
 }
 
-// RepoStatus defines the observed state of Repo
-type RepoStatus struct {
+// RepositoryStatus defines the observed state of Repo
+type RepositoryStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	Phase      string             `json:"phase,omitempty"`
@@ -44,24 +44,24 @@ type RepoStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// Repo is the Schema for the repos API
-type Repo struct {
+// Repository is the Schema for the repos API
+type Repository struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   RepoSpec   `json:"spec,omitempty"`
-	Status RepoStatus `json:"status,omitempty"`
+	Spec   RepositorySpec   `json:"spec,omitempty"`
+	Status RepositoryStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// RepoList contains a list of Repo
-type RepoList struct {
+// RepositoryList contains a list of Repo
+type RepositoryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Repo `json:"items"`
+	Items           []Repository `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Repo{}, &RepoList{})
+	SchemeBuilder.Register(&Repository{}, &RepositoryList{})
 }

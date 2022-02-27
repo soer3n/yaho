@@ -56,13 +56,13 @@ func GetTestRepoSpecs() []inttypes.TestCase {
 	return []inttypes.TestCase{
 
 		{
-			Input: helmv1alpha1.Repo{
+			Input: helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"label": "selector",
 					},
 				},
-				Spec: helmv1alpha1.RepoSpec{
+				Spec: helmv1alpha1.RepositorySpec{
 					Name:       "test",
 					URL:        "https://bar.foo/charts",
 					AuthSecret: "secret",

@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	repoKind   *helmv1alpha1.Repo
-	deployment *helmv1alpha1.Repo
+	repoKind   *helmv1alpha1.Repository
+	deployment *helmv1alpha1.Repository
 	repoChart  *helmv1alpha1.Chart
 )
 
@@ -36,12 +36,12 @@ var _ = Context("Install a repository", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("creating a new repository resource with the specified name and specified url")
-			repoKind = &helmv1alpha1.Repo{
+			repoKind = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testRepoName,
 					Namespace: namespace,
 				},
-				Spec: helmv1alpha1.RepoSpec{
+				Spec: helmv1alpha1.RepositorySpec{
 					Name: "deployment-name",
 					URL:  testRepoURL,
 				},
@@ -50,7 +50,7 @@ var _ = Context("Install a repository", func() {
 			err = testClient.Create(context.Background(), repoKind)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
-			deployment = &helmv1alpha1.Repo{}
+			deployment = &helmv1alpha1.Repository{}
 			repoChart = &helmv1alpha1.Chart{}
 
 			Eventually(
@@ -86,7 +86,7 @@ var _ = Context("Install a repository", func() {
 	})
 })
 
-func GetResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repo) func() error {
+func GetResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repository) func() error {
 	return func() error {
 		if err := testClient.Get(ctx, key, obj); err != nil {
 			return err

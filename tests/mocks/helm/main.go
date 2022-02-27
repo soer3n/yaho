@@ -189,8 +189,8 @@ func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) 
 	clientMock := unstructuredmocks.K8SClientMock{}
 	httpMock := mocks.HTTPClientMock{}
 
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "repo", Namespace: ""}, &helmv1alpha1.Repo{}).Return(nil)
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "notfound", Namespace: ""}, &helmv1alpha1.Repo{}).Return(errors.New("repo not found"))
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "repo", Namespace: ""}, &helmv1alpha1.Repository{}).Return(nil)
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "notfound", Namespace: ""}, &helmv1alpha1.Repository{}).Return(errors.New("repo not found"))
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "chart", Namespace: ""}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
 		c := args.Get(2).(*helmv1alpha1.Chart)
 		spec := testcases.GetTestChartSpec()

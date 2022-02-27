@@ -25,7 +25,7 @@ func TestRepoDeployCharts(t *testing.T) {
 
 	for _, apiObj := range apiObjList {
 
-		val := apiObj.Input.(helmv1alpha1.Repo)
+		val := apiObj.Input.(helmv1alpha1.Repository)
 		testObj := repository.New(&val, context.TODO(), settings, logf.Log, clientMock, httpMock, kube.Client{})
 		selectors := make(map[string]string)
 

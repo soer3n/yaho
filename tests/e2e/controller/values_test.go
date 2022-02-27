@@ -19,7 +19,7 @@ var (
 	valuesReleaseKind                          *helmv1alpha1.Release
 	valuesRelease                              *helmv1alpha1.Release
 	valuesReleaseChart                         *helmv1alpha1.Chart
-	valuesReleaseRepo, valuesReleaseRepoSecond *helmv1alpha1.Repo
+	valuesReleaseRepo, valuesReleaseRepoSecond *helmv1alpha1.Repository
 	values                                     *helmv1alpha1.Values
 )
 
@@ -39,12 +39,12 @@ var _ = Context("Install a release with values", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("should create a new Repository resources with the specified name and specified url")
-			valuesReleaseRepo = &helmv1alpha1.Repo{
+			valuesReleaseRepo = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testRepoName,
 					Namespace: namespace,
 				},
-				Spec: helmv1alpha1.RepoSpec{
+				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoName,
 					URL:  testRepoURL,
 				},
@@ -53,12 +53,12 @@ var _ = Context("Install a release with values", func() {
 			err = testClient.Create(context.Background(), valuesReleaseRepo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			valuesReleaseRepoSecond = &helmv1alpha1.Repo{
+			valuesReleaseRepoSecond = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testRepoNameSecond,
 					Namespace: namespace,
 				},
-				Spec: helmv1alpha1.RepoSpec{
+				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoNameSecond,
 					URL:  testRepoURLSecond,
 				},
@@ -153,7 +153,7 @@ var _ = Context("Install a release with values", func() {
 
 			By("should create a new Release resource with specified")
 
-			deployment := &helmv1alpha1.Repo{}
+			deployment := &helmv1alpha1.Repository{}
 			valuesReleaseChart = &helmv1alpha1.Chart{}
 			valuesRelease = &helmv1alpha1.Release{}
 			configmap := &v1.ConfigMap{}

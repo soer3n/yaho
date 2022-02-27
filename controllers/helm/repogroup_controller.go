@@ -72,7 +72,7 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// fetch owned repos
-	repos := &helmv1alpha1.RepoList{}
+	repos := &helmv1alpha1.RepositoryList{}
 	requirement, _ := labels.ParseToRequirements("repoGroup=" + instance.Spec.LabelSelector)
 	opts := &client.ListOptions{
 		LabelSelector: labels.NewSelector().Add(requirement[0]),
@@ -83,8 +83,8 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	spec := instance.Spec.Repos
-	remove := make(chan helmv1alpha1.Repo)
-	create := make(chan helmv1alpha1.Repo)
+	remove := make(chan helmv1alpha1.Repository)
+	create := make(chan helmv1alpha1.Repository)
 	quit := make(chan bool)
 	counter := 0
 
@@ -108,7 +108,7 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	go func() {
 		for _, repository := range spec {
-			create <- helmv1alpha1.Repo{
+			create <- helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      repository.Name,
 					Namespace: instance.ObjectMeta.Namespace,
@@ -140,21 +140,21 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 }
 
-func (r *RepoGroupReconciler) removeRepo(repo helmv1alpha1.Repo, instance *helmv1alpha1.RepoGroup, ctx context.Context) {
+func (r *RepoGroupReconciler) removeRepo(repo helmv1alpha1.Repository, instance *helmv1alpha1.RepoGroup, ctx context.Context) {
 	if err := r.Delete(ctx, &repo); err != nil {
 		r.Log.Error(err, "error on remove", "group", instance.ObjectMeta.Name, "repo", repo.Name)
 	}
 	r.Log.Info("repo removed", "group", instance.ObjectMeta.Name, "repo", repo.Name)
 }
 
-func (r *RepoGroupReconciler) deployRepo(g helmv1alpha1.Repo, instance *helmv1alpha1.RepoGroup, ctx context.Context) {
+func (r *RepoGroupReconciler) deployRepo(g helmv1alpha1.Repository, instance *helmv1alpha1.RepoGroup, ctx context.Context) {
 	repo := g.DeepCopy()
 	if err := controllerutil.SetControllerReference(instance, repo, r.Scheme); err != nil {
 		r.Log.Error(err, "error on setting ref", "group", instance.ObjectMeta.Name, "repo", repo.Name)
 		return
 	}
 
-	installedRepo := &helmv1alpha1.Repo{}
+	installedRepo := &helmv1alpha1.Repository{}
 	err := r.Client.Get(ctx, client.ObjectKey{
 		Namespace: repo.ObjectMeta.Namespace,
 		Name:      repo.Spec.Name,

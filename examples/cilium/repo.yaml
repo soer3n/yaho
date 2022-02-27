@@ -1,6 +1,6 @@
 ---
 apiVersion: helm.soer3n.info/v1alpha1
-kind: Repo
+kind: Repository
 metadata:
   name: cilium
   namespace: helm

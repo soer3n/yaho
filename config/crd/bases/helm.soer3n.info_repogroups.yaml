@@ -44,7 +44,7 @@ spec:
                 type: string
               repos:
                 items:
-                  description: RepoSpec defines the desired state of Repo
+                  description: RepositorySpec defines the desired state of Repo
                   properties:
                     authSecret:
                       type: string

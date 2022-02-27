@@ -49,9 +49,9 @@ type RepoReconciler struct {
 	Recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repos,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repos/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repos/finalizers,verbs=update
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repositories,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repositories/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repositories/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -68,7 +68,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	reqLogger.Info("start reconcile loop")
 	// fetch app instance
-	instance := &helmv1alpha1.Repo{}
+	instance := &helmv1alpha1.Repository{}
 
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
@@ -127,7 +127,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	return r.syncStatus(ctx, instance, err)
 }
 
-func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Repo, err error) (ctrl.Result, error) {
+func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Repository, err error) (ctrl.Result, error) {
 	stats := metav1.ConditionTrue
 	message := ""
 	reason := "install"
@@ -150,7 +150,7 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.
 	return ctrl.Result{}, nil
 }
 
-func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1alpha1.Repo) (bool, error) {
+func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1alpha1.Repository) (bool, error) {
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
@@ -170,7 +170,7 @@ func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1al
 // SetupWithManager sets up the controller with the Manager.
 func (r *RepoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&helmv1alpha1.Repo{}).
+		For(&helmv1alpha1.Repository{}).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 2}).
 		Complete(r)
 }

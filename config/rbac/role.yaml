@@ -113,7 +113,7 @@ rules:
 - apiGroups:
   - helm.soer3n.info
   resources:
-  - repos
+  - repositories
   verbs:
   - create
   - delete
@@ -125,13 +125,13 @@ rules:
 - apiGroups:
   - helm.soer3n.info
   resources:
-  - repos/finalizers
+  - repositories/finalizers
   verbs:
   - update
 - apiGroups:
   - helm.soer3n.info
   resources:
-  - repos/status
+  - repositories/status
   verbs:
   - get
   - patch

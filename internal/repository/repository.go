@@ -27,7 +27,7 @@ import (
 var nopLogger = func(_ string, _ ...interface{}) {}
 
 // New represents initialization of internal repo struct
-func New(instance *helmv1alpha1.Repo, ctx context.Context, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Repo {
+func New(instance *helmv1alpha1.Repository, ctx context.Context, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Repo {
 	var helmRepo *Repo
 
 	reqLogger.Info("Trying HelmRepo", "repo", instance.Spec.Name)
@@ -80,7 +80,7 @@ func New(instance *helmv1alpha1.Repo, ctx context.Context, settings *cli.EnvSett
 }
 
 // Deploy represents installation of subresources
-func (hr *Repo) Deploy(instance *helmv1alpha1.Repo, scheme *runtime.Scheme) error {
+func (hr *Repo) Deploy(instance *helmv1alpha1.Repository, scheme *runtime.Scheme) error {
 
 	label, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
 	selector := map[string]string{"repo": hr.Name}

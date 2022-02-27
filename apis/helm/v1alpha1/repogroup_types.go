@@ -30,7 +30,7 @@ type RepoGroupSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	LabelSelector string            `json:"labelSelector"`
-	Repos         []RepoSpec        `json:"repos"`
+	Repos         []RepositorySpec  `json:"repos"`
 	Env           map[string]string `json:"env,omitempty"`
 }
 
