@@ -55,7 +55,7 @@ type ReleaseStatus struct {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=`.spec.version`
 // +kubebuilder:printcolumn:name="Synced",type="string",JSONPath=`.status.synced`
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=`.status.status`
-// +kubebuilder:printcolumn:name="Created_at",type="string",JSONPath=`.metadata.creationTimestamp`
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Release is the Schema for the releases API
 type Release struct {

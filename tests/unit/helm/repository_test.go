@@ -34,7 +34,7 @@ func TestRepoDeployCharts(t *testing.T) {
 			selectors[k] = v
 		}
 
-		err := testObj.Deploy(&val, &runtime.Scheme{})
+		err := testObj.Update(&val, &runtime.Scheme{})
 		assert.Equal(err, apiObj.ReturnError)
 	}
 }

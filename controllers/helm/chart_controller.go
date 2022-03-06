@@ -19,12 +19,20 @@ package helm
 
 import (
 	"context"
+	"net/http"
+	"time"
 
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	"github.com/soer3n/yaho/internal/chart"
+	"github.com/soer3n/yaho/internal/utils"
+	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
+	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -71,9 +79,62 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	reqLogger.Info("chart installed", "name", instance.ObjectMeta.Name)
+	instance.Status.Versions = "notSynced"
+	instance.Status.Dependencies = "notSynced"
+	settings := utils.GetEnvSettings(map[string]string{})
 
-	return ctrl.Result{}, nil
+	g := http.Client{
+		Timeout: time.Second * 10,
+		CheckRedirect: func(r *http.Request, via []*http.Request) error {
+			r.URL.Opaque = r.URL.Path
+			return nil
+		},
+	}
+
+	c := kube.Client{
+		Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
+		Log:     nopLogger,
+	}
+
+	hc := chart.New(instance, settings, r.Scheme, reqLogger, r.Client, &g, c)
+
+	if err := hc.Update(instance); err != nil {
+		reqLogger.Info("failed to updatechart resource", "name", instance.ObjectMeta.Name)
+		return r.syncStatus(ctx, instance, metav1.ConditionTrue, "createConfigmapsFailed", err.Error())
+	}
+
+	instance.Status.Versions = "synced"
+
+	if instance.Spec.CreateDeps {
+		if err := hc.CreateOrUpdateSubCharts(); err != nil {
+			reqLogger.Info("error on managing subcharts. Reconciling.", "name", instance.ObjectMeta.Name, "error", err.Error())
+			return r.syncStatus(ctx, instance, metav1.ConditionTrue, "createDepsFailed", err.Error())
+
+		}
+	}
+
+	instance.Status.Dependencies = "synced"
+
+	reqLogger.Info("chart up to date", "name", instance.ObjectMeta.Name)
+
+	return r.syncStatus(ctx, instance, metav1.ConditionTrue, "success", "all up to date")
+}
+
+func (r *ChartReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Chart, stats metav1.ConditionStatus, reason, message string) (ctrl.Result, error) {
+	c := meta.FindStatusCondition(instance.Status.Conditions, "synced")
+	if c != nil && c.Message == message && c.Status == stats {
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	condition := metav1.Condition{Type: "synced", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
+	meta.SetStatusCondition(&instance.Status.Conditions, condition)
+
+	if err := r.Status().Update(ctx, instance); err != nil {
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+	}
+
+	r.Log.Info("reconcile chart regular after sync.")
+	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

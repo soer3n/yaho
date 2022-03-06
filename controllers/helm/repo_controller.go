@@ -106,7 +106,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	if requeue, err = r.handleFinalizer(hc, instance); err != nil {
 		reqLogger.Info("Failed on handling finalizer", "repo", instance.Spec.Name)
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 	}
 
 	if requeue {
@@ -118,7 +118,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	if err = hc.Deploy(instance, r.Scheme); err != nil {
+	if err = hc.Update(instance, r.Scheme); err != nil {
 		return r.syncStatus(ctx, instance, err)
 	}
 
@@ -138,7 +138,7 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.
 	}
 
 	if meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", stats) && instance.Status.Conditions[0].Message == message {
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
 	}
 
 	condition := metav1.Condition{Type: "synced", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
@@ -147,7 +147,7 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.
 	_ = r.Status().Update(ctx, instance)
 
 	r.Log.Info("Don't reconcile repo after status sync.", "repo", instance.ObjectMeta.Name)
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
 }
 
 func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1alpha1.Repository) (bool, error) {

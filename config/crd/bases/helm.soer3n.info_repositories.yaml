@@ -16,7 +16,14 @@ spec:
     singular: repository
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.labels['repoGroup']
+      name: Group
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Repository is the Schema for the repos API
@@ -38,10 +45,28 @@ spec:
             properties:
               authSecret:
                 type: string
+              charts:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    versions:
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
               name:
                 description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
                   Important: Run "make" to regenerate code after modifying this file'
                 type: string
+              sync:
+                properties:
+                  enabled:
+                    type: boolean
+                  interval:
+                    type: integer
+                type: object
               url:
                 type: string
             required:
@@ -51,6 +76,13 @@ spec:
           status:
             description: RepositoryStatus defines the observed state of Repo
             properties:
+              charts:
+                properties:
+                  count:
+                    type: integer
+                  synced:
+                    type: boolean
+                type: object
               conditions:
                 items:
                   description: "Condition contains details for one aspect of the current
@@ -120,11 +152,11 @@ spec:
                   - type
                   type: object
                 type: array
-              phase:
+              synced:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying
                   this file'
-                type: string
+                type: boolean
             required:
             - conditions
             type: object

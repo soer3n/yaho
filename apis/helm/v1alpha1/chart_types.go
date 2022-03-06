@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package v1alpha1
 
 import (
-	"helm.sh/helm/v3/pkg/chart"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,25 +29,18 @@ type ChartSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Name string `json:"name,omitempty"`
-	// The URL to a relevant project page, git repo, or contact person
-	Home string `json:"home,omitempty"`
-	// Source is the URL to the source code of this chart
-	Sources []string `json:"sources,omitempty"`
+	Name       string `json:"name,omitempty"`
+	Repository string `json:"repository"`
 	// A SemVer 2 conformant version string of the chart
-	Versions []ChartVersion `json:"versions,omitempty"`
+	Versions []string `json:"versions,omitempty"`
+	// A SemVer 2 conformant version string of the chart
+	Values string `json:"values,omitempty"`
+	// The tags to check to enable chart
+	CreateDeps bool `json:"createDeps,omitempty"`
 	// A one-sentence description of the chart
 	Description string `json:"description,omitempty"`
 	// A list of string keywords
 	Keywords []string `json:"keywords,omitempty"`
-	// A list of name and URL/email address combinations for the maintainer(s)
-	Maintainers []*chart.Maintainer `json:"maintainers,omitempty"`
-	// The URL to an icon file.
-	Icon string `json:"icon,omitempty"`
-	// The API Version of this chart.
-	APIVersion string `json:"apiVersion,omitempty"`
-	// The condition to check to enable chart
-	Condition string `json:"condition,omitempty"`
 	// The tags to check to enable chart
 	Tags string `json:"tags,omitempty"`
 	// The version of the application enclosed inside of this chart.
@@ -58,8 +50,6 @@ type ChartSpec struct {
 	// Annotations are additional mappings uninterpreted by Helm,
 	// made available for inspection by other applications.
 	Annotations map[string]string `json:"annotations,omitempty"`
-	// KubeVersion is a SemVer constraint specifying the version of Kubernetes required.
-	KubeVersion string `json:"kubeVersion,omitempty"`
 	// Specifies the chart type: application or library
 	Type string `json:"type,omitempty"`
 }
@@ -85,13 +75,18 @@ type ChartVersion struct {
 type ChartStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Dependencies string             `json:"dependencies,omitempty"`
+	Versions     string             `json:"versions,omitempty"`
+	Conditions   []metav1.Condition `json:"conditions"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Group",type="string",JSONPath=`.metadata.labels['repoGroup']`
-// +kubebuilder:printcolumn:name="Repo",type="string",JSONPath=`.metadata.labels['repo']`
-// +kubebuilder:printcolumn:name="Created_at",type="string",JSONPath=`.metadata.creationTimestamp`
+// +kubebuilder:printcolumn:name="Repo",type="string",JSONPath=`.spec.repository`
+// +kubebuilder:printcolumn:name="Versions",type="string",JSONPath=`.status.versions`
+// +kubebuilder:printcolumn:name="Deps",type="string",JSONPath=`.status.dependencies`
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Chart is the Schema for the charts API
 type Chart struct {

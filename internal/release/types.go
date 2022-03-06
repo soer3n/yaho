@@ -10,6 +10,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	helmchart "helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,6 +28,7 @@ type Release struct {
 	Settings         *cli.EnvSettings
 	Client           *action.Install
 	K8sClient        client.Client
+	scheme           *runtime.Scheme
 	getter           utils.HTTPClientInterface
 	logger           logr.Logger
 	wg               *sync.WaitGroup

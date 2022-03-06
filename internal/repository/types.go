@@ -8,6 +8,7 @@ import (
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
+	"helm.sh/helm/v3/pkg/repo"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,6 +28,7 @@ type Repo struct {
 	K8sClient  client.Client
 	getter     utils.HTTPClientInterface
 	helmClient kube.Client
+	index      *repo.IndexFile
 	logger     logr.Logger
 	wg         *sync.WaitGroup
 	mu         sync.Mutex

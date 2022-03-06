@@ -28,21 +28,31 @@ import (
 type RepositorySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Name       string `json:"name"`
-	URL        string `json:"url"`
-	AuthSecret string `json:"authSecret,omitempty"`
+	Name       string  `json:"name"`
+	URL        string  `json:"url"`
+	Charts     []Entry `json:"charts,omitempty"`
+	Sync       Sync    `json:"sync,omitempty"`
+	AuthSecret string  `json:"authSecret,omitempty"`
 }
 
 // RepositoryStatus defines the observed state of Repo
 type RepositoryStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Phase      string             `json:"phase,omitempty"`
+	Synced     bool               `json:"synced,omitempty"`
+	Charts     Charts             `json:"charts,omitempty"`
 	Conditions []metav1.Condition `json:"conditions"`
+}
+
+type Charts struct {
+	Synced bool `json:"synced,omitempty"`
+	Count  int  `json:"count,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Group",type="string",JSONPath=`.metadata.labels['repoGroup']`
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Repository is the Schema for the repos API
 type Repository struct {
@@ -51,6 +61,11 @@ type Repository struct {
 
 	Spec   RepositorySpec   `json:"spec,omitempty"`
 	Status RepositoryStatus `json:"status,omitempty"`
+}
+
+type Entry struct {
+	Name     string   `json:"name,omitempty"`
+	Versions []string `json:"versions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

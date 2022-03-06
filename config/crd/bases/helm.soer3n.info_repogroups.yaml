@@ -48,11 +48,29 @@ spec:
                   properties:
                     authSecret:
                       type: string
+                    charts:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          versions:
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      type: array
                     name:
                       description: 'INSERT ADDITIONAL SPEC FIELDS - desired state
                         of cluster Important: Run "make" to regenerate code after
                         modifying this file'
                       type: string
+                    sync:
+                      properties:
+                        enabled:
+                          type: boolean
+                        interval:
+                          type: integer
+                      type: object
                     url:
                       type: string
                   required:

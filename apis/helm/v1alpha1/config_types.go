@@ -40,6 +40,11 @@ type Namespace struct {
 	Install bool     `json:"install,omitempty"`
 }
 
+type Sync struct {
+	Enabled  bool `json:"enabled,omitempty"`
+	Interval int  `json:"interval,omitempty"`
+}
+
 // Flags represents data for parsing flags for creating release resources
 type Flags struct {
 	Atomic                   bool          `json:"atomic,omitempty"`

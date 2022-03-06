@@ -8,6 +8,11 @@ spec:
   repos:
     - name: nextcloud
       url: https://nextcloud.github.io/helm/
+      charts:
+      - name: nextcloud
+        versions:
+        - 2.6.5
+        - 2.6.4
     - name: bitnami
       url: https://charts.bitnami.com/bitnami
 
