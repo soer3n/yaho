@@ -87,6 +87,18 @@ func (c *Chart) setVersions(instance *helmv1alpha1.Chart, scheme *runtime.Scheme
 			return err
 		}
 
+		if c.Deprecated == nil {
+			instance.Status.Deprecated = obj.Version.Deprecated
+		}
+
+		if c.Type == nil {
+			instance.Status.Type = obj.Version.Type
+		}
+
+		if c.Tags == nil {
+			instance.Status.Tags = obj.Version.Tags
+		}
+
 		chartVersions = append(chartVersions, obj)
 	}
 

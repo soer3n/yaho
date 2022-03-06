@@ -35,6 +35,9 @@ spec:
     - jsonPath: .status.status
       name: Status
       type: string
+    - jsonPath: .status.revision
+      name: Revision
+      type: number
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -151,6 +154,8 @@ spec:
                   - type
                   type: object
                 type: array
+              revision:
+                type: integer
               status:
                 type: string
               synced:

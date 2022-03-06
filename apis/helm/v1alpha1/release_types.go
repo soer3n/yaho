@@ -44,6 +44,7 @@ type ReleaseStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	Synced     bool               `json:"synced,omitempty"`
 	Status     string             `json:"status,omitempty"`
+	Revision   int                `json:"revision,omitempty"`
 	Conditions []metav1.Condition `json:"conditions"`
 }
 
@@ -55,6 +56,7 @@ type ReleaseStatus struct {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=`.spec.version`
 // +kubebuilder:printcolumn:name="Synced",type="string",JSONPath=`.status.synced`
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=`.status.status`
+// +kubebuilder:printcolumn:name="Revision",type="number",JSONPath=`.status.revision`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Release is the Schema for the releases API

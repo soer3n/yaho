@@ -20,6 +20,7 @@ type Release struct {
 	Repo             string
 	Chart            *helmchart.Chart
 	Version          string
+	Revision         int
 	ValuesTemplate   *values.ValueTemplate
 	Namespace        Namespace
 	releaseNamespace string

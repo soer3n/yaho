@@ -165,6 +165,10 @@ func (hc *Release) upgrade(helmChart *helmchart.Chart, vals chartutil.Values) er
 		return err
 	}
 
+	h := action.NewHistory(hc.Config)
+	r, _ := h.Run(rel.Name)
+	hc.Revision = len(r) + 1
+
 	hc.logger.Info("successfully upgraded.", "name", rel.Name, "chart", hc.Chart.Name(), "repo", hc.Repo)
 	return nil
 }

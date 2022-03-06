@@ -52,42 +52,12 @@ spec:
           spec:
             description: ChartSpec defines the desired state of Chart
             properties:
-              annotations:
-                additionalProperties:
-                  type: string
-                description: Annotations are additional mappings uninterpreted by
-                  Helm, made available for inspection by other applications.
-                type: object
-              appVersion:
-                description: The version of the application enclosed inside of this
-                  chart.
-                type: string
               createDeps:
                 description: The tags to check to enable chart
                 type: boolean
-              deprecated:
-                description: Whether or not this chart is deprecated
-                type: boolean
-              description:
-                description: A one-sentence description of the chart
-                type: string
-              keywords:
-                description: A list of string keywords
-                items:
-                  type: string
-                type: array
               name:
                 type: string
               repository:
-                type: string
-              tags:
-                description: The tags to check to enable chart
-                type: string
-              type:
-                description: 'Specifies the chart type: application or library'
-                type: string
-              values:
-                description: A SemVer 2 conformant version string of the chart
                 type: string
               versions:
                 description: A SemVer 2 conformant version string of the chart
@@ -173,6 +143,12 @@ spec:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying
                   this file'
+                type: string
+              deprecated:
+                type: boolean
+              tags:
+                type: string
+              type:
                 type: string
               versions:
                 type: string

@@ -16,6 +16,9 @@ import (
 type Chart struct {
 	Name       string
 	Namespace  string
+	Deprecated *bool
+	Type       *string
+	Tags       *string
 	Versions   ChartVersions
 	Client     *action.Install
 	Settings   *cli.EnvSettings

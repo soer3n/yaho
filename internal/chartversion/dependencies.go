@@ -50,6 +50,10 @@ func (chartVersion *ChartVersion) addDependencies() error {
 func (chartVersion *ChartVersion) createDependenciesList(group *string) []*helmv1alpha1.ChartDep {
 	deps := make([]*helmv1alpha1.ChartDep, 0)
 
+	if chartVersion.Obj == nil {
+		return deps
+	}
+
 	for _, dep := range chartVersion.Version.Dependencies {
 
 		repository, err := chartVersion.getRepoName(dep, group)

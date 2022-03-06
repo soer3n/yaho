@@ -33,25 +33,8 @@ type ChartSpec struct {
 	Repository string `json:"repository"`
 	// A SemVer 2 conformant version string of the chart
 	Versions []string `json:"versions,omitempty"`
-	// A SemVer 2 conformant version string of the chart
-	Values string `json:"values,omitempty"`
 	// The tags to check to enable chart
 	CreateDeps bool `json:"createDeps,omitempty"`
-	// A one-sentence description of the chart
-	Description string `json:"description,omitempty"`
-	// A list of string keywords
-	Keywords []string `json:"keywords,omitempty"`
-	// The tags to check to enable chart
-	Tags string `json:"tags,omitempty"`
-	// The version of the application enclosed inside of this chart.
-	AppVersion string `json:"appVersion,omitempty"`
-	// Whether or not this chart is deprecated
-	Deprecated bool `json:"deprecated,omitempty"`
-	// Annotations are additional mappings uninterpreted by Helm,
-	// made available for inspection by other applications.
-	Annotations map[string]string `json:"annotations,omitempty"`
-	// Specifies the chart type: application or library
-	Type string `json:"type,omitempty"`
 }
 
 // ChartDep represents data for parsing a chart dependency
@@ -78,6 +61,9 @@ type ChartStatus struct {
 	Dependencies string             `json:"dependencies,omitempty"`
 	Versions     string             `json:"versions,omitempty"`
 	Conditions   []metav1.Condition `json:"conditions"`
+	Deprecated   bool               `json:"deprecated,omitempty"`
+	Type         string             `json:"type,omitempty"`
+	Tags         string             `json:"tags,omitempty"`
 }
 
 // +kubebuilder:object:root=true

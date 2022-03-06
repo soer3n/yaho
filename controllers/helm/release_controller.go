@@ -132,12 +132,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if instance.Spec.Values == nil {
 		instance.Spec.Values = []string{}
 	}
-	/*
-		if err := helmRelease.UpdateAffectedResources(r.Scheme); err != nil {
-			instance.Status.Status = "prepareFailed"
-			return r.syncStatus(ctx, instance, metav1.ConditionFalse, "prepareFailed", err.Error())
-		}
-	*/
+
 	if err := helmRelease.Update(); err != nil {
 		instance.Status.Status = "updateFailed"
 		return r.syncStatus(ctx, instance, metav1.ConditionFalse, "updateFailed", err.Error())
@@ -146,6 +141,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	reqLogger.Info("Don't reconcile releases.")
 	instance.Status.Status = "success"
 	instance.Status.Synced = true
+	instance.Status.Revision = helmRelease.Revision
 	return r.syncStatus(ctx, instance, metav1.ConditionTrue, "success", "all up to date")
 }
 
