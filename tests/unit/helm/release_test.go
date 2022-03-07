@@ -11,41 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
-	"k8s.io/kubectl/pkg/scheme"
-
+	"k8s.io/apimachinery/pkg/runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
-
-func TestReleaseConfigMaps(t *testing.T) {
-	clientMock, httpMock := helmmocks.GetReleaseMock()
-	settings := cli.New()
-	apiObjList := testcases.GetTestReleaseSpecsForConfigMaps()
-	assert := assert.New(t)
-
-	for _, apiObj := range apiObjList {
-
-		current := apiObj.Input.(*helmv1alpha1.Release)
-		testObj, _ := release.New(current, settings, logf.Log, clientMock, httpMock, kube.Client{})
-		selectors := ""
-
-		// parse selectors string from api object meta data
-		for k, v := range current.ObjectMeta.Labels {
-			if selectors != "" {
-				selectors = selectors + ","
-			}
-			selectors = selectors + k + "=" + v
-		}
-
-		testObj.Version = current.Spec.Version
-		_ = helmv1alpha1.AddToScheme(scheme.Scheme)
-		err := testObj.UpdateAffectedResources(scheme.Scheme)
-		// TODO: why is dependency chart not correctly parsed
-		//expect, _ := apiObj.ReturnValue.(map[string]int)
-		assert.Equal(apiObj.ReturnError, err)
-		// assert.Len(cmList, expect["configmap"])
-		// assert.Len(chartUpdateList, expect["chart"])
-	}
-}
 
 func TestReleaseUpdate(t *testing.T) {
 	clientMock, httpMock := helmmocks.GetReleaseMock()
@@ -56,7 +24,7 @@ func TestReleaseUpdate(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj.Input.(*helmv1alpha1.Release)
-		testObj, _ := release.New(current, settings, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj, _ := release.New(current, &runtime.Scheme{}, settings, logf.Log, clientMock, httpMock, kube.Client{})
 		selectors := ""
 
 		// parse selectors string from api object meta data

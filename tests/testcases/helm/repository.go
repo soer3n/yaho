@@ -11,31 +11,9 @@ import (
 // GetTestRepoChartListSpec returns expected chartlist spec for testing
 func GetTestRepoChartListSpec() *helmv1alpha1.ChartList {
 	chartSpec := helmv1alpha1.ChartSpec{
-		Name:        "chart.Name",
-		Home:        "chart.Spec.Home",
-		Sources:     []string{"chart.Spec.Sources"},
-		Description: "chart.Spec.Description",
-		Keywords:    []string{"chart.Spec.Keywords"},
-		Versions: []helmv1alpha1.ChartVersion{
-			{
-				Name: "0.1.0",
-				URL:  "https://foo.bar/repo/foo.tar.gz",
-			},
-		},
-		Maintainers: []*chart.Maintainer{
-			{
-				Name: "chart.Spec.Maintainers",
-			},
-		},
-		Icon:        "chart.Spec.Icon",
-		APIVersion:  "chart.Spec.APIVersion",
-		Condition:   "chart.Spec.Condition",
-		Tags:        "chart.Spec.Tags",
-		AppVersion:  "chart.Spec.AppVersion",
-		Deprecated:  false,
-		Annotations: map[string]string{},
-		KubeVersion: "chart.Spec.KubeVersion",
-		Type:        "chart.Spec.Type",
+		Name:       "chart.Name",
+		Versions:   []string{"0.1.0"},
+		Repository: "foo",
 	}
 
 	return &helmv1alpha1.ChartList{

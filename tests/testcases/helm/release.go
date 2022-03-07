@@ -228,19 +228,9 @@ func GetTestChartSpec() helmv1alpha1.Chart {
 		},
 		Spec: helmv1alpha1.ChartSpec{
 			Name:       "chart",
-			APIVersion: "0.0.1",
-			Versions: []helmv1alpha1.ChartVersion{
-				{
-					Name: "0.0.1",
-					URL:  "https://foo.bar/charts/foo-0.0.1.tgz",
-					Dependencies: []*helmv1alpha1.ChartDep{
-						{
-							Name:    "dep",
-							Version: "0.0.1",
-							Repo:    "repo",
-						},
-					},
-				},
+			Repository: "foo",
+			Versions: []string{
+				"0.0.1",
 			},
 		},
 	}
@@ -257,13 +247,8 @@ func GetTestChartDepSpec() helmv1alpha1.Chart {
 		},
 		Spec: helmv1alpha1.ChartSpec{
 			Name:       "chart",
-			APIVersion: "0.0.1",
-			Versions: []helmv1alpha1.ChartVersion{
-				{
-					Name: "0.0.1",
-					URL:  "https://foo.bar/charts/foo-0.0.1.tgz",
-				},
-			},
+			Repository: "foo",
+			Versions:   []string{"0.0.1"},
 		},
 	}
 }

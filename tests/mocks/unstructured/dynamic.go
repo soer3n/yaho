@@ -26,6 +26,13 @@ func (client *K8SClientMock) Get(ctx context.Context, key types.NamespacedName, 
 	return err
 }
 
+// Create represents mock func for similar dynamic runtime client func
+func (client *K8SClientMock) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+	args := client.Called(ctx, obj)
+	err := args.Error(0)
+	return err
+}
+
 // Patch represents mock func for similar dynamic runtime client func
 func (client *K8SClientMock) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
 	args := client.Called(ctx, obj, patch)

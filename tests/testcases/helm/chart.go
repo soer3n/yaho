@@ -3,8 +3,6 @@ package helm
 import (
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
-	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -12,20 +10,16 @@ import (
 func GetTestRepoChartVersions() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		{
-			Input: []*repo.ChartVersion{
-				{
-					Metadata: &chart.Metadata{
-						Name:    "foo",
-						Version: "0.0.1",
-						Dependencies: []*chart.Dependency{
-							{
-								Name:       "dep",
-								Version:    "0.1.1",
-								Repository: "repo",
-							},
-						},
-					},
-					URLs: []string{"https://foo.bar/charts/foo-0.0.1.tgz"},
+			Input: &helmv1alpha1.Chart{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "foo",
+				},
+				Spec: helmv1alpha1.ChartSpec{
+					Name:       "foo",
+					Repository: "repo",
+					Versions:   []string{"0.0.1"},
+					CreateDeps: true,
 				},
 			},
 			ReturnValue: "",
@@ -43,12 +37,10 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 					Namespace: "",
 				},
 				Spec: helmv1alpha1.ChartSpec{
-					Name: "baz",
-					Versions: []helmv1alpha1.ChartVersion{
-						{
-							Name: "0.0.2",
-							URL:  "nodomain.com",
-						},
+					Name:       "baz",
+					Repository: "foo",
+					Versions: []string{
+						"0.0.2",
 					},
 				},
 			},
@@ -62,19 +54,10 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 					Namespace: "",
 				},
 				Spec: helmv1alpha1.ChartSpec{
-					Name: "baz",
-					Versions: []helmv1alpha1.ChartVersion{
-						{
-							Name: "0.0.2",
-							URL:  "nodomain.com",
-							Dependencies: []*helmv1alpha1.ChartDep{
-								{
-									Name:    "dep",
-									Repo:    "repo",
-									Version: "0.1.1",
-								},
-							},
-						},
+					Name:       "baz",
+					Repository: "foo",
+					Versions: []string{
+						"0.0.2",
 					},
 				},
 			},

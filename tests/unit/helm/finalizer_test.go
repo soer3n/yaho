@@ -1,20 +1,6 @@
 package helm
 
-import (
-	"log"
-	"testing"
-
-	"github.com/soer3n/yaho/internal/release"
-	"github.com/soer3n/yaho/internal/utils"
-	helmmocks "github.com/soer3n/yaho/tests/mocks/helm"
-	testcases "github.com/soer3n/yaho/tests/testcases/helm"
-	"github.com/stretchr/testify/assert"
-
-	"helm.sh/helm/v3/pkg/kube"
-
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-)
-
+/*
 func TestFinalizerHandleRelease(t *testing.T) {
 	clientMock, httpMock := helmmocks.GetFinalizerMock()
 	assert := assert.New(t)
@@ -34,3 +20,4 @@ func TestFinalizerHandleRelease(t *testing.T) {
 		assert.Equal(v.ReturnError, err)
 	}
 }
+*/

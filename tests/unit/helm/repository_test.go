@@ -16,7 +16,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func TestRepoDeployCharts(t *testing.T) {
+func TestRepoUpdate(t *testing.T) {
 	clientMock, httpMock := helmmocks.GetRepoMock()
 	settings := cli.New()
 	apiObjList := testcases.GetTestRepoSpecs()

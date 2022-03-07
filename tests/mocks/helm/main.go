@@ -11,6 +11,8 @@ import (
 	"os"
 
 	"gopkg.in/yaml.v3"
+	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/repo"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/tests/mocks"
@@ -34,6 +36,159 @@ func GetChartMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 		spec := testcases.GetTestChartSpec()
 		c.Spec = spec.Spec
 		c.ObjectMeta = spec.ObjectMeta
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "foo", Namespace: "foo"}, &helmv1alpha1.Chart{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Chart)
+		spec := testcases.GetTestChartSpec()
+		c.Spec = spec.Spec
+		c.ObjectMeta = spec.ObjectMeta
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "repo", Namespace: "foo"}, &helmv1alpha1.Repository{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Repository)
+		spec := testcases.GetTestChartSpec()
+		c.ObjectMeta = spec.ObjectMeta
+		c.Spec = helmv1alpha1.RepositorySpec{
+			Name: "repo",
+			URL:  "repo.foo.com/charts",
+		}
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-foo-bar-index", Namespace: "foo"}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := testcases.GetTestChartSpec()
+		v := &repo.ChartVersions{
+			{
+				Metadata: &chart.Metadata{
+					Name:    "bar",
+					Version: "0.0.1",
+				},
+				URLs: []string{"repo.foo.com/charts"},
+			},
+		}
+
+		b, _ := json.Marshal(v)
+		c.BinaryData = map[string][]byte{
+			"versions": b,
+		}
+		c.ObjectMeta = spec.ObjectMeta
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-foo-bar-index", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := testcases.GetTestChartSpec()
+		v := &repo.ChartVersions{
+			{
+				Metadata: &chart.Metadata{
+					Name:    "bar",
+					Version: "0.0.1",
+				},
+				URLs: []string{"repo.foo.com/charts"},
+			},
+		}
+
+		b, _ := json.Marshal(v)
+		c.BinaryData = map[string][]byte{
+			"versions": b,
+		}
+		c.ObjectMeta = spec.ObjectMeta
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-repo-foo-index", Namespace: "foo"}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := testcases.GetTestChartSpec()
+		v := &repo.ChartVersions{
+			{
+				Metadata: &chart.Metadata{
+					Name:    "bar",
+					Version: "0.0.1",
+				},
+				URLs: []string{"https://foo.bar/charts/foo-0.0.1.tgz"},
+			},
+		}
+
+		b, _ := json.Marshal(v)
+		c.BinaryData = map[string][]byte{
+			"versions": b,
+		}
+		c.ObjectMeta = spec.ObjectMeta
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-repo-foo-index", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := testcases.GetTestChartSpec()
+		v := &repo.ChartVersions{
+			{
+				Metadata: &chart.Metadata{
+					Name:    "bar",
+					Version: "0.0.1",
+				},
+				URLs: []string{"repo.foo.com/charts"},
+			},
+		}
+
+		b, _ := json.Marshal(v)
+		c.BinaryData = map[string][]byte{
+			"versions": b,
+		}
+		c.ObjectMeta = spec.ObjectMeta
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-default-foo-0.0.1", Namespace: "foo"}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := testcases.GetTestReleaseDefaultValueConfigMap()
+		c.Data = spec.Data
+		c.ObjectMeta = spec.ObjectMeta
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-default-chart-0.0.1", Namespace: "foo"}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := testcases.GetTestReleaseDefaultValueConfigMap()
+		c.Data = spec.Data
+		c.ObjectMeta = spec.ObjectMeta
+	})
+
+	clientMock.On("List", context.Background(), &v1.ConfigMapList{}, mock.MatchedBy(func(cList []client.ListOption) bool {
+
+		// opt := cList[0].(*client.ListOptions)
+		// return opt.LabelSelector.String() == "helm.soer3n.info/chart=chart-0.0.1-tmpl"
+		return true
+	})).Return(nil).Run(func(args mock.Arguments) {
+
+		c := args.Get(1).(*v1.ConfigMapList)
+		foo := map[string]string{"foo": "bar", "boo": "baz"}
+		bar := map[string]string{"foo": "bar", "boo": "baz"}
+
+		fooData, _ := yaml.Marshal(&foo)
+		barData, _ := yaml.Marshal(&bar)
+
+		c.Items = []v1.ConfigMap{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "chart-0.0.1-tmpl",
+				},
+				BinaryData: map[string][]byte{
+					"foo.yaml": fooData,
+					"bar.yaml": barData,
+				},
+			},
+		}
+	})
+
+	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, []client.ListOption{client.MatchingLabels{}, client.InNamespace("foo")}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(1).(*helmv1alpha1.ChartList)
+		spec := helmv1alpha1.ChartList{
+			Items: []helmv1alpha1.Chart{
+				{
+					Spec: helmv1alpha1.ChartSpec{
+						Name: "dep",
+					},
+				},
+				testcases.GetTestChartSpec(),
+			},
+		}
+		c.Items = spec.Items
 	})
 
 	var payload []byte
@@ -283,6 +438,37 @@ func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) 
 					"bar.yaml": barData,
 				},
 			},
+		}
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-repo-chart-index", Namespace: ""}, &v1.ConfigMap{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*v1.ConfigMap)
+		spec := testcases.GetTestChartSpec()
+		v := &repo.ChartVersions{
+			{
+				Metadata: &chart.Metadata{
+					Name:       "bar",
+					Version:    "0.0.1",
+					APIVersion: "v1",
+				},
+				URLs: []string{"repo.foo.com/charts"},
+			},
+		}
+
+		b, _ := json.Marshal(v)
+		c.BinaryData = map[string][]byte{
+			"versions": b,
+		}
+		c.ObjectMeta = spec.ObjectMeta
+	})
+
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "foo", Namespace: ""}, &helmv1alpha1.Repository{}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*helmv1alpha1.Repository)
+		spec := testcases.GetTestChartSpec()
+		c.ObjectMeta = spec.ObjectMeta
+		c.Spec = helmv1alpha1.RepositorySpec{
+			Name: "repo",
+			URL:  "https://repo.foo.com/charts",
 		}
 	})
 
@@ -598,14 +784,8 @@ func GetReleaseMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) 
 			Labels:    map[string]string{"repoGroup": "group"},
 		},
 		Spec: helmv1alpha1.ChartSpec{
-			Name: "chart",
-			Versions: []helmv1alpha1.ChartVersion{
-				{
-					Name: "0.0.1",
-					URL:  "https://foo.bar/charts/foo-0.0.1.tgz",
-				},
-			},
-			APIVersion: "0.0.1",
+			Name:     "chart",
+			Versions: []string{"0.0.1"},
 		},
 	}).Return(nil).Run(func(args mock.Arguments) {
 
@@ -681,6 +861,22 @@ func GetRepoMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 		c.ObjectMeta.Name = "doo"
 	})
 
+	clientMock.On("Create", context.Background(), &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "helm-test-doo-index",
+			Namespace: "",
+			Labels:    map[string]string{"helm.soer3n.info/chart": "doo", "helm.soer3n.info/repo": "test", "helm.soer3n.info/type": "index"},
+		},
+		BinaryData: map[string][]byte{
+			"versions": []uint8{0x5b, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x22, 0x64, 0x6f, 0x6f, 0x22, 0x2c, 0x22, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x22, 0x3a, 0x22, 0x30, 0x2e, 0x30, 0x2e, 0x31, 0x22, 0x2c, 0x22, 0x75, 0x72, 0x6c, 0x73, 0x22, 0x3a, 0x5b, 0x22, 0x6e, 0x6f, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e, 0x2e, 0x63, 0x6f, 0x6d, 0x22, 0x5d, 0x2c, 0x22, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x22, 0x3a, 0x22, 0x30, 0x30, 0x30, 0x31, 0x2d, 0x30, 0x31, 0x2d, 0x30, 0x31, 0x54, 0x30, 0x30, 0x3a, 0x30, 0x30, 0x3a, 0x30, 0x30, 0x5a, 0x22, 0x7d, 0x5d},
+		},
+	}).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(1).(*v1.ConfigMap)
+		spec := testcases.GetTestChartSpec()
+		c.ObjectMeta = spec.ObjectMeta
+		c.ObjectMeta.Name = "doo"
+	})
+
 	clientMock.On("Update", context.Background(), &helmv1alpha1.Chart{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "doo",
@@ -688,16 +884,8 @@ func GetRepoMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 			Labels:    map[string]string{"repoGroup": "group"},
 		},
 		Spec: helmv1alpha1.ChartSpec{
-			Name: "doo",
-			Versions: []helmv1alpha1.ChartVersion{
-				{
-					Name:         "0.0.1",
-					URL:          "https://bar.foo/charts/nodomain.com/nodomain.com",
-					Templates:    "helm-tmpl-doo-0.0.1",
-					CRDs:         "helm-crds-doo-0.0.1",
-					Dependencies: []*helmv1alpha1.ChartDep{},
-				},
-			},
+			Name:     "doo",
+			Versions: []string{"0.0.1"},
 		},
 	}).Return(nil).Run(func(args mock.Arguments) {
 

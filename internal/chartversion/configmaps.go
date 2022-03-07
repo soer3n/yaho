@@ -16,7 +16,7 @@ import (
 )
 
 // CreateConfigMaps represents func for parsing configmaps and sending them to receive method
-func (chartVersion *ChartVersion) CreateConfigMaps(cm chan v1.ConfigMap, deps []*chart.Chart) error {
+func (chartVersion *ChartVersion) createConfigMaps(cm chan v1.ConfigMap, deps []*chart.Chart) error {
 
 	wg := &sync.WaitGroup{}
 
@@ -74,7 +74,7 @@ func (chartVersion *ChartVersion) parseConfigMaps(cm chan v1.ConfigMap) error {
 	deps := chartVersion.Obj.Dependencies()
 
 	go func() {
-		if err := chartVersion.CreateConfigMaps(cm, deps); err != nil {
+		if err := chartVersion.createConfigMaps(cm, deps); err != nil {
 			chartVersion.logger.Error(err, "error on creating or updating related resources")
 		}
 		close(cm)
