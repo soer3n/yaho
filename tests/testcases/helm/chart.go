@@ -3,6 +3,8 @@ package helm
 import (
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
+	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/repo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,24 +36,37 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 			Input: &helmv1alpha1.Chart{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bar",
-					Namespace: "",
+					Namespace: "foo",
+					Labels: map[string]string{
+						"repo": "foo",
+					},
 				},
 				Spec: helmv1alpha1.ChartSpec{
-					Name:       "baz",
+					Name:       "bar",
 					Repository: "foo",
 					Versions: []string{
-						"0.0.2",
+						"0.0.1",
 					},
 				},
 			},
-			ReturnError: nil,
+			ChartVersion: "0.0.1",
+			ReturnError: map[string]error{
+				"init":         nil,
+				"prepare":      nil,
+				"update":       nil,
+				"subResources": nil,
+				"subCharts":    nil,
+			},
 			ReturnValue: 1,
 		},
 		{
 			Input: &helmv1alpha1.Chart{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bar",
-					Namespace: "",
+					Name:      "baz",
+					Namespace: "two",
+					Labels: map[string]string{
+						"repo": "foo",
+					},
 				},
 				Spec: helmv1alpha1.ChartSpec{
 					Name:       "baz",
@@ -61,8 +76,154 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 					},
 				},
 			},
-			ReturnError: nil,
+			ChartVersion: "0.0.2",
+			ReturnError: map[string]error{
+				"init":         nil,
+				"prepare":      nil,
+				"update":       nil,
+				"subResources": nil,
+				"subCharts":    nil,
+			},
 			ReturnValue: 2,
+		},
+		{
+			Input: &helmv1alpha1.Chart{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bar",
+					Namespace: "three",
+					Labels: map[string]string{
+						"repo": "foo",
+					},
+				},
+				Spec: helmv1alpha1.ChartSpec{
+					Name:       "bar",
+					Repository: "foo",
+					Versions: []string{
+						"0.0.3",
+					},
+				},
+			},
+			ChartVersion: "0.0.3",
+			ReturnError: map[string]error{
+				"init":         nil,
+				"prepare":      nil,
+				"update":       nil,
+				"subResources": nil,
+				"subCharts":    nil,
+			},
+			ReturnValue: 2,
+		},
+		{
+			Input: &helmv1alpha1.Chart{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "four",
+				},
+				Spec: helmv1alpha1.ChartSpec{
+					Name:       "foo",
+					Repository: "foo",
+					Versions:   []string{"0.0.4"},
+					CreateDeps: true,
+				},
+			},
+			ReturnValue:  "",
+			ChartVersion: "0.0.4",
+			ReturnError: map[string]error{
+				"init":         nil,
+				"prepare":      nil,
+				"update":       nil,
+				"subResources": nil,
+				"subCharts":    nil,
+			},
+		},
+		{
+			Input: &helmv1alpha1.Chart{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "five",
+				},
+				Spec: helmv1alpha1.ChartSpec{
+					Name:       "foo",
+					Repository: "bar",
+					Versions:   []string{"0.0.5"},
+					CreateDeps: true,
+				},
+			},
+			ReturnValue:  "",
+			ChartVersion: "0.0.5",
+			ReturnError: map[string]error{
+				"init":         nil,
+				"prepare":      nil,
+				"update":       nil,
+				"subResources": nil,
+				"subCharts":    nil,
+			},
+		},
+	}
+}
+
+func GetChartVersions(name string) repo.ChartVersions {
+	return repo.ChartVersions{
+		{
+			Metadata: &chart.Metadata{
+				Name:       name,
+				Version:    "0.0.1",
+				APIVersion: "v2",
+			},
+			URLs: []string{"https://foo.bar/charts/" + name + "-0.0.1.tgz"},
+		},
+		{
+			Metadata: &chart.Metadata{
+				Name:       name,
+				Version:    "0.0.2",
+				APIVersion: "v2",
+				Dependencies: []*chart.Dependency{
+					{
+						Name:       "testing-dep",
+						Version:    "0.1.0",
+						Repository: "https://foo.bar/charts/",
+					},
+				},
+			},
+			URLs: []string{"https://foo.bar/charts/" + name + "-0.0.2.tgz"},
+		},
+		{
+			Metadata: &chart.Metadata{
+				Name:       name,
+				Version:    "0.0.3",
+				APIVersion: "v2",
+			},
+			URLs: []string{"https://foo.bar/charts/" + name + "-0.0.3.tgz"},
+		},
+		{
+			Metadata: &chart.Metadata{
+				Name:       name,
+				Version:    "0.0.4",
+				APIVersion: "v2",
+				Dependencies: []*chart.Dependency{
+					{
+						Name:       "testing-dep",
+						Version:    "0.1.x",
+						Repository: "https://foo.bar/charts/",
+					},
+				},
+			},
+			URLs: []string{"https://foo.bar/charts/" + name + "-0.0.4.tgz"},
+		},
+		{
+			Metadata: &chart.Metadata{
+				Name:       name,
+				Version:    "0.0.5",
+				APIVersion: "v2",
+				Dependencies: []*chart.Dependency{
+					{
+						Name:       "testing-dep",
+						Version:    "0.1.x",
+						Repository: "https://bar.foo/charts/",
+					},
+				},
+			},
+			URLs: []string{"https://bar.foo/charts/" + name + "-0.0.5.tgz"},
 		},
 	}
 }

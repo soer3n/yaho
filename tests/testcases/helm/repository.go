@@ -29,6 +29,26 @@ func GetTestRepoChartListSpec() *helmv1alpha1.ChartList {
 	}
 }
 
+// GetTestRepoRepoListSpec returns expected chartlist spec for testing
+func GetTestRepoRepoListSpec() helmv1alpha1.RepositoryList {
+	repoSpec := helmv1alpha1.RepositorySpec{
+		Name: "chart.Name",
+		URL:  "https://dep.bar/charts",
+	}
+
+	return helmv1alpha1.RepositoryList{
+		Items: []helmv1alpha1.Repository{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "default",
+				},
+				Spec: repoSpec,
+			},
+		},
+	}
+}
+
 // GetTestRepoSpecs returns testcases for testing chart cr
 func GetTestRepoSpecs() []inttypes.TestCase {
 	return []inttypes.TestCase{
@@ -36,33 +56,117 @@ func GetTestRepoSpecs() []inttypes.TestCase {
 		{
 			Input: helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "one",
 					Labels: map[string]string{
-						"label": "selector",
+						"repo": "foo",
 					},
 				},
 				Spec: helmv1alpha1.RepositorySpec{
-					Name:       "test",
-					URL:        "https://bar.foo/charts",
+					Name:       "foo",
+					URL:        "https://foo.bar/charts",
 					AuthSecret: "secret",
 				},
 			},
 			ReturnValue: "",
-			ReturnError: nil,
+			ReturnError: map[string]error{
+				"init":   nil,
+				"update": nil,
+			},
+		},
+		{
+			Input: helmv1alpha1.Repository{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bar",
+					Namespace: "two",
+					Labels: map[string]string{
+						"repo": "bar",
+					},
+				},
+				Spec: helmv1alpha1.RepositorySpec{
+					Name: "bar",
+					URL:  "https://bar.foo/charts",
+					Charts: []helmv1alpha1.Entry{
+						{
+							Name: "bar",
+						},
+					},
+				},
+			},
+			ReturnValue: "",
+			ReturnError: map[string]error{
+				"init":   nil,
+				"update": nil,
+			},
 		},
 	}
 }
 
 // GetTestRepoIndexFile returns repoIndex for testing chart cr
-func GetTestRepoIndexFile() *repo.IndexFile {
+func GetTestRepoIndexFile(name string) *repo.IndexFile {
 	return &repo.IndexFile{
 		Entries: map[string]repo.ChartVersions{
-			"doo": []*repo.ChartVersion{
+			name: []*repo.ChartVersion{
 				{
 					Metadata: &chart.Metadata{
-						Name:    "doo",
-						Version: "0.0.1",
+						Name:       name,
+						Version:    "0.0.1",
+						APIVersion: "v2",
 					},
-					URLs: []string{"nodomain.com"},
+					URLs: []string{"https://foo.bar/charts/" + name + "-0.0.1.tgz"},
+				},
+				{
+					Metadata: &chart.Metadata{
+						Name:       name,
+						Version:    "0.0.2",
+						APIVersion: "v2",
+						Dependencies: []*chart.Dependency{
+							{
+								Name:       "testing-dep",
+								Version:    "0.1.0",
+								Repository: "https://foo.bar/charts/",
+							},
+						},
+					},
+					URLs: []string{"https://foo.bar/charts/" + name + "-0.0.2.tgz"},
+				},
+				{
+					Metadata: &chart.Metadata{
+						Name:       name,
+						Version:    "0.0.3",
+						APIVersion: "v2",
+					},
+					URLs: []string{"https://foo.bar/charts/" + name + "-0.0.3.tgz"},
+				},
+				{
+					Metadata: &chart.Metadata{
+						Name:       name,
+						Version:    "0.0.4",
+						APIVersion: "v2",
+						Dependencies: []*chart.Dependency{
+							{
+								Name:       "testing-dep",
+								Version:    "0.1.x",
+								Repository: "https://foo.bar/charts/",
+							},
+						},
+					},
+					URLs: []string{"https://foo.bar/charts/" + name + "-0.0.4.tgz"},
+				},
+				{
+					Metadata: &chart.Metadata{
+						Name:       name,
+						Version:    "0.0.5",
+						APIVersion: "v2",
+						Dependencies: []*chart.Dependency{
+							{
+								Name:       "testing-dep",
+								Version:    "0.1.x",
+								Repository: "https://bar.foo/charts/",
+							},
+						},
+					},
+					URLs: []string{"https://bar.foo/charts/" + name + "-0.0.5.tgz"},
 				},
 			},
 		},

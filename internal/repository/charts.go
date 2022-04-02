@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"context"
+
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +23,7 @@ func (hr *Repo) deploy(instance *helmv1alpha1.Repository, scheme *runtime.Scheme
 	if len(instance.Spec.Charts) > 0 {
 		repo := instance.DeepCopy()
 
-		if err := hr.deployCharts(*repo, selector, scheme); err != nil {
+		if err := hr.deployCharts(repo, selector, scheme); err != nil {
 			return err
 		}
 
@@ -31,7 +33,7 @@ func (hr *Repo) deploy(instance *helmv1alpha1.Repository, scheme *runtime.Scheme
 	return nil
 }
 
-func (hr *Repo) deployCharts(instance helmv1alpha1.Repository, selectors map[string]string, scheme *runtime.Scheme) error {
+func (hr *Repo) deployCharts(instance *helmv1alpha1.Repository, selectors map[string]string, scheme *runtime.Scheme) error {
 
 	for _, chart := range instance.Spec.Charts {
 		c := &helmv1alpha1.Chart{
@@ -48,14 +50,14 @@ func (hr *Repo) deployCharts(instance helmv1alpha1.Repository, selectors map[str
 			},
 		}
 
-		if err := controllerutil.SetControllerReference(&instance, c, scheme); err != nil {
+		if err := controllerutil.SetControllerReference(instance, c, scheme); err != nil {
 			hr.logger.Error(err, "failed to set owner ref for chart", "chart", chart)
 		}
 
-		if err := hr.K8sClient.Create(hr.ctx, c); err != nil {
+		if err := hr.K8sClient.Create(context.Background(), c); err != nil {
 			hr.logger.Info("error on chart create", "error", err.Error())
 			if k8serrors.IsAlreadyExists(err) {
-				if err := hr.K8sClient.Update(hr.ctx, c); err != nil {
+				if err := hr.K8sClient.Update(context.Background(), c); err != nil {
 					hr.logger.Info("could not update chart resource", "chart", chart.Name)
 					return err
 				}

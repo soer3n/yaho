@@ -9,8 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/internal/values"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
@@ -61,13 +59,22 @@ func GetTestReleaseValueRefListSpec() []inttypes.TestCase {
 
 // GetTestReleaseSpecs returns testcases for testing release cr
 func GetTestReleaseSpecs() []inttypes.TestCase {
+	config := "config"
 	return []inttypes.TestCase{
 		{
 			ReturnValue: GetTestReleaseChartConfigMapsValid(),
-			ReturnError: nil,
+			ReturnError: map[string]error{
+				"init":   nil,
+				"update": nil,
+				"remove": nil,
+			},
 			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "foo",
+				},
 				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    "test",
+					Name:    "release",
 					Chart:   "chart",
 					Repo:    "repo",
 					Version: "0.0.1",
@@ -77,9 +84,76 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 		},
 		{
 			ReturnValue: GetTestReleaseChartConfigMapsValid(),
+			ReturnError: map[string]error{
+				"init":   nil,
+				"update": nil,
+				"remove": nil,
+			},
+			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "foo",
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:    "release",
+					Chart:   "chart",
+					Repo:    "repo",
+					Version: "0.0.1",
+					Values:  []string{"notpresent"},
+					Config:  &config,
+				},
+			},
+		},
+		{
+			ReturnValue: GetTestReleaseChartConfigMapsValid(),
+			ReturnError: map[string]error{
+				"init":   nil,
+				"update": nil,
+				"remove": nil,
+			},
+			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "foo",
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:    "notfound",
+					Chart:   "chart",
+					Repo:    "repo",
+					Version: "0.0.1",
+					Values:  []string{"present"},
+				},
+			},
+		},
+		{
+			ReturnValue: GetTestReleaseChartConfigMapsValid(),
+			ReturnError: map[string]error{
+				"init":   nil,
+				"update": nil,
+				"remove": nil,
+			},
+			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "foo",
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:    "notfound",
+					Chart:   "chart",
+					Repo:    "repo",
+					Version: "0.0.1",
+					Values:  []string{"present"},
+					Config:  &config,
+				},
+			},
+		},
+		/*{
+			ReturnValue: GetTestReleaseChartConfigMapsValid(),
 			ReturnError: nil,
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "release",
+					Namespace: "foo",
 					Labels: map[string]string{
 						"label": "selector",
 					},
@@ -98,6 +172,8 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 			ReturnError: k8serrors.NewBadRequest("chart not loaded on action update"),
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "bar",
 					Labels: map[string]string{
 						"label": "selector",
 					},
@@ -116,6 +192,8 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 			ReturnError: k8serrors.NewBadRequest("chart not loaded on action update"),
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "baz",
 					Labels: map[string]string{
 						"label": "selector",
 					},
@@ -128,7 +206,7 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 					Values:  []string{"notpresent"},
 				},
 			},
-		},
+		},*/
 	}
 }
 
@@ -140,7 +218,10 @@ func GetTestReleaseSpecsForConfigMaps() []inttypes.TestCase {
 				"configmap": 6,
 				"chart":     1,
 			},
-			ReturnError: nil,
+			ReturnError: map[string]error{
+				"init":   nil,
+				"update": nil,
+			},
 			Input: &helmv1alpha1.Release{
 				Spec: helmv1alpha1.ReleaseSpec{
 					Name:    "test",
@@ -156,7 +237,10 @@ func GetTestReleaseSpecsForConfigMaps() []inttypes.TestCase {
 				"configmap": 6,
 				"chart":     1,
 			},
-			ReturnError: nil,
+			ReturnError: map[string]error{
+				"init":   nil,
+				"update": nil,
+			},
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -177,7 +261,10 @@ func GetTestReleaseSpecsForConfigMaps() []inttypes.TestCase {
 				"configmap": 0,
 				"chart":     0,
 			},
-			ReturnError: nil,
+			ReturnError: map[string]error{
+				"init":   nil,
+				"update": nil,
+			},
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -198,7 +285,10 @@ func GetTestReleaseSpecsForConfigMaps() []inttypes.TestCase {
 				"configmap": 0,
 				"chart":     0,
 			},
-			ReturnError: errors.New("repo not found"),
+			ReturnError: map[string]error{
+				"init":   errors.New("repo not found"),
+				"update": nil,
+			},
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -221,7 +311,8 @@ func GetTestReleaseSpecsForConfigMaps() []inttypes.TestCase {
 func GetTestChartSpec() helmv1alpha1.Chart {
 	return helmv1alpha1.Chart{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "chart",
+			Name:      "chart",
+			Namespace: "foo",
 			Labels: map[string]string{
 				"repoGroup": "group",
 			},
@@ -259,15 +350,15 @@ func GetTestHelmChart() *chart.Chart {
 		Templates: []*chart.File{},
 		Values:    map[string]interface{}{},
 		Metadata: &chart.Metadata{
-			Name:       "meta",
+			Name:       "chart",
 			Version:    "0.0.1",
 			APIVersion: "0.0.1",
-			Dependencies: []*chart.Dependency{
+			/*Dependencies: []*chart.Dependency{
 				{
 					Name:    "subMeta",
 					Version: "0.0.1",
 				},
-			},
+			},*/
 		},
 	}
 
@@ -275,7 +366,7 @@ func GetTestHelmChart() *chart.Chart {
 		Templates: []*chart.File{},
 		Values:    map[string]interface{}{},
 		Metadata: &chart.Metadata{
-			Name:       "subMeta",
+			Name:       "chart",
 			Version:    "0.0.1",
 			APIVersion: "0.0.1",
 		},
@@ -301,8 +392,9 @@ func GetTestReleaseFakeActionConfig(t *testing.T) *action.Configuration {
 // GetTestReleaseDeployedReleaseObj returns helm release for testing release cr
 func GetTestReleaseDeployedReleaseObj() *release.Release {
 	return &release.Release{
-		Name:  "release",
-		Chart: GetTestHelmChart(),
+		Name:      "release",
+		Namespace: "foo",
+		Chart:     GetTestHelmChart(),
 		Info: &release.Info{
 			Status: release.StatusDeployed,
 		},

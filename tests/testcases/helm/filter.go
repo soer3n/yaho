@@ -9,7 +9,9 @@ import (
 func GetTestFilterSpecs() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		{
-			ReturnError: nil,
+			ReturnError: map[string]error{
+				"init": nil,
+			},
 			ReturnValue: []*values.ValuesRef{
 				{
 					Parent: "parent",

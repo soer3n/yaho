@@ -4,7 +4,6 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"errors"
-	"strings"
 	"sync"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -54,7 +53,6 @@ func New(version string, chartObj *helmv1alpha1.Chart, vals chartutil.Values, in
 		if cv.Version == parsedVersion {
 			obj.Version = cv
 			obj.Version.Version = parsedVersion
-
 			break
 		}
 	}
@@ -98,7 +96,7 @@ func (chartVersion *ChartVersion) Prepare(config *action.Configuration) error {
 
 	if chartVersion.Obj == nil {
 		chartVersion.logger.Info("load chart obj")
-		err := chartVersion.loadObj(releaseClient)
+		err := chartVersion.loadChartByURL(releaseClient)
 
 		if err != nil {
 			return err
@@ -232,8 +230,8 @@ func (chartVersion *ChartVersion) getCredentials() *Auth {
 
 	username, _ := b64.StdEncoding.DecodeString(string(secretObj.Data["user"]))
 	pw, _ := b64.StdEncoding.DecodeString(string(secretObj.Data["password"]))
-	creds.User = strings.TrimSuffix(string(username), "\n")
-	creds.Password = strings.TrimSuffix(string(pw), "\n")
+	creds.User = string(username)
+	creds.Password = string(pw)
 
 	return creds
 }

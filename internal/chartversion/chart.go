@@ -26,7 +26,7 @@ func (chartVersion *ChartVersion) setChart(chartPathOptions *action.ChartPathOpt
 		return err
 	}
 
-	if err := chartVersion.loadChart(helmChart, chartObj, chartPathOptions, vals); err != nil {
+	if err := chartVersion.loadChartByResources(helmChart, chartObj, chartPathOptions, vals); err != nil {
 		return err
 	}
 
@@ -34,9 +34,14 @@ func (chartVersion *ChartVersion) setChart(chartPathOptions *action.ChartPathOpt
 	return nil
 }
 
-func (chartVersion *ChartVersion) loadObj(releaseClient *action.Install) error {
+func (chartVersion *ChartVersion) loadChartByURL(releaseClient *action.Install) error {
 
 	releaseClient.ReleaseName = chartVersion.owner.Name
+
+	if chartVersion.Version == nil {
+		return errors.New("no chartversion loaded")
+	}
+
 	releaseClient.Version = chartVersion.Version.Version
 	releaseClient.ChartPathOptions.RepoURL = chartVersion.repo.Spec.URL
 	credentials := &Auth{}
@@ -45,7 +50,7 @@ func (chartVersion *ChartVersion) loadObj(releaseClient *action.Install) error {
 		credentials = chartVersion.getCredentials()
 	}
 
-	if err := chartVersion.setChartObject(credentials); err != nil {
+	if err := chartVersion.downloadChart(credentials); err != nil {
 		return err
 	}
 
@@ -71,7 +76,7 @@ func (chartVersion *ChartVersion) setChartURL(index repo.ChartVersions) error {
 	return errors.New("could not set chartversion url")
 }
 
-func (chartVersion *ChartVersion) loadChart(helmChart *chart.Chart, apiObj *helmv1alpha1.Chart, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) error {
+func (chartVersion *ChartVersion) loadChartByResources(helmChart *chart.Chart, apiObj *helmv1alpha1.Chart, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) error {
 
 	chartVersion.wg.Add(3)
 
@@ -104,7 +109,7 @@ func (chartVersion *ChartVersion) loadChart(helmChart *chart.Chart, apiObj *helm
 	return nil
 }
 
-func (chartVersion *ChartVersion) setChartObject(opts *Auth) error {
+func (chartVersion *ChartVersion) downloadChart(opts *Auth) error {
 	var resp *http.Response
 	var err error
 

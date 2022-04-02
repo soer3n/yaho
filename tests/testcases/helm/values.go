@@ -18,7 +18,7 @@ func GetTestValueSpecs() []inttypes.TestCase {
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "release",
-					Namespace: "release",
+					Namespace: "foo",
 				},
 				Spec: helmv1alpha1.ReleaseSpec{
 					Name:  "release",
@@ -29,7 +29,10 @@ func GetTestValueSpecs() []inttypes.TestCase {
 					},
 				},
 			},
-			ReturnError: nil,
+			ReturnError: map[string]error{
+				"init":   nil,
+				"manage": nil,
+			},
 		},
 	}
 
@@ -56,7 +59,7 @@ func GetTestValueSpecs() []inttypes.TestCase {
 					Ref: &helmv1alpha1.Values{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "foo",
-							Namespace: "",
+							Namespace: "foo",
 						},
 						Spec: helmv1alpha1.ValuesSpec{
 							ValuesMap: &runtime.RawExtension{
@@ -74,7 +77,7 @@ func GetTestValueSpecs() []inttypes.TestCase {
 					Ref: &helmv1alpha1.Values{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "second",
-							Namespace: "",
+							Namespace: "foo",
 						},
 						Spec: helmv1alpha1.ValuesSpec{
 							ValuesMap: &runtime.RawExtension{
@@ -91,7 +94,7 @@ func GetTestValueSpecs() []inttypes.TestCase {
 					Ref: &helmv1alpha1.Values{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "third",
-							Namespace: "",
+							Namespace: "foo",
 						},
 						Spec: helmv1alpha1.ValuesSpec{
 							ValuesMap: &runtime.RawExtension{
@@ -105,7 +108,7 @@ func GetTestValueSpecs() []inttypes.TestCase {
 					Ref: &helmv1alpha1.Values{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "fourth",
-							Namespace: "",
+							Namespace: "foo",
 						},
 						Spec: helmv1alpha1.ValuesSpec{
 							ValuesMap: &runtime.RawExtension{

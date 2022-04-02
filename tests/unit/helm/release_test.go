@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubectl/pkg/scheme"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -21,31 +21,24 @@ func TestReleaseUpdate(t *testing.T) {
 	apiObjList := testcases.GetTestReleaseSpecs()
 	assert := assert.New(t)
 
+	helmv1alpha1.AddToScheme(scheme.Scheme)
+
 	for _, apiObj := range apiObjList {
 
 		current := apiObj.Input.(*helmv1alpha1.Release)
-		testObj, _ := release.New(current, &runtime.Scheme{}, settings, logf.Log, clientMock, httpMock, kube.Client{})
-		selectors := ""
+		testObj, err := release.New(current, scheme.Scheme, settings, logf.Log, clientMock, httpMock, kube.Client{})
+		assert.Equal(apiObj.ReturnError["init"], err)
 
-		// parse selectors string from api object meta data
-		for k, v := range current.ObjectMeta.Labels {
-			if selectors != "" {
-				selectors = selectors + ","
-			}
-			selectors = selectors + k + "=" + v
-		}
-
-		testObj.Version = current.Spec.Version
-		testObj.ValuesTemplate.ValuesMap = map[string]string{
-			"bar": "foo",
-		}
 		testObj.Config = testcases.GetTestReleaseFakeActionConfig(t)
 
 		if err := testObj.Config.Releases.Create(testcases.GetTestReleaseDeployedReleaseObj()); err != nil {
 			log.Print(err)
 		}
 
-		err := testObj.Update()
-		assert.Equal(apiObj.ReturnError, err)
+		err = testObj.Update()
+		assert.Equal(apiObj.ReturnError["update"], err)
+
+		err = testObj.RemoveRelease()
+		assert.Equal(apiObj.ReturnError["remove"], err)
 	}
 }

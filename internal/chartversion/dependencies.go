@@ -17,6 +17,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -141,7 +142,7 @@ func (chartVersion *ChartVersion) updateIndexVersion(d *chart.Chart, dep *chart.
 
 func (chartVersion *ChartVersion) getRepoName(dep *chart.Dependency, group *string) (string, error) {
 
-	repository := dep.Repository
+	repository := chartVersion.repo.Spec.Name
 
 	if chartVersion.Obj != nil {
 
@@ -175,13 +176,17 @@ func (chartVersion *ChartVersion) loadDependencies(selectors map[string]string) 
 	var chartList helmv1alpha1.ChartList
 	var err error
 
-	selectorObj := client.MatchingLabels{}
-
-	for k, selector := range selectors {
-		selectorObj[k] = selector
+	opts := &client.ListOptions{
+		LabelSelector: labels.NewSelector(),
+		Namespace:     chartVersion.owner.Namespace,
 	}
 
-	if err = chartVersion.k8sClient.List(context.Background(), &chartList, selectorObj, client.InNamespace(chartVersion.owner.Namespace)); err != nil {
+	for k, selector := range selectors {
+		r, _ := labels.NewRequirement(k, selection.Equals, []string{selector})
+		opts.LabelSelector.Add(*r)
+	}
+
+	if err = chartVersion.k8sClient.List(context.Background(), &chartList, opts); err != nil {
 		return err
 	}
 

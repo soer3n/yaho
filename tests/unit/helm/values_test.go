@@ -14,13 +14,13 @@ import (
 
 func TestValues(t *testing.T) {
 	assert := assert.New(t)
-	clientMock, _ := helmmocks.GetReleaseMock()
+	clientMock, _ := helmmocks.GetValueMock()
 
 	for _, testcase := range testcases.GetTestValueSpecs() {
 		release := testcase.Input.(*helmv1alpha1.Release)
 		testObj := values.New(release, logf.Log, clientMock)
 		_, err := testObj.ManageValues()
 
-		assert.Equal(testcase.ReturnError, err)
+		assert.Equal(testcase.ReturnError["manage"], err)
 	}
 }

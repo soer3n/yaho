@@ -153,6 +153,12 @@ func (chartVersion *ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, 
 			continue
 		}
 		key := strings.Replace(path[1], "/", "", 1)
+
+		// skip directory for tests if present
+		if key == "tests" {
+			continue
+		}
+
 		fileName := strings.Replace(path[2], "/", "", 1)
 		if _, ok := configMapMap[key]; !ok {
 			configMapMap[key] = v1.ConfigMap{
