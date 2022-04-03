@@ -47,30 +47,6 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 		return c.ObjectMeta.Name == chartMock.Name && c.ObjectMeta.Namespace == chartMock.Namespace
 	})).Return(e)
 
-	/*
-		&helmv1alpha1.Chart{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      chartMock.Name,
-				Namespace: chartMock.Namespace,
-				Labels:    chartMock.Labels,
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion:         "helm.soer3n.info/v1alpha1",
-						Kind:               "Repository",
-						Name:               chartMock.Repository,
-						Controller:         pointer.BoolPtr(true),
-						BlockOwnerDeletion: pointer.BoolPtr(true),
-					},
-				},
-			},
-			Spec: helmv1alpha1.ChartSpec{
-				Name:       chartMock.Name,
-				Repository: chartMock.Repository,
-				CreateDeps: true,
-				Versions:   []string{},
-			},
-		},*/
-
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: chartMock.Name, Namespace: chartMock.Namespace}, &helmv1alpha1.Chart{}).Return(e).Run(func(args mock.Arguments) {
 		c := args.Get(2).(*helmv1alpha1.Chart)
 		v := []string{}
@@ -129,7 +105,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 						Version:    d.Version,
 						APIVersion: "v2",
 					},
-					URLs: []string{"https://foo.bar/charts"},
+					URLs: []string{d.URL},
 				}
 
 				v = append(v, i)

@@ -44,6 +44,16 @@ var _ = Context("Install a repository", func() {
 				Spec: helmv1alpha1.RepositorySpec{
 					Name: "deployment-name",
 					URL:  testRepoURL,
+					Charts: []helmv1alpha1.Entry{
+						{
+							Name:     "testing",
+							Versions: []string{"0.1.0"},
+						},
+						{
+							Name:     "testing-nested",
+							Versions: []string{"0.1.0"},
+						},
+					},
 				},
 			}
 

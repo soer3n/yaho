@@ -1,6 +1,8 @@
 package helm
 
 import (
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
 	"helm.sh/helm/v3/pkg/chart"
@@ -130,8 +132,8 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 			ChartVersion: "0.0.4",
 			ReturnError: map[string]error{
 				"init":         nil,
-				"prepare":      nil,
-				"update":       nil,
+				"prepare":      k8serrors.NewBadRequest("could not load subchart testing-dep"),
+				"update":       k8serrors.NewBadRequest("could not load subchart testing-dep"),
 				"subResources": nil,
 				"subCharts":    nil,
 			},
@@ -153,8 +155,8 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 			ChartVersion: "0.0.5",
 			ReturnError: map[string]error{
 				"init":         nil,
-				"prepare":      nil,
-				"update":       nil,
+				"prepare":      k8serrors.NewBadRequest("could not load subchart testing-dep"),
+				"update":       k8serrors.NewBadRequest("could not load subchart testing-dep"),
 				"subResources": nil,
 				"subCharts":    nil,
 			},

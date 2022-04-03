@@ -19,10 +19,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const configMapLabelKey = "helm.soer3n.info/chart"
+// const configMapLabelKey = "helm.soer3n.info/chart"
 
 // const configMapRepoLabelKey = "helm.soer3n.info/repo"
-const configMapLabelSubName = "helm.soer3n.info/subname"
+// const configMapLabelSubName = "helm.soer3n.info/subname"
 
 // New represents initialization of internal release struct
 func New(instance *helmv1alpha1.Release, scheme *runtime.Scheme, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) (*Release, error) {

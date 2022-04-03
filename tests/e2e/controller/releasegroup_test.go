@@ -38,10 +38,21 @@ var _ = Context("Install a releasegroup", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testRepoName,
 					Namespace: namespace,
+					Labels:    map[string]string{"repoGroup": "foo"},
 				},
 				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoName,
 					URL:  testRepoURL,
+					Charts: []helmv1alpha1.Entry{
+						{
+							Name:     "testing",
+							Versions: []string{"0.1.0"},
+						},
+						{
+							Name:     "testing-nested",
+							Versions: []string{"0.1.0"},
+						},
+					},
 				},
 			}
 
@@ -53,10 +64,17 @@ var _ = Context("Install a releasegroup", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testRepoNameSecond,
 					Namespace: namespace,
+					Labels:    map[string]string{"repoGroup": "foo"},
 				},
 				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoNameSecond,
 					URL:  testRepoURLSecond,
+					Charts: []helmv1alpha1.Entry{
+						{
+							Name:     "testing-dep",
+							Versions: []string{"0.1.0"},
+						},
+					},
 				},
 			}
 
@@ -173,6 +191,7 @@ var _ = Context("Install a releasegroup", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testRepoName,
 					Namespace: namespace,
+					Labels:    map[string]string{"repoGroup": "foo"},
 				},
 				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoName,

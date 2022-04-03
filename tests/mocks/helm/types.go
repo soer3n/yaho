@@ -37,14 +37,6 @@ type chartVersionMock struct {
 	Auth         *credentialsMock
 }
 
-type releaseMock struct {
-	Name       string
-	Namespace  string
-	Chart      chartMock
-	Repository repositoryMock
-	Values     []valueMock
-}
-
 type valueRefMock struct {
 	Key  string
 	Mock valueMock

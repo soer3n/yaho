@@ -182,10 +182,10 @@ func (chartVersion *ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, 
 		configMapMap[key].BinaryData[fileName] = entry.Data
 	}
 
-	if len(binaryData) > 0 {
-		baseConfigmap.BinaryData = binaryData
-		cm <- baseConfigmap
-	}
+	//if len(binaryData) > 0 {
+	baseConfigmap.BinaryData = binaryData
+	cm <- baseConfigmap
+	//}
 
 	for _, configmap := range configMapMap {
 		cm <- configmap

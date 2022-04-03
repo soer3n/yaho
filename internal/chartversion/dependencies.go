@@ -228,7 +228,8 @@ func (chartVersion *ChartVersion) loadDependencies(selectors map[string]string) 
 						return err
 					}
 
-					subChart, err := New(dep.Version, &item, subVals, *ix, chartVersion.scheme, chartVersion.logger, chartVersion.k8sClient, chartVersion.getter)
+					obj := item.DeepCopy()
+					subChart, err := New(dep.Version, obj, subVals, *ix, chartVersion.scheme, chartVersion.logger, chartVersion.k8sClient, chartVersion.getter)
 
 					if err != nil {
 						chartVersion.logger.Info("could not load subchart", "child", item.Spec.Name)

@@ -43,6 +43,16 @@ var _ = Context("Install a repository group", func() {
 						{
 							Name: testRepoName,
 							URL:  testRepoURL,
+							Charts: []helmv1alpha1.Entry{
+								{
+									Name:     "testing",
+									Versions: []string{"0.1.0"},
+								},
+								{
+									Name:     "testing-nested",
+									Versions: []string{"0.1.0"},
+								},
+							},
 						},
 					},
 				},
@@ -59,6 +69,12 @@ var _ = Context("Install a repository group", func() {
 			repoGroupKind.Spec.Repos = append(repoGroupKind.Spec.Repos, helmv1alpha1.RepositorySpec{
 				Name: testRepoNameSecond,
 				URL:  testRepoURLSecond,
+				Charts: []helmv1alpha1.Entry{
+					{
+						Name:     "testing-dep",
+						Versions: []string{"0.1.1"},
+					},
+				},
 			})
 
 			err = testClient.Update(context.Background(), repoGroupKind)
@@ -89,6 +105,12 @@ var _ = Context("Install a repository group", func() {
 				{
 					Name: testRepoNameSecond,
 					URL:  testRepoURLSecond,
+					Charts: []helmv1alpha1.Entry{
+						{
+							Name:     "testing-dep",
+							Versions: []string{"0.1.0"},
+						},
+					},
 				},
 			}
 
