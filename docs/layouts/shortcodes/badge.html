@@ -1,0 +1,7 @@
+{{if .Get "link"}}
+<a href="{{.Get "link"}}" target="{{.Get "target"}}" {{if .Get "class"}} class="{{.Get "class"}}" {{end}} style="text-decoration-line: none;">
+{{end}}
+<img alt="{{.Get "alt"}}" style="display: inline-block;" src="https://img.shields.io/badge/{{if .Get "label"}}{{.Get "label"}}{{end}}{{if .Get "message"}}-{{.Get "message"}}{{end}}{{if .Get "color"}}-{{.Get "color"}}{{end}}.svg?logo={{.Get "logo"}}&logoColor={{.Get "logoColor"}}&logoWidth={{.Get "logoWidth"}}&style={{.Get "style"}}">
+{{if .Get "link"}}
+</a>
+{{end}}

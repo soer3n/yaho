@@ -9,20 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (hc *Release) setOptions(name, namespace *string) error {
-
-	instance := &helmv1alpha1.Config{}
-
-	hc.logger.Info(hc.Namespace.Name)
-
-	err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
-		Name:      *name,
-		Namespace: hc.Namespace.Name,
-	}, instance)
-
-	if err != nil {
-		return err
-	}
+func (hc *Release) setOptions(instance *helmv1alpha1.Config, namespace *string) error {
 
 	hc.Flags = instance.Spec.Flags
 
@@ -33,6 +20,19 @@ func (hc *Release) setOptions(name, namespace *string) error {
 	}
 
 	return errors.NewBadRequest("namespace not in allowed list")
+}
+
+func (hc *Release) getConfig(name *string) (*helmv1alpha1.Config, error) {
+	instance := &helmv1alpha1.Config{}
+
+	hc.logger.Info(hc.Namespace.Name)
+
+	err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
+		Name:      *name,
+		Namespace: hc.Namespace.Name,
+	}, instance)
+
+	return instance, err
 }
 
 func (hc *Release) setInstallFlags(client *action.Install) {

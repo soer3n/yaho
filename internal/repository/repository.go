@@ -100,9 +100,23 @@ func (hr *Repo) Update(instance *helmv1alpha1.Repository, scheme *runtime.Scheme
 		return err
 	}
 
-	if err := hr.deploy(instance, scheme); err != nil {
-		return err
+	label, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
+	selector := map[string]string{"repo": hr.Name}
+
+	if repoGroupLabelOk && label != "" {
+		selector["repoGroup"] = instance.ObjectMeta.Labels["repoGroup"]
 	}
+
+	repo := instance.DeepCopy()
+
+	for _, chart := range instance.Spec.Charts {
+		if err := hr.deployChart(repo, chart, selector, scheme); err != nil {
+			return err
+		}
+	}
+
+	hr.logger.Info("chart parsing for %s completed.", "chart", instance.ObjectMeta.Name)
+
 	return nil
 }
 

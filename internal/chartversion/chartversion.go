@@ -61,10 +61,14 @@ func New(version string, chartObj *helmv1alpha1.Chart, vals chartutil.Values, in
 		return obj, errors.New("chart version is not valid")
 	}
 
-	if err := obj.setControllerRepo(); err != nil {
+	repo, err := obj.getControllerRepo()
+
+	if err != nil {
 		logger.Info(err.Error())
 		return obj, err
 	}
+
+	obj.repo = repo
 
 	if err := obj.setChartURL(index); err != nil {
 		return obj, err
@@ -79,9 +83,14 @@ func New(version string, chartObj *helmv1alpha1.Chart, vals chartutil.Values, in
 	if vals == nil {
 		vals = obj.getDefaultValuesFromConfigMap(chartObj.Name, parsedVersion)
 	}
-	if err := obj.setChart(options, vals); err != nil {
+
+	c, err := obj.getChart(options, vals)
+
+	if err != nil {
 		obj.logger.Info(err.Error())
 	}
+
+	obj.Obj = c
 
 	if err := obj.addDependencies(); err != nil {
 		obj.logger.Info(err.Error())
@@ -151,11 +160,11 @@ func (chartVersion *ChartVersion) CreateOrUpdateSubCharts() error {
 	return nil
 }
 
-func (chartVersion *ChartVersion) setControllerRepo() error {
+func (chartVersion *ChartVersion) getControllerRepo() (*helmv1alpha1.Repository, error) {
 	instance := &helmv1alpha1.Repository{}
 
 	if chartVersion.owner == nil {
-		return errors.New("chart api resource not present")
+		return instance, errors.New("chart api resource not present")
 	}
 
 	err := chartVersion.k8sClient.Get(context.Background(), types.NamespacedName{
@@ -166,15 +175,14 @@ func (chartVersion *ChartVersion) setControllerRepo() error {
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			chartVersion.logger.Info("HelmRepo resource not found. Ignoring since object must be deleted")
-			return err
+			return instance, err
 		}
 		// Error reading the object - requeue the request.
 		chartVersion.logger.Error(err, "Failed to get ControllerRepo")
-		return err
+		return instance, err
 	}
 
-	chartVersion.repo = instance
-	return nil
+	return instance, nil
 }
 
 func (chartVersion *ChartVersion) setValues(helmChart *chart.Chart, apiObj *helmv1alpha1.Chart, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) {
@@ -263,12 +271,11 @@ func (chartVersion *ChartVersion) createOrUpdateSubChart(dep *helmv1alpha1.Chart
 				},
 			}
 
-			if group != nil {
-				if obj.ObjectMeta.Labels == nil {
-					obj.ObjectMeta.Labels = map[string]string{}
-				}
-				obj.ObjectMeta.Labels["repoGroup"] = *group
+			if obj.ObjectMeta.Labels == nil {
+				obj.ObjectMeta.Labels = map[string]string{}
 			}
+
+			obj.ObjectMeta.Labels["repoGroup"] = *group
 
 			if err := controllerutil.SetControllerReference(chartVersion.repo, obj, chartVersion.scheme); err != nil {
 				return err

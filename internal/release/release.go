@@ -59,7 +59,12 @@ func New(instance *helmv1alpha1.Release, scheme *runtime.Scheme, settings *cli.E
 	helmRelease.logger.Info("parsed config", "name", instance.Spec.Name, "cache", helmRelease.Settings.RepositoryCache)
 
 	if instance.Spec.Config != nil {
-		if err := helmRelease.setOptions(instance.Spec.Config, instance.Spec.Namespace); err != nil {
+		config, err := helmRelease.getConfig(instance.Spec.Config)
+
+		if err != nil {
+			helmRelease.logger.Info(err.Error())
+		}
+		if err := helmRelease.setOptions(config, instance.Spec.Namespace); err != nil {
 			helmRelease.logger.Error(err, "set options", "name", instance.Spec.Name)
 		}
 	}
@@ -73,6 +78,17 @@ func New(instance *helmv1alpha1.Release, scheme *runtime.Scheme, settings *cli.E
 	}
 
 	helmRelease.ValuesTemplate.Values = specValues
+	indexMap, err := helmRelease.getChartIndexConfigMap(instance.Spec.Chart)
+
+	if err != nil {
+		return helmRelease, err
+	}
+
+	index, err := helmRelease.getChartIndex(indexMap)
+
+	if err != nil {
+		return helmRelease, err
+	}
 
 	options := &action.ChartPathOptions{
 		Version:               instance.Spec.Version,
@@ -80,7 +96,15 @@ func New(instance *helmv1alpha1.Release, scheme *runtime.Scheme, settings *cli.E
 		Verify:                false,
 	}
 
-	if err = helmRelease.setChart(instance.Spec.Chart, options, specValues); err != nil {
+	chart, err := helmRelease.getChart(instance.Spec.Chart, index, options, specValues)
+
+	if err != nil {
+		return helmRelease, err
+	}
+
+	helmRelease.Chart = chart
+
+	if err := helmRelease.validateChartSpecs(); err != nil {
 		return helmRelease, err
 	}
 
@@ -165,9 +189,7 @@ func (hc *Release) upgrade(helmChart *helmchart.Chart, vals chartutil.Values) er
 		return err
 	}
 
-	h := action.NewHistory(hc.Config)
-	r, _ := h.Run(rel.Name)
-	hc.Revision = len(r) + 1
+	hc.Revision = rel.Version
 
 	hc.logger.Info("successfully upgraded.", "name", rel.Name, "chart", hc.Chart.Name(), "repo", hc.Repo)
 	return nil

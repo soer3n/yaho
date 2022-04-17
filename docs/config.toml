@@ -1,0 +1,24 @@
+baseURL = "https://soer3n.github.io/yaho"
+languageCode = "en-us"
+title = "yaho"
+theme = "hugo-theme-learn"
+RelativeURLs=true
+CanonifyURLs=true
+
+[params]
+  pygmentsCodeFences = true
+  pygmentsStyle="monokai"
+    editURL = ""
+  author = "soer3n"
+  description = "Documentation for yaho"
+  showVisitedLinks = false
+  disableSearch = false
+  disableAssetsBusting = false
+  disableInlineCopyToClipBoard = false
+  disableShortcutsTitle = false
+  disableLanguageSwitchingButton = false
+  disableLandingPageButton = false
+  disableBreadcrumb = true
+  disableNextPrev = false
+  ordersectionsby = "weight"
+  themeVariant = "blue"

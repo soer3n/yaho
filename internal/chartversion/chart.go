@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (chartVersion *ChartVersion) setChart(chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) error {
+func (chartVersion *ChartVersion) getChart(chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*chart.Chart, error) {
 
 	helmChart := &chart.Chart{}
 	chartObj := &helmv1alpha1.Chart{}
@@ -23,15 +23,14 @@ func (chartVersion *ChartVersion) setChart(chartPathOptions *action.ChartPathOpt
 		Namespace: chartVersion.owner.ObjectMeta.Namespace,
 		Name:      chartVersion.owner.Spec.Name,
 	}, chartObj); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := chartVersion.loadChartByResources(helmChart, chartObj, chartPathOptions, vals); err != nil {
-		return err
+		return nil, err
 	}
 
-	chartVersion.Obj = helmChart
-	return nil
+	return helmChart, nil
 }
 
 func (chartVersion *ChartVersion) loadChartByURL(releaseClient *action.Install) error {

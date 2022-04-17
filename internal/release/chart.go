@@ -14,55 +14,59 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (hc *Release) setChart(chartName string, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) error {
+func (hc *Release) getChart(chartName string, index repo.ChartVersions, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*helmchart.Chart, error) {
 
-	hc.Chart = &helmchart.Chart{}
 	chartObj := &helmv1alpha1.Chart{}
-	indexMap := &v1.ConfigMap{}
-	var index repo.ChartVersions
 
 	if err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
 		Namespace: hc.Namespace.Name,
 		Name:      chartName,
 	}, chartObj); err != nil {
-		return err
-	}
-
-	if err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
-		Namespace: hc.Namespace.Name,
-		Name:      "helm-" + hc.Repo + "-" + chartName + "-index",
-	}, indexMap); err != nil {
-		return err
-	}
-
-	rawData := indexMap.BinaryData["versions"]
-
-	if err := json.Unmarshal(rawData, &index); err != nil {
-		hc.logger.Error(err, "error on marshaling chart index")
-		return err
+		return nil, err
 	}
 
 	c, err := chartversion.New(hc.Version, chartObj, vals, index, hc.scheme, hc.logger, hc.K8sClient, hc.getter)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if c.Obj == nil {
-		return errors.NewBadRequest("could not load chart")
+		return nil, errors.NewBadRequest("could not load chart")
 	}
 
 	if len(c.Obj.Files) < 1 {
-		return errors.NewBadRequest("no files detected in chart struct")
+		return nil, errors.NewBadRequest("no files detected in chart struct")
 	}
 
-	hc.Chart = c.Obj
+	return c.Obj, nil
+}
 
-	if err := hc.validateChartSpecs(); err != nil {
-		return err
+func (hc *Release) getChartIndexConfigMap(chartName string) (*v1.ConfigMap, error) {
+	indexMap := &v1.ConfigMap{}
+
+	if err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
+		Namespace: hc.Namespace.Name,
+		Name:      "helm-" + hc.Repo + "-" + chartName + "-index",
+	}, indexMap); err != nil {
+		return indexMap, err
 	}
 
-	return nil
+	return indexMap, nil
+}
+
+func (hc *Release) getChartIndex(indexMap *v1.ConfigMap) (repo.ChartVersions, error) {
+
+	var index repo.ChartVersions
+
+	rawData := indexMap.BinaryData["versions"]
+
+	if err := json.Unmarshal(rawData, &index); err != nil {
+		hc.logger.Error(err, "error on marshaling chart index")
+		return index, err
+	}
+
+	return index, nil
 }
 
 func (hc *Release) validateChartSpecs() error {

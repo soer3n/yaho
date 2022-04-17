@@ -114,12 +114,19 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if requeue, err = r.handleFinalizer(helmRelease, instance); err != nil {
+	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
+
+	if requeue, err = r.handleFinalizer(helmRelease, instance, isRepoMarkedToBeDeleted); err != nil {
 		reqLogger.Error(err, "Handle finalizer for release %v failed.", helmRelease.Name)
 		return ctrl.Result{}, err
 	}
 
 	if requeue {
+		if isRepoMarkedToBeDeleted {
+			if err := helmRelease.RemoveRelease(); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
 		reqLogger.Info("Update resource after modifying finalizer.")
 		if err := r.Update(context.TODO(), instance); err != nil {
 			reqLogger.Error(err, "error in reconciling")
@@ -145,13 +152,9 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return r.syncStatus(ctx, instance, metav1.ConditionTrue, "success", "all up to date")
 }
 
-func (r *ReleaseReconciler) handleFinalizer(helmRelease *release.Release, instance *helmv1alpha1.Release) (bool, error) {
-	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
-	if isRepoMarkedToBeDeleted {
-		if err := helmRelease.RemoveRelease(); err != nil {
-			return true, err
-		}
+func (r *ReleaseReconciler) handleFinalizer(helmRelease *release.Release, instance *helmv1alpha1.Release, isRepoMarkedToBeDeleted bool) (bool, error) {
 
+	if isRepoMarkedToBeDeleted {
 		controllerutil.RemoveFinalizer(instance, "finalizer.releases.helm.soer3n.info")
 		return true, nil
 	}
