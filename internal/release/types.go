@@ -36,6 +36,7 @@ type Release struct {
 	mu               sync.Mutex
 }
 
+/*
 type spec struct {
 	Name             string
 	Repo             string
@@ -54,6 +55,7 @@ type kubernetes struct {
 	client client.Client
 	logger logr.Logger
 }
+*/
 
 // Namespace represents struct with release namespace name and if it should be installed
 type Namespace struct {

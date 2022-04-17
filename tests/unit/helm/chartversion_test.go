@@ -22,7 +22,7 @@ func TestChartVersion(t *testing.T) {
 
 	assert := assert.New(t)
 
-	helmv1alpha1.AddToScheme(scheme.Scheme)
+	_ = helmv1alpha1.AddToScheme(scheme.Scheme)
 
 	for _, v := range cases {
 		ver := v.Input.(*helmv1alpha1.Chart)

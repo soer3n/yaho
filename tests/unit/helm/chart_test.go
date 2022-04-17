@@ -19,8 +19,9 @@ func TestChartSubCharts(t *testing.T) {
 	settings := cli.New()
 	cases := testcases.GetTestHelmChartMaps()
 	clientMock, httpMock := helmmocks.GetChartMock()
-	helmv1alpha1.AddToScheme(scheme.Scheme)
 	var err error
+
+	_ = helmv1alpha1.AddToScheme(scheme.Scheme)
 
 	assert := assert.New(t)
 

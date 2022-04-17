@@ -21,7 +21,7 @@ func TestReleaseUpdate(t *testing.T) {
 	apiObjList := testcases.GetTestReleaseSpecs()
 	assert := assert.New(t)
 
-	helmv1alpha1.AddToScheme(scheme.Scheme)
+	_ = helmv1alpha1.AddToScheme(scheme.Scheme)
 
 	for _, apiObj := range apiObjList {
 
