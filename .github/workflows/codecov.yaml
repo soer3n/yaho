@@ -11,9 +11,9 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: set up Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: 1.17
     - name: create k8s Kind cluster
@@ -26,7 +26,7 @@ jobs:
     - name: run coverage
       run: go test -covermode=atomic -race -coverprofile ./coverage.txt -coverpkg ${{ env.COVERPKG }} ./tests/...
     - name: report coverage
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v3
       with:
         file: ./coverage.txt
         fail_ci_if_error: true
