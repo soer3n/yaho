@@ -194,6 +194,9 @@ func (chartVersion *ChartVersion) setValues(helmChart *chart.Chart, apiObj *helm
 	}
 
 	obj := &chart.Chart{}
+	obj.Metadata = &chart.Metadata{
+		Name: apiObj.Spec.Name,
+	}
 	defaultValues := chartVersion.getDefaultValuesFromConfigMap(apiObj.Spec.Name, chartPathOptions.Version)
 	obj.Values = defaultValues
 	cv := values.MergeValues(vals, obj)
@@ -212,9 +215,9 @@ func (chartVersion *ChartVersion) setVersion(helmChart *chart.Chart, apiObj *hel
 		helmChart.Metadata = &chart.Metadata{}
 	}
 
+	helmChart.Metadata.Name = apiObj.Spec.Name
 	helmChart.Metadata = chartVersion.Version.Metadata
 	helmChart.Metadata.Version = chartPathOptions.Version
-	helmChart.Metadata.Name = apiObj.Spec.Name
 	helmChart.Metadata.APIVersion = chartVersion.Version.Metadata.APIVersion
 }
 

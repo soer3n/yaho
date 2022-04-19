@@ -52,7 +52,7 @@ func GetTestMainEnvMaps() []inttypes.TestCase {
 				KubeAsGroups:     nil,
 				KubeAPIServer:    "",
 				Debug:            false,
-				RegistryConfig:   homeDir + "/.config/helm/registry.json",
+				RegistryConfig:   homeDir + "/.config/helm/registry/config.json",
 				RepositoryConfig: homeDir + "/.config/helm/repositories.yaml",
 				RepositoryCache:  homeDir + "/.cache/helm/repository",
 				PluginsDirectory: homeDir + "/.local/share/helm/plugins",
