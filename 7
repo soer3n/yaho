@@ -1,0 +1,31 @@
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Release
+metadata:
+  creationTimestamp: "2022-04-22T06:50:36Z"
+  deletionGracePeriodSeconds: 0
+  deletionTimestamp: "2022-04-22T06:50:36Z"
+  finalizers:
+  generation: 2
+  labels:
+    release: testresource
+    releaseGroup: ""
+  name: testresource
+  namespace: test-dylfxzu
+  ownerReferences:
+  - apiVersion: helm.soer3n.info/v1alpha1
+    blockOwnerDeletion: true
+    controller: true
+    kind: ReleaseGroup
+    name: testresource
+    uid: b956e9b8-a002-4ab9-a3f8-735a6ca572a0
+  resourceVersion: "10482"
+  uid: 50f27558-5195-4afc-983d-49f20863e216
+spec:
+  chart: testing
+  name: testresource
+  repo: testresource
+  version: 0.1.0

@@ -14,7 +14,7 @@ spec:
     listKind: ChartList
     plural: charts
     singular: chart
-  scope: Namespaced
+  scope: Cluster
   versions:
   - additionalPrinterColumns:
     - jsonPath: .metadata.labels['repoGroup']

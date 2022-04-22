@@ -43,9 +43,10 @@ import (
 // ReleaseReconciler reconciles a Release object
 type ReleaseReconciler struct {
 	client.Client
-	Log      logr.Logger
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	WatchNamespace string
+	Log            logr.Logger
+	Scheme         *runtime.Scheme
+	Recorder       record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=releases,verbs=get;list;watch;create;update;patch;delete
@@ -108,7 +109,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	instance.Status.Synced = false
 
-	helmRelease, err := release.New(instance, r.Scheme, settings, reqLogger, r.Client, &g, c)
+	helmRelease, err := release.New(instance, r.WatchNamespace, r.Scheme, settings, reqLogger, r.Client, &g, c)
 
 	if err != nil {
 		return ctrl.Result{}, err

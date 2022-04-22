@@ -25,7 +25,7 @@ import (
 // const configMapLabelSubName = "helm.soer3n.info/subname"
 
 // New represents initialization of internal release struct
-func New(instance *helmv1alpha1.Release, scheme *runtime.Scheme, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) (*Release, error) {
+func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.Scheme, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) (*Release, error) {
 	var helmRelease *Release
 	var specValues map[string]interface{}
 	var err error
@@ -96,7 +96,7 @@ func New(instance *helmv1alpha1.Release, scheme *runtime.Scheme, settings *cli.E
 		Verify:                false,
 	}
 
-	chart, err := helmRelease.getChart(instance.Spec.Chart, index, options, specValues)
+	chart, err := helmRelease.getChart(instance.Spec.Chart, watchNamespace, index, options, specValues)
 
 	if err != nil {
 		return helmRelease, err

@@ -16,6 +16,7 @@ import (
 type ChartVersion struct {
 	Version       *repo.ChartVersion
 	Obj           *chart.Chart
+	namespace     string
 	deps          []*helmv1alpha1.ChartDep
 	repo          *helmv1alpha1.Repository
 	owner         *helmv1alpha1.Chart

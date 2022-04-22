@@ -30,12 +30,13 @@ const configMapRepoLabelKey = "helm.soer3n.info/repo"
 const configMapLabelType = "helm.soer3n.info/type"
 const configMapLabelSubName = "helm.soer3n.info/subname"
 
-func New(version string, chartObj *helmv1alpha1.Chart, vals chartutil.Values, index repo.ChartVersions, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface) (*ChartVersion, error) {
+func New(version, namespace string, chartObj *helmv1alpha1.Chart, vals chartutil.Values, index repo.ChartVersions, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface) (*ChartVersion, error) {
 
 	obj := &ChartVersion{
 		mu:        sync.Mutex{},
 		wg:        sync.WaitGroup{},
 		owner:     chartObj,
+		namespace: namespace,
 		scheme:    scheme,
 		k8sClient: k8sclient,
 		logger:    logger,
@@ -168,8 +169,8 @@ func (chartVersion *ChartVersion) getControllerRepo() (*helmv1alpha1.Repository,
 	}
 
 	err := chartVersion.k8sClient.Get(context.Background(), types.NamespacedName{
-		Name:      chartVersion.owner.Spec.Repository,
-		Namespace: chartVersion.owner.ObjectMeta.Namespace,
+		Name: chartVersion.owner.Spec.Repository,
+		// Namespace: chartVersion.owner.ObjectMeta.Namespace,
 	}, instance)
 
 	if err != nil {
@@ -223,7 +224,7 @@ func (chartVersion *ChartVersion) setVersion(helmChart *chart.Chart, apiObj *hel
 
 func (chartVersion *ChartVersion) getCredentials() *Auth {
 	secret := chartVersion.repo.Spec.AuthSecret
-	namespace := chartVersion.owner.ObjectMeta.Namespace
+	namespace := chartVersion.namespace
 	secretObj := &v1.Secret{}
 	creds := &Auth{}
 
@@ -250,8 +251,8 @@ func (chartVersion *ChartVersion) getCredentials() *Auth {
 func (chartVersion *ChartVersion) createOrUpdateSubChart(dep *helmv1alpha1.ChartDep) error {
 	current := &helmv1alpha1.Chart{}
 	err := chartVersion.k8sClient.Get(context.Background(), client.ObjectKey{
-		Namespace: chartVersion.owner.ObjectMeta.Namespace,
-		Name:      dep.Name,
+		// Namespace: chartVersion.owner.ObjectMeta.Namespace,
+		Name: dep.Name,
 	}, current)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -263,8 +264,8 @@ func (chartVersion *ChartVersion) createOrUpdateSubChart(dep *helmv1alpha1.Chart
 
 			obj := &helmv1alpha1.Chart{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      dep.Name,
-					Namespace: chartVersion.owner.ObjectMeta.Namespace,
+					Name: dep.Name,
+					// Namespace: chartVersion.owner.ObjectMeta.Namespace,
 				},
 				Spec: helmv1alpha1.ChartSpec{
 					Name:       dep.Name,

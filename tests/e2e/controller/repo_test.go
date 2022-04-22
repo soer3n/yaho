@@ -22,9 +22,14 @@ var (
 
 var _ = Context("Install a repository", func() {
 	Describe("when no existing resource exist", func() {
+
+		obj := setupNamespace()
+		namespace := obj.ObjectMeta.Name
+
 		It("should start with creating dependencies", func() {
 			ctx := context.Background()
-			namespace := "test-" + randStringRunes(7)
+
+			// namespace = "test-" + randStringRunes(7)
 
 			By("install a new namespace")
 			repoNamespace := &v1.Namespace{
@@ -38,8 +43,7 @@ var _ = Context("Install a repository", func() {
 			By("creating a new repository resource with the specified name and specified url")
 			repoKind = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      testRepoName,
-					Namespace: namespace,
+					Name: testRepoName,
 				},
 				Spec: helmv1alpha1.RepositorySpec{
 					Name: "deployment-name",
@@ -64,11 +68,11 @@ var _ = Context("Install a repository", func() {
 			repoChart = &helmv1alpha1.Chart{}
 
 			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: repoKind.Namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert, Namespace: repoKind.Namespace}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert}, repoChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			By("should remove this repository resource with the specified name and specified url")
@@ -77,11 +81,11 @@ var _ = Context("Install a repository", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
 
 			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: repoKind.Namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName}, deployment),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert, Namespace: repoKind.Namespace}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert}, repoChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			By("by deletion of namespace test should finish successfully")

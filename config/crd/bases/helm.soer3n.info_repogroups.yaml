@@ -14,7 +14,7 @@ spec:
     listKind: RepoGroupList
     plural: repogroups
     singular: repogroup
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1alpha1
     schema:

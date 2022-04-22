@@ -13,16 +13,20 @@ import (
 )
 
 var (
-	releaseGroupChart *helmv1alpha1.Chart
-	releaseGroup      *helmv1alpha1.ReleaseGroup
-	releaseGroupRepo  *helmv1alpha1.Repository
+	releaseGroupChart                        *helmv1alpha1.Chart
+	releaseGroup                             *helmv1alpha1.ReleaseGroup
+	releaseGroupRepo, releaseGroupRepoSecond *helmv1alpha1.Repository
 )
 
 var _ = Context("Install a releasegroup", func() {
 	Describe("when no existing resources exist", func() {
+
+		obj := setupNamespace()
+		namespace := obj.ObjectMeta.Name
+
 		It("should create a new Repository resource with the specified name and specified url", func() {
 			ctx := context.Background()
-			namespace := "test-" + randStringRunes(7)
+			// namespace = "test-" + randStringRunes(7)
 
 			By("should create a new namespace")
 			releaseNamespace := &v1.Namespace{
@@ -36,9 +40,9 @@ var _ = Context("Install a releasegroup", func() {
 			By("should create a new Repository resource with the specified name and specified url")
 			releaseGroupRepo = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      testRepoName,
-					Namespace: namespace,
-					Labels:    map[string]string{"repoGroup": "foo"},
+					Name: testRepoName,
+					// Namespace: namespace,
+					Labels: map[string]string{"repoGroup": "foo"},
 				},
 				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoName,
@@ -60,11 +64,11 @@ var _ = Context("Install a releasegroup", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			By("should create a new Repository resource with the specified name and specified url")
-			releaseGroupRepo = &helmv1alpha1.Repository{
+			releaseGroupRepoSecond = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      testRepoNameSecond,
-					Namespace: namespace,
-					Labels:    map[string]string{"repoGroup": "foo"},
+					Name: testRepoNameSecond,
+					// Namespace: namespace,
+					Labels: map[string]string{"repoGroup": "foo"},
 				},
 				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoNameSecond,
@@ -78,7 +82,7 @@ var _ = Context("Install a releasegroup", func() {
 				},
 			}
 
-			err = testClient.Create(context.Background(), releaseGroupRepo)
+			err = testClient.Create(context.Background(), releaseGroupRepoSecond)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			deployment = &helmv1alpha1.Repository{}
@@ -136,7 +140,7 @@ var _ = Context("Install a releasegroup", func() {
 			Expect(releaseGroup.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartNameSecond, Namespace: releaseGroupKind.Namespace}, releaseGroupChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartNameSecond}, releaseGroupChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
@@ -180,6 +184,15 @@ var _ = Context("Install a releasegroup", func() {
 				GetReleaseGroupFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: releaseGroupKind.Namespace}, releaseGroup),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
+			rel := &helmv1alpha1.Release{}
+			Eventually(
+				GetReleaseFunc(context.Background(), client.ObjectKey{Name: "testresource", Namespace: releaseGroupKind.Namespace}, rel),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			Eventually(
+				GetReleaseFunc(context.Background(), client.ObjectKey{Name: "testresource-2", Namespace: releaseGroupKind.Namespace}, rel),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
 			By("should remove this Repository resource with the specified name and specified url")
 
 			err = testClient.Delete(context.Background(), releaseGroupRepo)
@@ -187,27 +200,15 @@ var _ = Context("Install a releasegroup", func() {
 
 			By("should remove this Repository resource with the specified name and specified url")
 
-			releaseGroupRepo = &helmv1alpha1.Repository{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      testRepoName,
-					Namespace: namespace,
-					Labels:    map[string]string{"repoGroup": "foo"},
-				},
-				Spec: helmv1alpha1.RepositorySpec{
-					Name: testRepoName,
-					URL:  testRepoURL,
-				},
-			}
-
-			err = testClient.Delete(context.Background(), releaseGroupRepo)
+			err = testClient.Delete(context.Background(), releaseGroupRepoSecond)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: releaseGroupRepo.Namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoNameSecond}, deployment),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: releaseGroupRepo.Namespace}, releaseGroupChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, releaseGroupChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(

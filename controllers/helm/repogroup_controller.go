@@ -110,8 +110,8 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		for _, repository := range spec {
 			create <- helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      repository.Name,
-					Namespace: instance.ObjectMeta.Namespace,
+					Name: repository.Name,
+					// Namespace: instance.ObjectMeta.Namespace,
 					Labels: map[string]string{
 						"repo":      repository.Name,
 						"repoGroup": instance.Spec.LabelSelector,
@@ -156,8 +156,8 @@ func (r *RepoGroupReconciler) deployRepo(g helmv1alpha1.Repository, instance *he
 
 	installedRepo := &helmv1alpha1.Repository{}
 	err := r.Client.Get(ctx, client.ObjectKey{
-		Namespace: repo.ObjectMeta.Namespace,
-		Name:      repo.Spec.Name,
+		// Namespace: repo.ObjectMeta.Namespace,
+		Name: repo.Spec.Name,
 	}, installedRepo)
 	if err != nil {
 		if errors.IsNotFound(err) {

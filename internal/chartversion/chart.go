@@ -20,8 +20,8 @@ func (chartVersion *ChartVersion) getChart(chartPathOptions *action.ChartPathOpt
 	chartObj := &helmv1alpha1.Chart{}
 
 	if err := chartVersion.k8sClient.Get(context.Background(), types.NamespacedName{
-		Namespace: chartVersion.owner.ObjectMeta.Namespace,
-		Name:      chartVersion.owner.Spec.Name,
+		// Namespace: chartVersion.owner.ObjectMeta.Namespace,
+		Name: chartVersion.owner.Spec.Name,
 	}, chartObj); err != nil {
 		return nil, err
 	}

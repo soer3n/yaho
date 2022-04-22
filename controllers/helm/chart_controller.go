@@ -40,9 +40,10 @@ import (
 // ChartReconciler reconciles a Chart object
 type ChartReconciler struct {
 	client.Client
-	Log      logr.Logger
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	WatchNamespace string
+	Log            logr.Logger
+	Scheme         *runtime.Scheme
+	Recorder       record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=charts,verbs=get;list;watch;create;update;patch;delete
@@ -96,7 +97,7 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		Log:     nopLogger,
 	}
 
-	hc := chart.New(instance, settings, r.Scheme, reqLogger, r.Client, &g, c)
+	hc := chart.New(instance, r.WatchNamespace, settings, r.Scheme, reqLogger, r.Client, &g, c)
 
 	if err := hc.Update(instance); err != nil {
 		reqLogger.Info("failed to updatechart resource", "name", instance.ObjectMeta.Name)

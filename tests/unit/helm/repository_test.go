@@ -29,7 +29,7 @@ func TestRepoUpdate(t *testing.T) {
 
 		val := apiObj.Input.(helmv1alpha1.Repository)
 		r := &val
-		testObj := repository.New(r, context.TODO(), settings, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj := repository.New(r, val.Namespace, context.TODO(), settings, logf.Log, clientMock, httpMock, kube.Client{})
 		// assert.Equal(err, apiObj.ReturnError["init"])
 		selectors := make(map[string]string)
 

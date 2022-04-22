@@ -25,9 +25,13 @@ var (
 
 var _ = Context("Install a release with values", func() {
 	Describe("when no existing resources exist", func() {
+
+		obj := setupNamespace()
+		namespace := obj.ObjectMeta.Name
+
 		It("should create a new Repository resource with the specified name and specified url", func() {
 			ctx := context.Background()
-			namespace := "test-" + randStringRunes(7)
+			// namespace = "test-" + randStringRunes(7)
 
 			By("should create a new namespace")
 			releaseNamespace := &v1.Namespace{
@@ -41,8 +45,7 @@ var _ = Context("Install a release with values", func() {
 			By("should create a new Repository resources with the specified name and specified url")
 			valuesReleaseRepo = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      testRepoName,
-					Namespace: namespace,
+					Name: testRepoName,
 				},
 				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoName,
@@ -65,8 +68,7 @@ var _ = Context("Install a release with values", func() {
 
 			valuesReleaseRepoSecond = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      testRepoNameSecond,
-					Namespace: namespace,
+					Name: testRepoNameSecond,
 				},
 				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoNameSecond,
@@ -175,11 +177,11 @@ var _ = Context("Install a release with values", func() {
 			configmap := &v1.ConfigMap{}
 
 			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: namespace}, valuesReleaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, valuesReleaseChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			valuesReleaseKind = &helmv1alpha1.Release{
@@ -209,7 +211,7 @@ var _ = Context("Install a release with values", func() {
 			Expect(valuesRelease.ObjectMeta.Name).To(Equal(testReleaseName))
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: valuesReleaseKind.Namespace}, valuesReleaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, valuesReleaseChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
@@ -294,11 +296,11 @@ var _ = Context("Install a release with values", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
 
 			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: valuesReleaseRepo.Namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName}, deployment),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: valuesReleaseRepo.Namespace}, valuesReleaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, valuesReleaseChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(

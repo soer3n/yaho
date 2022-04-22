@@ -27,7 +27,7 @@ func TestChartVersion(t *testing.T) {
 	for _, v := range cases {
 		ver := v.Input.(*helmv1alpha1.Chart)
 		cv := testcases.GetChartVersions(ver.Spec.Name)
-		testObj, err := chartversion.New(v.ChartVersion, ver, map[string]interface{}{}, cv, scheme.Scheme, logf.Log, clientMock, httpMock)
+		testObj, err := chartversion.New(v.ChartVersion, ver.Namespace, ver, map[string]interface{}{}, cv, scheme.Scheme, logf.Log, clientMock, httpMock)
 		assert.Equal(v.ReturnError["init"], err)
 		config, _ := utils.InitActionConfig(settings, kube.Client{})
 		err = testObj.Prepare(config)

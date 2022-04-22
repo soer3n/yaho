@@ -48,7 +48,7 @@ func (chartVersion *ChartVersion) getDefaultValuesFromConfigMap(name, version st
 
 	configMapName := "helm-default-" + name + "-" + version
 
-	if err = chartVersion.k8sClient.Get(context.Background(), types.NamespacedName{Namespace: chartVersion.owner.Namespace, Name: configMapName}, configmap); err != nil {
+	if err = chartVersion.k8sClient.Get(context.Background(), types.NamespacedName{Namespace: chartVersion.namespace, Name: configMapName}, configmap); err != nil {
 		return values
 	}
 
@@ -126,7 +126,7 @@ func (chartVersion *ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, 
 
 	objectMeta := metav1.ObjectMeta{
 		Name:      "helm-" + name + "-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
-		Namespace: chartVersion.owner.Namespace,
+		Namespace: chartVersion.namespace,
 		Labels: map[string]string{
 			configMapLabelKey:     chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 			configMapRepoLabelKey: chartVersion.owner.Spec.Repository,
@@ -165,7 +165,7 @@ func (chartVersion *ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, 
 				Immutable: immutable,
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "helm-" + name + "-" + chartVersion.Version.Metadata.Name + "-" + key + "-" + chartVersion.Version.Metadata.Version,
-					Namespace: chartVersion.owner.Namespace,
+					Namespace: chartVersion.namespace,
 					Labels: map[string]string{
 						configMapLabelKey:     chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 						configMapRepoLabelKey: chartVersion.owner.Spec.Repository,
@@ -182,10 +182,8 @@ func (chartVersion *ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, 
 		configMapMap[key].BinaryData[fileName] = entry.Data
 	}
 
-	//if len(binaryData) > 0 {
 	baseConfigmap.BinaryData = binaryData
 	cm <- baseConfigmap
-	//}
 
 	for _, configmap := range configMapMap {
 		cm <- configmap
@@ -198,7 +196,7 @@ func (chartVersion *ChartVersion) createDefaultValueConfigMap(cm chan v1.ConfigM
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
 		Name:      "helm-default-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
-		Namespace: chartVersion.owner.Namespace,
+		Namespace: chartVersion.namespace,
 		Labels: map[string]string{
 			configMapLabelKey:     chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 			configMapRepoLabelKey: chartVersion.owner.Spec.Repository,

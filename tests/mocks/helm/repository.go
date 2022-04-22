@@ -40,11 +40,10 @@ func setRepository(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.
 		}, "notfound")
 	}
 
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: repositoryMock.Name, Namespace: repositoryMock.Namespace}, &helmv1alpha1.Repository{}).Return(err).Run(func(args mock.Arguments) {
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: repositoryMock.Name}, &helmv1alpha1.Repository{}).Return(err).Run(func(args mock.Arguments) {
 		c := args.Get(2).(*helmv1alpha1.Repository)
 		c.ObjectMeta = metav1.ObjectMeta{
-			Name:      repositoryMock.Name,
-			Namespace: repositoryMock.Namespace,
+			Name: repositoryMock.Name,
 		}
 
 		if len(repositoryMock.Labels) > 0 {

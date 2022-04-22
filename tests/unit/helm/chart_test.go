@@ -27,7 +27,7 @@ func TestChartSubCharts(t *testing.T) {
 
 	for _, v := range cases {
 		ver := v.Input.(*helmv1alpha1.Chart)
-		testObj := chart.New(ver, settings, scheme.Scheme, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj := chart.New(ver, ver.Namespace, settings, scheme.Scheme, logf.Log, clientMock, httpMock, kube.Client{})
 		err = testObj.CreateOrUpdateSubCharts()
 		assert.Equal(v.ReturnError["subCharts"], err)
 
@@ -44,7 +44,7 @@ func TestChartUpdate(t *testing.T) {
 
 	for _, v := range cases {
 		ver := v.Input.(*helmv1alpha1.Chart)
-		testObj := chart.New(ver, settings, &runtime.Scheme{}, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj := chart.New(ver, ver.Namespace, settings, &runtime.Scheme{}, logf.Log, clientMock, httpMock, kube.Client{})
 		err = testObj.Update(ver)
 		assert.Equal(v.ReturnError["update"], err)
 

@@ -14,9 +14,9 @@ func (hr *Repo) deployChart(instance *helmv1alpha1.Repository, chart helmv1alpha
 
 	c := &helmv1alpha1.Chart{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      chart.Name,
-			Namespace: hr.Namespace.Name,
-			Labels:    selectors,
+			Name: chart.Name,
+			// Namespace: hr.Namespace.Name,
+			Labels: selectors,
 		},
 		Spec: helmv1alpha1.ChartSpec{
 			Name:       chart.Name,

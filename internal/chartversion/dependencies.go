@@ -33,10 +33,10 @@ func (chartVersion *ChartVersion) addDependencies() error {
 			repoSelector["repoGroup"] = chartVersion.owner.ObjectMeta.Labels["repoGroup"]
 			v := chartVersion.owner.ObjectMeta.Labels["repoGroup"]
 			group = &v
-		} else {
-			repoSelector["repo"] = chartVersion.repo.Name
 		}
 	}
+
+	repoSelector["repo"] = chartVersion.repo.Name
 
 	chartVersion.logger.Info("create dependencies")
 	chartVersion.deps = chartVersion.createDependenciesList(group)
@@ -83,7 +83,7 @@ func (chartVersion *ChartVersion) createDependenciesList(group *string) []*helmv
 func (chartVersion *ChartVersion) updateIndexIfNeeded(d *chart.Chart, dep *chart.Dependency) error {
 
 	if d.Metadata.Name == dep.Name {
-		ix, err := utils.LoadChartIndex(chartVersion.Version.Name, chartVersion.owner.Spec.Repository, chartVersion.owner.Namespace, chartVersion.k8sClient)
+		ix, err := utils.LoadChartIndex(chartVersion.Version.Name, chartVersion.owner.Spec.Repository, chartVersion.namespace, chartVersion.k8sClient)
 
 		if err != nil {
 			return err
@@ -120,7 +120,7 @@ func (chartVersion *ChartVersion) updateIndexVersion(d *chart.Chart, dep *chart.
 
 			m := &v1.ConfigMap{}
 			if err := chartVersion.k8sClient.Get(context.Background(), types.NamespacedName{
-				Namespace: chartVersion.owner.Namespace,
+				Namespace: chartVersion.namespace,
 				Name:      "helm-" + chartVersion.owner.Spec.Repository + "-" + chartVersion.owner.Spec.Name + "-index",
 			}, m); err != nil {
 				return err
@@ -151,7 +151,7 @@ func (chartVersion *ChartVersion) getRepoName(dep *chart.Dependency, group *stri
 
 			if err := chartVersion.k8sClient.List(context.Background(), repoList, &client.ListOptions{
 				LabelSelector: labels.SelectorFromSet(labels.Set{"repoGroup": *group}),
-				Namespace:     chartVersion.owner.Namespace,
+				// Namespace:     chartVersion.owner.Namespace,
 			}); err != nil {
 				return repository, err
 			}
@@ -178,12 +178,12 @@ func (chartVersion *ChartVersion) loadDependencies(selectors map[string]string) 
 
 	opts := &client.ListOptions{
 		LabelSelector: labels.NewSelector(),
-		Namespace:     chartVersion.owner.Namespace,
+		// Namespace:     chartVersion.owner.Namespace,
 	}
 
 	for k, selector := range selectors {
 		r, _ := labels.NewRequirement(k, selection.Equals, []string{selector})
-		opts.LabelSelector.Add(*r)
+		opts.LabelSelector = opts.LabelSelector.Add(*r)
 	}
 
 	if err = chartVersion.k8sClient.List(context.Background(), &chartList, opts); err != nil {
@@ -222,14 +222,14 @@ func (chartVersion *ChartVersion) loadDependencies(selectors map[string]string) 
 				// check conditional
 				if depCondition {
 
-					ix, err := utils.LoadChartIndex(dep.Name, dep.Repo, chartVersion.owner.Namespace, chartVersion.k8sClient)
+					ix, err := utils.LoadChartIndex(dep.Name, dep.Repo, chartVersion.namespace, chartVersion.k8sClient)
 
 					if err != nil {
 						return err
 					}
 
 					obj := item.DeepCopy()
-					subChart, err := New(dep.Version, obj, subVals, *ix, chartVersion.scheme, chartVersion.logger, chartVersion.k8sClient, chartVersion.getter)
+					subChart, err := New(dep.Version, chartVersion.namespace, obj, subVals, *ix, chartVersion.scheme, chartVersion.logger, chartVersion.k8sClient, chartVersion.getter)
 
 					if err != nil {
 						chartVersion.logger.Info("could not load subchart", "child", item.Spec.Name)

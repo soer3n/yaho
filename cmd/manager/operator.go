@@ -19,7 +19,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
@@ -96,11 +95,7 @@ func run() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	_, err := getWatchNamespace()
-	if err != nil {
-		setupLog.Error(err, "unable to get WatchNamespace, "+
-			"the manager will watch and manage resources in all Namespaces")
-	}
+	ns := getWatchNamespace()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
@@ -117,9 +112,10 @@ func run() {
 	}
 
 	if err = (&helmcontrollers.RepoReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("helm").WithName("Repo"),
-		Scheme: mgr.GetScheme(),
+		Client:         mgr.GetClient(),
+		WatchNamespace: ns,
+		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("Repo"),
+		Scheme:         mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Repo")
 		os.Exit(1)
@@ -133,25 +129,28 @@ func run() {
 		os.Exit(1)
 	}
 	if err = (&helmcontrollers.ReleaseReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("helm").WithName("Release"),
-		Scheme: mgr.GetScheme(),
+		Client:         mgr.GetClient(),
+		WatchNamespace: ns,
+		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("Release"),
+		Scheme:         mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Release")
 		os.Exit(1)
 	}
 	if err = (&helmcontrollers.ReleaseGroupReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("helm").WithName("ReleaseGroup"),
-		Scheme: mgr.GetScheme(),
+		Client:         mgr.GetClient(),
+		WatchNamespace: ns,
+		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("ReleaseGroup"),
+		Scheme:         mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ReleaseGroup")
 		os.Exit(1)
 	}
 	if err = (&helmcontrollers.ChartReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("helm").WithName("Chart"),
-		Scheme: mgr.GetScheme(),
+		Client:         mgr.GetClient(),
+		WatchNamespace: ns,
+		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("Chart"),
+		Scheme:         mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Chart")
 		os.Exit(1)
@@ -183,7 +182,7 @@ func run() {
 	}
 }
 
-func getWatchNamespace() (string, error) {
+func getWatchNamespace() string {
 	// WatchNamespaceEnvVar is the constant for env variable WATCH_NAMESPACE
 	// which specifies the Namespace to watch.
 	// An empty value means the operator is running with cluster scope.
@@ -191,7 +190,9 @@ func getWatchNamespace() (string, error) {
 
 	ns, found := os.LookupEnv(watchNamespaceEnvVar)
 	if !found {
-		return "", fmt.Errorf("%s must be set", watchNamespaceEnvVar)
+		ctrl.Log.WithName("setup").Info("watched namespace not set, using default.", "namespace", ns)
+		return "default"
 	}
-	return ns, nil
+	ctrl.Log.WithName("setup").Info("watched namespace for configmaps.", "namespace", ns)
+	return ns
 }

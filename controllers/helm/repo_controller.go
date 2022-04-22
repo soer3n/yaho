@@ -44,9 +44,10 @@ var nopLogger = func(_ string, _ ...interface{}) {}
 // RepoReconciler reconciles a Repo object
 type RepoReconciler struct {
 	client.Client
-	Log      logr.Logger
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	WatchNamespace string
+	Log            logr.Logger
+	Scheme         *runtime.Scheme
+	Recorder       record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=repositories,verbs=get;list;watch;create;update;patch;delete
@@ -102,7 +103,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		Log:     nopLogger,
 	}
 
-	hc = repository.New(instance, ctx, settings, reqLogger, r.Client, &g, c)
+	hc = repository.New(instance, r.WatchNamespace, ctx, settings, reqLogger, r.Client, &g, c)
 
 	if requeue, err = r.handleFinalizer(hc, instance); err != nil {
 		reqLogger.Info("Failed on handling finalizer", "repo", instance.Spec.Name)

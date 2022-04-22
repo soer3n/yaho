@@ -34,7 +34,7 @@ const configMapRepoLabelKey = "helm.soer3n.info/repo"
 const configMapLabelType = "helm.soer3n.info/type"
 
 // New represents initialization of internal repo struct
-func New(instance *helmv1alpha1.Repository, ctx context.Context, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Repo {
+func New(instance *helmv1alpha1.Repository, namespace string, ctx context.Context, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Repo {
 	var helmRepo *Repo
 
 	reqLogger.Info("Trying HelmRepo", "repo", instance.Spec.Name)
@@ -43,7 +43,7 @@ func New(instance *helmv1alpha1.Repository, ctx context.Context, settings *cli.E
 		Name: instance.Spec.Name,
 		URL:  instance.Spec.URL,
 		Namespace: Namespace{
-			Name:    instance.ObjectMeta.Namespace,
+			Name:    namespace,
 			Install: false,
 		},
 		Settings:   settings,
@@ -60,7 +60,7 @@ func New(instance *helmv1alpha1.Repository, ctx context.Context, settings *cli.E
 		secretObj := &v1.Secret{}
 		creds := &Auth{}
 
-		if err := k8sclient.Get(ctx, types.NamespacedName{Namespace: instance.ObjectMeta.Namespace, Name: instance.Spec.AuthSecret}, secretObj); err != nil {
+		if err := k8sclient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: instance.Spec.AuthSecret}, secretObj); err != nil {
 			return nil
 		}
 

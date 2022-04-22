@@ -67,6 +67,7 @@ type ChartStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Group",type="string",JSONPath=`.metadata.labels['repoGroup']`
 // +kubebuilder:printcolumn:name="Repo",type="string",JSONPath=`.spec.repository`

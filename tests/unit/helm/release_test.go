@@ -26,7 +26,7 @@ func TestReleaseUpdate(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj.Input.(*helmv1alpha1.Release)
-		testObj, err := release.New(current, scheme.Scheme, settings, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj, err := release.New(current, current.Namespace, scheme.Scheme, settings, logf.Log, clientMock, httpMock, kube.Client{})
 		assert.Equal(apiObj.ReturnError["init"], err)
 
 		testObj.Config = testcases.GetTestReleaseFakeActionConfig(t)

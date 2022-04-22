@@ -14,18 +14,17 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (hc *Release) getChart(chartName string, index repo.ChartVersions, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*helmchart.Chart, error) {
+func (hc *Release) getChart(chartName, watchNamespace string, index repo.ChartVersions, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*helmchart.Chart, error) {
 
 	chartObj := &helmv1alpha1.Chart{}
 
 	if err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
-		Namespace: hc.Namespace.Name,
-		Name:      chartName,
+		Name: chartName,
 	}, chartObj); err != nil {
 		return nil, err
 	}
 
-	c, err := chartversion.New(hc.Version, chartObj, vals, index, hc.scheme, hc.logger, hc.K8sClient, hc.getter)
+	c, err := chartversion.New(hc.Version, watchNamespace, chartObj, vals, index, hc.scheme, hc.logger, hc.K8sClient, hc.getter)
 
 	if err != nil {
 		return nil, err

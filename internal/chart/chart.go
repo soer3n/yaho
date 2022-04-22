@@ -16,7 +16,7 @@ import (
 )
 
 // New represents initialization of internal chart struct
-func New(instance *helmv1alpha1.Chart, settings *cli.EnvSettings, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Chart {
+func New(instance *helmv1alpha1.Chart, namespace string, settings *cli.EnvSettings, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Chart {
 
 	var err error
 
@@ -31,10 +31,10 @@ func New(instance *helmv1alpha1.Chart, settings *cli.EnvSettings, scheme *runtim
 	}
 
 	logger.Info("init metadata")
-	chart.setMetadata(instance, config, settings, logger, k8sclient, g)
+	chart.setMetadata(instance, namespace, config, settings, logger, k8sclient, g)
 
 	chart.logger.Info("load chart struct")
-	ix, err := utils.LoadChartIndex(chart.Name, chart.Repo, instance.ObjectMeta.Namespace, k8sclient)
+	ix, err := utils.LoadChartIndex(chart.Name, chart.Repo, namespace, k8sclient)
 
 	if err != nil {
 		chart.logger.Info(err.Error())
@@ -44,7 +44,7 @@ func New(instance *helmv1alpha1.Chart, settings *cli.EnvSettings, scheme *runtim
 	chart.index = *ix
 
 	chart.logger.Info("set versions")
-	if err := chart.setVersions(instance, scheme); err != nil {
+	if err := chart.setVersions(instance, namespace, scheme); err != nil {
 		chart.logger.Info(err.Error())
 	}
 
@@ -74,13 +74,13 @@ func (c *Chart) CreateOrUpdateSubCharts() error {
 	return nil
 }
 
-func (c *Chart) setVersions(instance *helmv1alpha1.Chart, scheme *runtime.Scheme) error {
+func (c *Chart) setVersions(instance *helmv1alpha1.Chart, namespace string, scheme *runtime.Scheme) error {
 
 	var chartVersions ChartVersions
 
 	for _, version := range instance.Spec.Versions {
 		c.logger.Info("init version struct", "version", version)
-		obj, err := chartversion.New(version, instance, nil, c.index, scheme, c.logger, c.K8sClient, c.getter)
+		obj, err := chartversion.New(version, namespace, instance, nil, c.index, scheme, c.logger, c.K8sClient, c.getter)
 
 		if err != nil {
 			c.logger.Info(err.Error(), "version", version)
@@ -123,9 +123,9 @@ func (c *Chart) updateVersions() error {
 	return nil
 }
 
-func (c *Chart) setMetadata(instance *helmv1alpha1.Chart, config *action.Configuration, settings *cli.EnvSettings, logger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface) {
+func (c *Chart) setMetadata(instance *helmv1alpha1.Chart, namespace string, config *action.Configuration, settings *cli.EnvSettings, logger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface) {
 	c.Name = instance.ObjectMeta.Name
-	c.Namespace = instance.ObjectMeta.Namespace
+	c.Namespace = namespace
 	c.helmConfig = config
 	c.Client = action.NewInstall(config)
 	c.Settings = settings

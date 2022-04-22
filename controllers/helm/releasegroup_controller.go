@@ -35,9 +35,10 @@ import (
 // ReleaseGroupReconciler reconciles a ReleaseGroup object
 type ReleaseGroupReconciler struct {
 	client.Client
-	Log      logr.Logger
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	WatchNamespace string
+	Log            logr.Logger
+	Scheme         *runtime.Scheme
+	Recorder       record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=releasegroups,verbs=get;list;watch;create;update;patch;delete

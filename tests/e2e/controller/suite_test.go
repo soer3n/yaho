@@ -17,6 +17,7 @@ limitations under the License.
 package helm
 
 import (
+	"context"
 	"crypto/rand"
 	"math/big"
 	mr "math/rand"
@@ -29,6 +30,8 @@ import (
 	. "github.com/onsi/gomega"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	controllers "github.com/soer3n/yaho/controllers/helm"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -76,6 +79,94 @@ func TestAPIs(t *testing.T) {
 		"Controller Suite")
 }
 
+func setupNamespace() *v1.Namespace {
+
+	// stopCh := ctrl.SetupSignalHandler()
+	ch := context.TODO()
+	stopCh, cancelFn := context.WithCancel(ch)
+	ns := "test-" + randStringRunes(7)
+
+	BeforeEach(func() {
+
+		// stopCh := ctrl.SetupSignalHandler()
+		// stopCh, cancelFn = context.WithCancel(ch)
+
+		logf.Log.Info("namespace:", "namespace", "default")
+
+		mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
+		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
+
+		err = (&controllers.RepoReconciler{
+			Client:         mgr.GetClient(),
+			WatchNamespace: ns,
+			Log:            logf.Log,
+			Recorder:       mgr.GetEventRecorderFor("repo-controller"),
+			Scheme:         mgr.GetScheme(),
+		}).SetupWithManager(mgr)
+		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
+
+		err = (&controllers.RepoGroupReconciler{
+			Client:   mgr.GetClient(),
+			Log:      logf.Log,
+			Recorder: mgr.GetEventRecorderFor("repogroup-controller"),
+			Scheme:   mgr.GetScheme(),
+		}).SetupWithManager(mgr)
+		Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
+
+		err = (&controllers.ChartReconciler{
+			Client:         mgr.GetClient(),
+			WatchNamespace: ns,
+			Log:            logf.Log,
+			Scheme:         mgr.GetScheme(),
+			Recorder:       mgr.GetEventRecorderFor("charts-controller"),
+		}).SetupWithManager(mgr)
+		Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
+
+		err = (&controllers.ReleaseGroupReconciler{
+			Client:         mgr.GetClient(),
+			WatchNamespace: ns,
+			Log:            logf.Log,
+			Scheme:         mgr.GetScheme(),
+			Recorder:       mgr.GetEventRecorderFor("releasegroup-controller"),
+		}).SetupWithManager(mgr)
+		Expect(err).NotTo(HaveOccurred(), "failed to setup release group controller")
+
+		err = (&controllers.ReleaseReconciler{
+			Client:         mgr.GetClient(),
+			WatchNamespace: ns,
+			Log:            logf.Log,
+			Scheme:         mgr.GetScheme(),
+			Recorder:       mgr.GetEventRecorderFor("release-controller"),
+		}).SetupWithManager(mgr)
+		Expect(err).NotTo(HaveOccurred(), "failed to setup release controller")
+
+		err = (&controllers.ValuesReconciler{
+			Client:   mgr.GetClient(),
+			Log:      logf.Log,
+			Scheme:   mgr.GetScheme(),
+			Recorder: mgr.GetEventRecorderFor("values-controller"),
+		}).SetupWithManager(mgr)
+		Expect(err).NotTo(HaveOccurred(), "failed to setup values controller")
+
+		go func() {
+			defer GinkgoRecover()
+			err := mgr.Start(stopCh)
+			Expect(err).NotTo(HaveOccurred(), "failed to start helm manager")
+		}()
+
+	}, 60)
+
+	AfterEach(func() {
+		cancelFn()
+	}, 60)
+
+	return &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ns,
+		},
+	}
+}
+
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	Expect(os.Setenv("USE_EXISTING_CLUSTER", "true")).To(Succeed())
@@ -89,7 +180,6 @@ var _ = BeforeSuite(func() {
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
 	}
 
-	// stopCh = ctrl.SetupSignalHandler()
 	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
@@ -105,72 +195,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-	logf.Log.Info("namespace:", "namespace", "default")
-
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
-	Expect(err).NotTo(HaveOccurred(), "failed to create manager")
-
-	err = (&controllers.RepoReconciler{
-		Client:   mgr.GetClient(),
-		Log:      logf.Log,
-		Recorder: mgr.GetEventRecorderFor("repo-controller"),
-		Scheme:   mgr.GetScheme(),
-	}).SetupWithManager(mgr)
-	Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
-
-	err = (&controllers.RepoGroupReconciler{
-		Client:   mgr.GetClient(),
-		Log:      logf.Log,
-		Recorder: mgr.GetEventRecorderFor("repogroup-controller"),
-		Scheme:   mgr.GetScheme(),
-	}).SetupWithManager(mgr)
-	Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
-
-	err = (&controllers.ChartReconciler{
-		Client:   mgr.GetClient(),
-		Log:      logf.Log,
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("charts-controller"),
-	}).SetupWithManager(mgr)
-	Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
-
-	err = (&controllers.ReleaseGroupReconciler{
-		Client:   mgr.GetClient(),
-		Log:      logf.Log,
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("releasegroup-controller"),
-	}).SetupWithManager(mgr)
-	Expect(err).NotTo(HaveOccurred(), "failed to setup release group controller")
-
-	err = (&controllers.ReleaseReconciler{
-		Client:   mgr.GetClient(),
-		Log:      logf.Log,
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("release-controller"),
-	}).SetupWithManager(mgr)
-	Expect(err).NotTo(HaveOccurred(), "failed to setup release controller")
-
-	err = (&controllers.ValuesReconciler{
-		Client:   mgr.GetClient(),
-		Log:      logf.Log,
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("values-controller"),
-	}).SetupWithManager(mgr)
-	Expect(err).NotTo(HaveOccurred(), "failed to setup values controller")
-
-	go func() {
-		defer GinkgoRecover()
-		err := mgr.Start(ctrl.SetupSignalHandler())
-		Expect(err).NotTo(HaveOccurred(), "failed to start helm manager")
-	}()
-
 	testClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 }, 60)
 
 var _ = AfterSuite(func() {
-	// close(stopCh)
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())

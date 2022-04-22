@@ -40,14 +40,14 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 	}
 
 	clientMock.On("Create", context.Background(), mock.MatchedBy(func(c *helmv1alpha1.Chart) bool {
-		return c.ObjectMeta.Name == chartMock.Name && c.ObjectMeta.Namespace == chartMock.Namespace
+		return c.ObjectMeta.Name == chartMock.Name
 	})).Return(ce)
 
 	clientMock.On("Update", context.Background(), mock.MatchedBy(func(c *helmv1alpha1.Chart) bool {
-		return c.ObjectMeta.Name == chartMock.Name && c.ObjectMeta.Namespace == chartMock.Namespace
+		return c.ObjectMeta.Name == chartMock.Name
 	})).Return(e)
 
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: chartMock.Name, Namespace: chartMock.Namespace}, &helmv1alpha1.Chart{}).Return(e).Run(func(args mock.Arguments) {
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: chartMock.Name}, &helmv1alpha1.Chart{}).Return(e).Run(func(args mock.Arguments) {
 		c := args.Get(2).(*helmv1alpha1.Chart)
 		v := []string{}
 
@@ -57,9 +57,8 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 
 		spec := helmv1alpha1.Chart{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      chartMock.Name,
-				Namespace: chartMock.Namespace,
-				Labels:    chartMock.Labels,
+				Name:   chartMock.Name,
+				Labels: chartMock.Labels,
 			},
 			Spec: helmv1alpha1.ChartSpec{
 				Name:       chartMock.Name,
@@ -83,7 +82,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 
 		cl.Items = append(cl.Items, helmv1alpha1.Chart{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: v.Chart, Namespace: v.Namespace,
+				Name: v.Chart,
 			},
 			Spec: helmv1alpha1.ChartSpec{
 				Name:       v.Chart,
@@ -131,7 +130,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 
 			it := helmv1alpha1.Chart{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: d.Chart, Namespace: v.Namespace,
+					Name: d.Chart,
 				},
 				Spec: helmv1alpha1.ChartSpec{
 					Name:       d.Chart,
@@ -157,13 +156,12 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 				op = "Create"
 			}
 
-			clientMock.On("Get", context.Background(), types.NamespacedName{Name: d.Chart, Namespace: d.Namespace}, &helmv1alpha1.Chart{}).Return(e).Run(func(args mock.Arguments) {
+			clientMock.On("Get", context.Background(), types.NamespacedName{Name: d.Chart}, &helmv1alpha1.Chart{}).Return(e).Run(func(args mock.Arguments) {
 				c := args.Get(2).(*helmv1alpha1.Chart)
 
 				spec := helmv1alpha1.Chart{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      d.Chart,
-						Namespace: d.Namespace,
+						Name: d.Chart,
 					},
 					Spec: helmv1alpha1.ChartSpec{
 						Name:       d.Chart,
@@ -181,7 +179,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 			})
 
 			clientMock.On(op, context.Background(), mock.MatchedBy(func(c *helmv1alpha1.Chart) bool {
-				return d.Chart == c.Name && d.Namespace == c.Namespace
+				return d.Chart == c.Name
 			})).Return(nil)
 
 			setChartVersion(clientMock, httpMock, d, repoMock)
@@ -197,9 +195,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 				return opt.LabelSelector.String() == "repoGroup="+*chartMock.Group
 			}
 
-			if opt.Namespace == chartMock.Namespace {
-				return true
-			}
+			return opt.LabelSelector.String() == "repo="+chartMock.Repository
 		}
 
 		return false

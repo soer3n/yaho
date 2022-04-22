@@ -23,9 +23,13 @@ var (
 
 var _ = Context("Install a release", func() {
 	Describe("when no existing resources exist", func() {
+
+		obj := setupNamespace()
+		namespace := obj.ObjectMeta.Name
+
 		It("should start with creating dependencies", func() {
 			ctx := context.Background()
-			namespace := "test-" + randStringRunes(7)
+			// namespace = "test-" + randStringRunes(7)
 
 			By("install a new namespace")
 			releaseNamespace := &v1.Namespace{
@@ -39,8 +43,8 @@ var _ = Context("Install a release", func() {
 			By("creating a new repository resource with the specified name and specified url")
 			releaseRepo = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      testRepoName,
-					Namespace: namespace,
+					Name: testRepoName,
+					// Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoName,
@@ -67,8 +71,8 @@ var _ = Context("Install a release", func() {
 
 			releaseRepoSecond = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      testRepoNameSecond,
-					Namespace: namespace,
+					Name: testRepoNameSecond,
+					// Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepositorySpec{
 					Name: testRepoNameSecond,
@@ -86,15 +90,15 @@ var _ = Context("Install a release", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
 			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: namespace}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, repoChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: namespace}, releaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, releaseChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			By("creating a new release resource with specified data")
@@ -163,11 +167,11 @@ var _ = Context("Install a release", func() {
 			configmap = &v1.ConfigMap{}
 
 			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName}, deployment),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: namespace}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, repoChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
@@ -177,7 +181,7 @@ var _ = Context("Install a release", func() {
 			Expect(release.ObjectMeta.Name).To(Equal(testReleaseName))
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: releaseKind.Namespace}, releaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, releaseChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
@@ -213,11 +217,18 @@ var _ = Context("Install a release", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
 
 			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName, Namespace: releaseRepo.Namespace}, deployment),
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName}, deployment),
+				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+
+			err = testClient.Delete(context.Background(), releaseRepoSecond)
+			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
+
+			Eventually(
+				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoNameSecond}, deployment),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: releaseRepo.Namespace}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, repoChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
