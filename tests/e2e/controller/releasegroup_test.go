@@ -26,7 +26,6 @@ var _ = Context("Install a releasegroup", func() {
 
 		It("should create a new Repository resource with the specified name and specified url", func() {
 			ctx := context.Background()
-			// namespace = "test-" + randStringRunes(7)
 
 			By("should create a new namespace")
 			releaseNamespace := &v1.Namespace{
@@ -40,8 +39,7 @@ var _ = Context("Install a releasegroup", func() {
 			By("should create a new Repository resource with the specified name and specified url")
 			releaseGroupRepo = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: testRepoName,
-					// Namespace: namespace,
+					Name:   testRepoName,
 					Labels: map[string]string{"repoGroup": "foo"},
 				},
 				Spec: helmv1alpha1.RepositorySpec{
@@ -105,8 +103,8 @@ var _ = Context("Install a releasegroup", func() {
 					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.ReleaseGroupSpec{
-					Name: "ReleaseGroup",
-					// LabelSelector: "select",
+					Name:          "ReleaseGroup",
+					LabelSelector: "select",
 					Releases: []helmv1alpha1.ReleaseSpec{
 						{
 							Name:    testReleaseName,

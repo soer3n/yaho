@@ -71,6 +71,11 @@ func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.
 
 	helmRelease.logger.Info("set options", "name", instance.Spec.Name)
 
+	shouldBeDeleted := instance.GetDeletionTimestamp() != nil
+	if shouldBeDeleted {
+		return helmRelease, nil
+	}
+
 	helmRelease.ValuesTemplate = values.New(instance, helmRelease.logger, helmRelease.K8sClient)
 
 	if specValues, err = helmRelease.getValues(); err != nil {

@@ -31,7 +31,6 @@ var _ = Context("Install a release with values", func() {
 
 		It("should create a new Repository resource with the specified name and specified url", func() {
 			ctx := context.Background()
-			// namespace = "test-" + randStringRunes(7)
 
 			By("should create a new namespace")
 			releaseNamespace := &v1.Namespace{

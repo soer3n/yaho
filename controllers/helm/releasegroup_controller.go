@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	"github.com/soer3n/yaho/internal/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -73,6 +74,24 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		// Error reading the object - requeue the request.
 		reqLogger.Error(err, "Failed to get HelmReleaseGroup")
 		return ctrl.Result{}, err
+	}
+
+	var requeue bool
+
+	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
+
+	if requeue, err = r.handleFinalizer(instance, isRepoMarkedToBeDeleted, ctx); err != nil {
+		reqLogger.Error(err, "Handle finalizer for release group %v failed.", instance.Spec.Name)
+		return ctrl.Result{}, err
+	}
+
+	if requeue {
+		reqLogger.Info("Update resource after modifying finalizer.")
+		if err := r.Update(context.TODO(), instance); err != nil {
+			reqLogger.Error(err, "error in reconciling")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
 	// fetch owned repos
@@ -142,6 +161,7 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			}
 		}
 	}
+
 }
 
 func (r *ReleaseGroupReconciler) removeRelease(g helmv1alpha1.Release, instance *helmv1alpha1.ReleaseGroup, ctx context.Context) {
@@ -152,11 +172,15 @@ func (r *ReleaseGroupReconciler) removeRelease(g helmv1alpha1.Release, instance 
 }
 
 func (r *ReleaseGroupReconciler) deployRelease(g helmv1alpha1.Release, instance *helmv1alpha1.ReleaseGroup, ctx context.Context) {
+
 	release := g.DeepCopy()
-	if err := controllerutil.SetControllerReference(instance, release, r.Scheme); err != nil {
-		r.Log.Error(err, "error on setting ref", "group", instance.ObjectMeta.Name, "release", release.Name)
-		return
-	}
+
+	/*
+		if err := controllerutil.SetControllerReference(instance, release, r.Scheme); err != nil {
+			r.Log.Error(err, "error on setting ref", "group", instance.ObjectMeta.Name, "release", release.Name)
+			return
+		}
+	*/
 
 	installedRepo := &helmv1alpha1.Release{}
 	err := r.Client.Get(ctx, client.ObjectKey{
@@ -176,6 +200,30 @@ func (r *ReleaseGroupReconciler) deployRelease(g helmv1alpha1.Release, instance 
 		return
 	}
 	r.Log.Info("Release already installed.", "group", instance.ObjectMeta.Name, "release", release.Name)
+}
+
+func (r *ReleaseGroupReconciler) handleFinalizer(instance *helmv1alpha1.ReleaseGroup, isRepoMarkedToBeDeleted bool, ctx context.Context) (bool, error) {
+
+	if isRepoMarkedToBeDeleted {
+		for _, rel := range instance.Spec.Releases {
+			r.removeRelease(helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      rel.Name,
+					Namespace: instance.ObjectMeta.Namespace,
+				},
+				Spec: rel}, instance, ctx)
+		}
+		controllerutil.RemoveFinalizer(instance, "finalizer.releasegroups.helm.soer3n.info")
+		return true, nil
+	}
+
+	if !utils.Contains(instance.GetFinalizers(), "finalizer.releasegroups.helm.soer3n.info") {
+		r.Log.Info("Adding Finalizer for the Release")
+		controllerutil.AddFinalizer(instance, "finalizer.releasegroups.helm.soer3n.info")
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

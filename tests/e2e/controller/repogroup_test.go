@@ -75,7 +75,7 @@ var _ = Context("Install a repository group", func() {
 				Charts: []helmv1alpha1.Entry{
 					{
 						Name:     "testing-dep",
-						Versions: []string{"0.1.1"},
+						Versions: []string{"0.1.0"},
 					},
 				},
 			})
@@ -142,7 +142,7 @@ var _ = Context("Install a repository group", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
 
 			Eventually(
-				getRepoGroupFunc(context.Background(), client.ObjectKey{Name: testRepoName}, repoGroup),
+				getRepoGroupFunc(context.Background(), client.ObjectKey{Name: testRepoNameSecond}, repoGroup),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
