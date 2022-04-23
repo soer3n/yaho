@@ -81,17 +81,13 @@ func TestAPIs(t *testing.T) {
 
 func setupNamespace() *v1.Namespace {
 
-	// stopCh := ctrl.SetupSignalHandler()
 	ch := context.TODO()
 	stopCh, cancelFn := context.WithCancel(ch)
 	ns := "test-" + randStringRunes(7)
 
 	BeforeEach(func() {
 
-		// stopCh := ctrl.SetupSignalHandler()
-		// stopCh, cancelFn = context.WithCancel(ch)
-
-		logf.Log.Info("namespace:", "namespace", "default")
+		logf.Log.Info("namespace:", "namespace", ns)
 
 		mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")

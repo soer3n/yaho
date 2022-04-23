@@ -31,7 +31,7 @@ func (hc *Release) getChart(chartName, watchNamespace string, index repo.ChartVe
 	}
 
 	if c.Obj == nil {
-		return nil, errors.NewBadRequest("could not load chart")
+		return nil, errors.NewBadRequest("could not load chart " + chartName + "-" + hc.Repo)
 	}
 
 	if len(c.Obj.Files) < 1 {

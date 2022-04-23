@@ -72,7 +72,7 @@ var _ = Context("Install a repository", func() {
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert + "-" + testRepoName}, repoChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			By("should remove this repository resource with the specified name and specified url")
@@ -85,7 +85,7 @@ var _ = Context("Install a repository", func() {
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert + "-" + testRepoName}, repoChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			By("by deletion of namespace test should finish successfully")

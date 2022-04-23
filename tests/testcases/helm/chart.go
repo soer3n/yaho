@@ -229,16 +229,3 @@ func GetChartVersions(name string) repo.ChartVersions {
 		},
 	}
 }
-
-// GetTestChartRepo returns repo cr for testing chart cr
-func GetTestChartRepo() *helmv1alpha1.Repository {
-	return &helmv1alpha1.Repository{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "repo",
-			Namespace: "",
-		},
-		Spec: helmv1alpha1.RepositorySpec{
-			Name: "repo",
-		},
-	}
-}

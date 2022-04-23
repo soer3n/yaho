@@ -181,7 +181,7 @@ var _ = Context("Install a release with values", func() {
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, valuesReleaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, valuesReleaseChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			valuesReleaseKind = &helmv1alpha1.Release{
@@ -211,7 +211,7 @@ var _ = Context("Install a release with values", func() {
 			Expect(valuesRelease.ObjectMeta.Name).To(Equal(testReleaseName))
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, valuesReleaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, valuesReleaseChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
@@ -300,7 +300,7 @@ var _ = Context("Install a release with values", func() {
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, valuesReleaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, valuesReleaseChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(

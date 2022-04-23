@@ -43,7 +43,8 @@ var _ = Context("Install a release", func() {
 			By("creating a new repository resource with the specified name and specified url")
 			releaseRepo = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: testRepoName,
+					Name:   testRepoName,
+					Labels: map[string]string{"repoGroup": "foo"},
 					// Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepositorySpec{
@@ -71,7 +72,8 @@ var _ = Context("Install a release", func() {
 
 			releaseRepoSecond = &helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: testRepoNameSecond,
+					Name:   testRepoNameSecond,
+					Labels: map[string]string{"repoGroup": "foo"},
 					// Namespace: namespace,
 				},
 				Spec: helmv1alpha1.RepositorySpec{
@@ -94,11 +96,11 @@ var _ = Context("Install a release", func() {
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, repoChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, releaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, releaseChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			By("creating a new release resource with specified data")
@@ -171,7 +173,7 @@ var _ = Context("Install a release", func() {
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, repoChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
@@ -181,7 +183,7 @@ var _ = Context("Install a release", func() {
 			Expect(release.ObjectMeta.Name).To(Equal(testReleaseName))
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, releaseChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, releaseChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
@@ -228,7 +230,7 @@ var _ = Context("Install a release", func() {
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, repoChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, repoChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(

@@ -8,27 +8,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// GetTestRepoChartListSpec returns expected chartlist spec for testing
-func GetTestRepoChartListSpec() *helmv1alpha1.ChartList {
-	chartSpec := helmv1alpha1.ChartSpec{
-		Name:       "chart.Name",
-		Versions:   []string{"0.1.0"},
-		Repository: "foo",
-	}
-
-	return &helmv1alpha1.ChartList{
-		Items: []helmv1alpha1.Chart{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foo",
-					Namespace: "default",
-				},
-				Spec: chartSpec,
-			},
-		},
-	}
-}
-
 // GetTestRepoRepoListSpec returns expected chartlist spec for testing
 func GetTestRepoRepoListSpec() helmv1alpha1.RepositoryList {
 	repoSpec := helmv1alpha1.RepositorySpec{

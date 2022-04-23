@@ -26,7 +26,6 @@ var _ = Context("Install a repository group", func() {
 
 		It("should start with creating dependencies", func() {
 			ctx := context.Background()
-			// namespace = "test-" + randStringRunes(7)
 
 			By("install a new namespace")
 			repoGroupNamespace := &v1.Namespace{
@@ -96,11 +95,11 @@ var _ = Context("Install a repository group", func() {
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert}, chart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert + "-" + testRepoName}, chart),
 				time.Second*40, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartSecondNameAssert}, chart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartSecondNameAssert + "-" + testRepoNameSecond}, chart),
 				time.Second*40, time.Millisecond*1500).Should(BeNil())
 
 			By("should remove the first repository resource from the group")
@@ -130,11 +129,11 @@ var _ = Context("Install a repository group", func() {
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert}, chart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert + "-" + testRepoName}, chart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartSecondNameAssert}, chart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartSecondNameAssert + "-" + testRepoNameSecond}, chart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			By("remove every repository left when group is deleted")
@@ -147,7 +146,7 @@ var _ = Context("Install a repository group", func() {
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartSecondNameAssert}, chart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartSecondNameAssert + "-" + testRepoNameSecond}, chart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			By("by deletion of namespace test should finish successfully")

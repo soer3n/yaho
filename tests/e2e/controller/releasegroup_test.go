@@ -94,7 +94,7 @@ var _ = Context("Install a releasegroup", func() {
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName, Namespace: namespace}, releaseGroupChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, releaseGroupChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			By("should create a new Release resource with specified")
@@ -140,7 +140,7 @@ var _ = Context("Install a releasegroup", func() {
 			Expect(releaseGroup.ObjectMeta.Name).To(Equal("testresource"))
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartNameSecond}, releaseGroupChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartNameSecond + "-" + testRepoNameSecond}, releaseGroupChart),
 				time.Second*20, time.Millisecond*1500).Should(BeNil())
 
 			Eventually(
@@ -208,7 +208,7 @@ var _ = Context("Install a releasegroup", func() {
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName}, releaseGroupChart),
+				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, releaseGroupChart),
 				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
 
 			Eventually(

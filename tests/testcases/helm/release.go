@@ -2,7 +2,6 @@ package helm
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,7 +9,6 @@ import (
 	"testing"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	"github.com/soer3n/yaho/internal/values"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -22,40 +20,7 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
-
-// GetTestReleaseValueRefListSpec returns testcases for testing release cr with values
-func GetTestReleaseValueRefListSpec() []inttypes.TestCase {
-	testValues := map[string]interface{}{
-		"values": "foo",
-		"key":    map[string]string{"bar": "fuz"},
-	}
-	castedValues, _ := json.Marshal(testValues)
-	var template map[string]interface{}
-
-	return []inttypes.TestCase{
-		{
-			ReturnValue: template,
-			ReturnError: nil,
-			Input: []*values.ValuesRef{
-				{
-					Ref: &helmv1alpha1.Values{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: "values",
-						},
-						Spec: helmv1alpha1.ValuesSpec{
-							Refs: map[string]string{},
-							ValuesMap: &runtime.RawExtension{
-								Raw: castedValues,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
 
 // GetTestReleaseSpecs returns testcases for testing release cr
 func GetTestReleaseSpecs() []inttypes.TestCase {
@@ -207,140 +172,6 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 				},
 			},
 		},*/
-	}
-}
-
-// GetTestReleaseSpecsForConfigMaps returns testcases for testing release cr
-func GetTestReleaseSpecsForConfigMaps() []inttypes.TestCase {
-	return []inttypes.TestCase{
-		{
-			ReturnValue: map[string]int{
-				"configmap": 6,
-				"chart":     1,
-			},
-			ReturnError: map[string]error{
-				"init":   nil,
-				"update": nil,
-			},
-			Input: &helmv1alpha1.Release{
-				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    "test",
-					Chart:   "chart",
-					Repo:    "repo",
-					Version: "0.0.1",
-					Values:  []string{"notpresent"},
-				},
-			},
-		},
-		{
-			ReturnValue: map[string]int{
-				"configmap": 6,
-				"chart":     1,
-			},
-			ReturnError: map[string]error{
-				"init":   nil,
-				"update": nil,
-			},
-			Input: &helmv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"label": "selector",
-					},
-				},
-				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    "release",
-					Chart:   "chart",
-					Repo:    "repo",
-					Version: "0.0.1",
-					Values:  []string{"notpresent"},
-				},
-			},
-		},
-		{
-			ReturnValue: map[string]int{
-				"configmap": 0,
-				"chart":     0,
-			},
-			ReturnError: map[string]error{
-				"init":   nil,
-				"update": nil,
-			},
-			Input: &helmv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"label": "selector",
-					},
-				},
-				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    "test",
-					Chart:   "notfound",
-					Repo:    "repo",
-					Version: "0.0.1",
-					Values:  []string{"notpresent"},
-				},
-			},
-		},
-		{
-			ReturnValue: map[string]int{
-				"configmap": 0,
-				"chart":     0,
-			},
-			ReturnError: map[string]error{
-				"init":   errors.New("repo not found"),
-				"update": nil,
-			},
-			Input: &helmv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"label": "selector",
-					},
-				},
-				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    "test",
-					Chart:   "notfound",
-					Repo:    "notfound",
-					Version: "0.0.1",
-					Values:  []string{"notpresent"},
-				},
-			},
-		},
-	}
-}
-
-// GetTestChartSpec returns chart spec for testing release cr with dependencies
-func GetTestChartSpec() helmv1alpha1.Chart {
-	return helmv1alpha1.Chart{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "chart",
-			Namespace: "foo",
-			Labels: map[string]string{
-				"repoGroup": "group",
-			},
-		},
-		Spec: helmv1alpha1.ChartSpec{
-			Name:       "chart",
-			Repository: "foo",
-			Versions: []string{
-				"0.0.1",
-			},
-		},
-	}
-}
-
-// GetTestChartDepSpec returns chart spec for testing release cr
-func GetTestChartDepSpec() helmv1alpha1.Chart {
-	return helmv1alpha1.Chart{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "dep",
-			Labels: map[string]string{
-				"repoGroup": "group",
-			},
-		},
-		Spec: helmv1alpha1.ChartSpec{
-			Name:       "chart",
-			Repository: "foo",
-			Versions:   []string{"0.0.1"},
-		},
 	}
 }
 

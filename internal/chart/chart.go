@@ -124,7 +124,7 @@ func (c *Chart) updateVersions() error {
 }
 
 func (c *Chart) setMetadata(instance *helmv1alpha1.Chart, namespace string, config *action.Configuration, settings *cli.EnvSettings, logger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface) {
-	c.Name = instance.ObjectMeta.Name
+	c.Name = instance.Spec.Name
 	c.Namespace = namespace
 	c.helmConfig = config
 	c.Client = action.NewInstall(config)
