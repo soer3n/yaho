@@ -3,10 +3,14 @@ apiVersion: helm.soer3n.info/v1alpha1
 kind: Repository
 metadata:
   name: cilium
-  namespace: helm
 spec:
   name: cilium
   url: https://helm.cilium.io/
+  charts:
+  - name: cilium
+    versions:
+    - 1.10.0
+    - 1.11.0
 
 ---
 apiVersion: helm.soer3n.info/v1alpha1

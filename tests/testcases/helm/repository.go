@@ -56,14 +56,14 @@ func GetTestRepoSpecs() []inttypes.TestCase {
 		{
 			Input: helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foo",
+					Name:      "one",
 					Namespace: "one",
 					Labels: map[string]string{
-						"repo": "foo",
+						"repo": "one",
 					},
 				},
 				Spec: helmv1alpha1.RepositorySpec{
-					Name:       "foo",
+					Name:       "one",
 					URL:        "https://foo.bar/charts",
 					AuthSecret: "secret",
 				},
@@ -77,14 +77,14 @@ func GetTestRepoSpecs() []inttypes.TestCase {
 		{
 			Input: helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bar",
+					Name:      "two",
 					Namespace: "two",
 					Labels: map[string]string{
-						"repo": "bar",
+						"repo": "two",
 					},
 				},
 				Spec: helmv1alpha1.RepositorySpec{
-					Name: "bar",
+					Name: "two",
 					URL:  "https://bar.foo/charts",
 					Charts: []helmv1alpha1.Entry{
 						{

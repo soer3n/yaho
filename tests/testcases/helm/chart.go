@@ -38,14 +38,14 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 			Input: &helmv1alpha1.Chart{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bar",
-					Namespace: "foo",
+					Namespace: "one",
 					Labels: map[string]string{
-						"repo": "foo",
+						"repo": "one",
 					},
 				},
 				Spec: helmv1alpha1.ChartSpec{
 					Name:       "bar",
-					Repository: "foo",
+					Repository: "one",
 					Versions: []string{
 						"0.0.1",
 					},
@@ -67,12 +67,12 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 					Name:      "baz",
 					Namespace: "two",
 					Labels: map[string]string{
-						"repo": "foo",
+						"repo": "two",
 					},
 				},
 				Spec: helmv1alpha1.ChartSpec{
 					Name:       "baz",
-					Repository: "foo",
+					Repository: "two",
 					Versions: []string{
 						"0.0.2",
 					},
@@ -94,12 +94,12 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 					Name:      "bar",
 					Namespace: "three",
 					Labels: map[string]string{
-						"repo": "foo",
+						"repo": "three",
 					},
 				},
 				Spec: helmv1alpha1.ChartSpec{
 					Name:       "bar",
-					Repository: "foo",
+					Repository: "three",
 					Versions: []string{
 						"0.0.3",
 					},
@@ -123,7 +123,7 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 				},
 				Spec: helmv1alpha1.ChartSpec{
 					Name:       "foo",
-					Repository: "foo",
+					Repository: "four",
 					Versions:   []string{"0.0.4"},
 					CreateDeps: true,
 				},
@@ -146,7 +146,7 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 				},
 				Spec: helmv1alpha1.ChartSpec{
 					Name:       "foo",
-					Repository: "bar",
+					Repository: "five",
 					Versions:   []string{"0.0.5"},
 					CreateDeps: true,
 				},

@@ -252,7 +252,7 @@ func (chartVersion *ChartVersion) createOrUpdateSubChart(dep *helmv1alpha1.Chart
 	current := &helmv1alpha1.Chart{}
 	err := chartVersion.k8sClient.Get(context.Background(), client.ObjectKey{
 		// Namespace: chartVersion.owner.ObjectMeta.Namespace,
-		Name: dep.Name,
+		Name: dep.Name + "-" + dep.Repo,
 	}, current)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -264,7 +264,7 @@ func (chartVersion *ChartVersion) createOrUpdateSubChart(dep *helmv1alpha1.Chart
 
 			obj := &helmv1alpha1.Chart{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: dep.Name,
+					Name: dep.Name + "-" + dep.Repo,
 					// Namespace: chartVersion.owner.ObjectMeta.Namespace,
 				},
 				Spec: helmv1alpha1.ChartSpec{

@@ -2,7 +2,6 @@ apiVersion: helm.soer3n.info/v1alpha1
 kind: RepoGroup
 metadata:
   name: repogroup-sample
-  namespace: helm
 spec:
   labelSelector: foo
   repos:

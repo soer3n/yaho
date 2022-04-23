@@ -21,7 +21,7 @@ func (chartVersion *ChartVersion) getChart(chartPathOptions *action.ChartPathOpt
 
 	if err := chartVersion.k8sClient.Get(context.Background(), types.NamespacedName{
 		// Namespace: chartVersion.owner.ObjectMeta.Namespace,
-		Name: chartVersion.owner.Spec.Name,
+		Name: chartVersion.owner.Spec.Name + "-" + chartVersion.repo.Name,
 	}, chartObj); err != nil {
 		return nil, err
 	}

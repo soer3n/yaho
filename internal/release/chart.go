@@ -19,7 +19,7 @@ func (hc *Release) getChart(chartName, watchNamespace string, index repo.ChartVe
 	chartObj := &helmv1alpha1.Chart{}
 
 	if err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
-		Name: chartName,
+		Name: chartName + "-" + hc.Repo,
 	}, chartObj); err != nil {
 		return nil, err
 	}
