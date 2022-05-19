@@ -62,6 +62,8 @@ func (r *ReleaseGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	// fetch app instance
 	instance := &helmv1alpha1.ReleaseGroup{}
 
+	reqLogger.Info("start reconcile loop")
+
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -218,7 +220,7 @@ func (r *ReleaseGroupReconciler) handleFinalizer(instance *helmv1alpha1.ReleaseG
 	}
 
 	if !utils.Contains(instance.GetFinalizers(), "finalizer.releasegroups.helm.soer3n.info") {
-		r.Log.Info("Adding Finalizer for the Release")
+		r.Log.Info("Adding Finalizer for the Release Group")
 		controllerutil.AddFinalizer(instance, "finalizer.releasegroups.helm.soer3n.info")
 		return true, nil
 	}

@@ -39,20 +39,17 @@ type RepositorySpec struct {
 type RepositoryStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Synced     bool               `json:"synced,omitempty"`
-	Charts     Charts             `json:"charts,omitempty"`
+	Synced     *bool              `json:"synced,omitempty"`
+	Charts     *int64             `json:"charts,omitempty"`
 	Conditions []metav1.Condition `json:"conditions"`
-}
-
-type Charts struct {
-	Synced bool `json:"synced,omitempty"`
-	Count  int  `json:"count,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Group",type="string",JSONPath=`.metadata.labels['repoGroup']`
+// +kubebuilder:printcolumn:name="Synced",type="boolean",JSONPath=".status.synced"
+// +kubebuilder:printcolumn:name="Charts",type="integer",JSONPath=".status.charts"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Repository is the Schema for the repos API

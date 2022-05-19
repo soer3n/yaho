@@ -45,6 +45,12 @@ func GetTestRepoSpecs() []inttypes.TestCase {
 					Name:       "one",
 					URL:        "https://foo.bar/charts",
 					AuthSecret: "secret",
+					Charts: []helmv1alpha1.Entry{
+						{
+							Name:     "foo",
+							Versions: []string{"0.0.1"},
+						},
+					},
 				},
 			},
 			ReturnValue: "",

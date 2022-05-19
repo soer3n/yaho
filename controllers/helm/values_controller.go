@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // ValuesReconciler reconciles a Values object
@@ -55,11 +56,14 @@ type ValuesReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	reqLogger := r.Log.WithValues("charts", req.NamespacedName)
-	_ = r.Log.WithValues("chartsreq", req)
+	reqLogger := r.Log.WithValues("values", req.NamespacedName)
+	_ = r.Log.WithValues("valuesreq", req)
 
 	// fetch app instance
 	instance := &helmv1alpha1.Values{}
+
+	reqLogger.Info("start reconcile loop")
+	reqLogger.Info("meta", "value", instance.ObjectMeta)
 
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
@@ -75,6 +79,8 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
+	reqLogger.Info("spec", "value", instance.Spec)
+
 	annotations := instance.GetAnnotations()
 
 	if _, ok := annotations["releases"]; ok {
@@ -89,11 +95,31 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 			if err == nil {
 				if meta.IsStatusConditionTrue(current.Status.Conditions, "synced") {
+
 					condition := metav1.Condition{Type: "synced", Status: metav1.ConditionFalse, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: "valueschange", Message: "valuesupdated"}
 					meta.SetStatusCondition(&current.Status.Conditions, condition)
+
+					synced := false
+					current.Status.Synced = &synced
+
 					err = r.Status().Update(ctx, current)
-					reqLogger.Info("Trigger release sync.")
+					reqLogger.Info("Update release resource status.")
+
 					if err != nil {
+						reqLogger.Info(err.Error())
+					}
+
+					if current.ObjectMeta.Labels == nil {
+						current.ObjectMeta.Labels = make(map[string]string)
+					}
+
+					current.ObjectMeta.Labels["helm.soer3n.info/reconcile"] = "true"
+
+					err := r.Update(ctx, current)
+					reqLogger.Info("Trigger release sync.")
+
+					if err != nil {
+						reqLogger.Info(err.Error())
 						return ctrl.Result{}, err
 					}
 				}
@@ -106,7 +132,11 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ValuesReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
+	pred := predicate.GenerationChangedPredicate{}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&helmv1alpha1.Values{}).
+		WithEventFilter(pred).
 		Complete(r)
 }

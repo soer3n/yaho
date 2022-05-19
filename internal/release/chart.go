@@ -11,18 +11,34 @@ import (
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (hc *Release) getChart(chartName, watchNamespace string, index repo.ChartVersions, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*helmchart.Chart, error) {
 
-	chartObj := &helmv1alpha1.Chart{}
+	hc.logger.Info("fetching chart related to release resource")
+	charts := &helmv1alpha1.ChartList{}
+	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap("repo=" + hc.Repo)
+	labelSetChart, _ := labels.ConvertSelectorToLabelsMap("chart=" + chartName)
+	ls := labels.Merge(labelSetRepo, labelSetChart)
 
-	if err := hc.K8sClient.Get(context.Background(), types.NamespacedName{
-		Name: chartName + "-" + hc.Repo,
-	}, chartObj); err != nil {
+	hc.logger.Info("selector", "labelset", ls)
+
+	opts := &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(ls),
+	}
+
+	if err := hc.K8sClient.List(context.Background(), charts, opts); err != nil {
 		return nil, err
 	}
+
+	if len(charts.Items) == 0 {
+		return nil, errors.NewBadRequest("chart not found")
+	}
+
+	chartObj := &charts.Items[0]
 
 	c, err := chartversion.New(hc.Version, watchNamespace, chartObj, vals, index, hc.scheme, hc.logger, hc.K8sClient, hc.getter)
 
@@ -31,7 +47,7 @@ func (hc *Release) getChart(chartName, watchNamespace string, index repo.ChartVe
 	}
 
 	if c.Obj == nil {
-		return nil, errors.NewBadRequest("could not load chart " + chartName + "-" + hc.Repo)
+		return nil, errors.NewBadRequest("could not load chart " + chartName + " from repository " + hc.Repo)
 	}
 
 	if len(c.Obj.Files) < 1 {

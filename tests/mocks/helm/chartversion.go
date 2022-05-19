@@ -34,28 +34,28 @@ func setChartVersion(clientMock *unstructuredmocks.K8SClientMock, httpMock *mock
 		op = "Create"
 	}
 
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-default-" + chartVersionMock.Chart + "-" + chartVersionMock.Version, Namespace: chartVersionMock.Namespace}, &v1.ConfigMap{}).Return(e).Run(func(args mock.Arguments) {
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-default-" + repo.Name + "-" + chartVersionMock.Chart + "-" + chartVersionMock.Version, Namespace: chartVersionMock.Namespace}, &v1.ConfigMap{}).Return(e).Run(func(args mock.Arguments) {
 		c := args.Get(2).(*v1.ConfigMap)
 		spec := testcases.GetTestReleaseDefaultValueConfigMap()
 		c.Data = spec.Data
-		c.ObjectMeta.Name = "helm-default-" + chartVersionMock.Chart + "-" + chartVersionMock.Version
+		c.ObjectMeta.Name = "helm-default-" + repo.Name + "-" + chartVersionMock.Chart + "-" + chartVersionMock.Version
 		c.ObjectMeta.Namespace = chartVersionMock.Namespace
 		// c.ObjectMeta.Labels = map[string]string{"helm.soer3n.info/chart": chartVersionMock.Chart + "-" + chartVersionMock.Version, "helm.soer3n.info/repo": repo, "helm.soer3n.info/type": "default"}
 	})
 
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-tmpl-" + chartVersionMock.Chart + "-" + chartVersionMock.Version, Namespace: chartVersionMock.Namespace}, &v1.ConfigMap{}).Return(e).Run(func(args mock.Arguments) {
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-tmpl-" + repo.Name + "-" + chartVersionMock.Chart + "-" + chartVersionMock.Version, Namespace: chartVersionMock.Namespace}, &v1.ConfigMap{}).Return(e).Run(func(args mock.Arguments) {
 		c := args.Get(2).(*v1.ConfigMap)
 		spec := testcases.GetTestReleaseTemplateConfigMap()
 		c.BinaryData = spec.BinaryData
-		c.ObjectMeta.Name = "helm-tmpl-" + chartVersionMock.Chart + "-" + chartVersionMock.Version
+		c.ObjectMeta.Name = "helm-tmpl-" + repo.Name + "-" + chartVersionMock.Chart + "-" + chartVersionMock.Version
 		c.ObjectMeta.Namespace = chartVersionMock.Namespace
 		// c.ObjectMeta.Labels = map[string]string{"helm.soer3n.info/chart": chartVersionMock.Chart + "-" + chartVersionMock.Version, "helm.soer3n.info/repo": repo, "helm.soer3n.info/type": "tmpl"}
 	})
 
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-crds-" + chartVersionMock.Chart + "-" + chartVersionMock.Version, Namespace: chartVersionMock.Namespace}, &v1.ConfigMap{}).Return(e).Run(func(args mock.Arguments) {
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-crds-" + repo.Name + "-" + chartVersionMock.Chart + "-" + chartVersionMock.Version, Namespace: chartVersionMock.Namespace}, &v1.ConfigMap{}).Return(e).Run(func(args mock.Arguments) {
 		c := args.Get(2).(*v1.ConfigMap)
 		c.BinaryData = make(map[string][]byte)
-		c.ObjectMeta.Name = "helm-crds-" + chartVersionMock.Chart + "-" + chartVersionMock.Version
+		c.ObjectMeta.Name = "helm-crds-" + repo.Name + "-" + chartVersionMock.Chart + "-" + chartVersionMock.Version
 		c.ObjectMeta.Namespace = chartVersionMock.Namespace
 		// c.ObjectMeta.Labels = map[string]string{"helm.soer3n.info/chart": chartVersionMock.Chart + "-" + chartVersionMock.Version, "helm.soer3n.info/repo": repo, "helm.soer3n.info/type": "tmpl"}
 	})
@@ -101,7 +101,7 @@ func setChartVersion(clientMock *unstructuredmocks.K8SClientMock, httpMock *mock
 		c.Items = []v1.ConfigMap{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      chartVersionMock.Chart + "-" + chartVersionMock.Version + "-tmpl",
+					Name:      "helm-tmpl-" + repo.Name + "-" + chartVersionMock.Chart + "-" + chartVersionMock.Version,
 					Namespace: chartVersionMock.Namespace,
 				},
 				BinaryData: map[string][]byte{

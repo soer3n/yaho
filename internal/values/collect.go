@@ -24,17 +24,10 @@ func (hv *ValueTemplate) getValuesByReference(refs []string, namespace string) [
 		}, helmRef)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				helmRef.ObjectMeta.Namespace = namespace
-				helmRef.ObjectMeta.Name = ref
-				err = hv.k8sClient.Create(context.TODO(), helmRef)
-
-				if err != nil {
-					hv.logger.Error(err, "error on create")
-					continue
-				}
+				hv.logger.Error(err, "not found", "name", helmRef.ObjectMeta.Name)
+				continue
 			}
-
-			hv.logger.Error(err, "not found")
+			hv.logger.Error(err, "error on getting value ref", "name", helmRef.ObjectMeta.Name)
 			continue
 		}
 
@@ -72,14 +65,17 @@ func (hv *ValueTemplate) collectValues(specValues *helmv1alpha1.Values, count in
 		return list, nil
 	}
 
-	entry := &ValuesRef{
-		Ref:    specValues,
-		Parent: "base",
+	if count == 0 {
+		entry := &ValuesRef{
+			Ref:    specValues,
+			Parent: "base",
+			Key:    "",
+		}
+
+		list = append(list, entry)
 	}
 
-	list = append(list, entry)
-
-	for _, ref := range specValues.Spec.Refs {
+	for k, ref := range specValues.Spec.Refs {
 
 		helmRef := &helmv1alpha1.Values{}
 
@@ -107,11 +103,13 @@ func (hv *ValueTemplate) collectValues(specValues *helmv1alpha1.Values, count in
 		entry := &ValuesRef{
 			Ref:    helmRef,
 			Parent: specValues.ObjectMeta.Name,
+			Key:    k,
 		}
 
 		list = append(list, entry)
 	}
 
+	hv.logger.Info("collected references:", "parent", specValues.GetName(), "list", list)
 	return list, nil
 }
 

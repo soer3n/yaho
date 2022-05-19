@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -111,8 +112,16 @@ func run() {
 		os.Exit(1)
 	}
 
+	config := mgr.GetConfig()
+	rc, err := client.NewWithWatch(config, client.Options{Scheme: mgr.GetScheme(), Mapper: mgr.GetRESTMapper()})
+
+	if err != nil {
+		setupLog.Error(err, "failed to setup rest client")
+		os.Exit(1)
+	}
+
 	if err = (&helmcontrollers.RepoReconciler{
-		Client:         mgr.GetClient(),
+		Client:         rc,
 		WatchNamespace: ns,
 		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("Repo"),
 		Scheme:         mgr.GetScheme(),
@@ -121,7 +130,7 @@ func run() {
 		os.Exit(1)
 	}
 	if err = (&helmcontrollers.RepoGroupReconciler{
-		Client: mgr.GetClient(),
+		Client: rc,
 		Log:    ctrl.Log.WithName("controllers").WithName("helm").WithName("RepoGroup"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
@@ -129,7 +138,7 @@ func run() {
 		os.Exit(1)
 	}
 	if err = (&helmcontrollers.ReleaseReconciler{
-		Client:         mgr.GetClient(),
+		WithWatch:      rc,
 		WatchNamespace: ns,
 		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("Release"),
 		Scheme:         mgr.GetScheme(),
@@ -138,7 +147,7 @@ func run() {
 		os.Exit(1)
 	}
 	if err = (&helmcontrollers.ReleaseGroupReconciler{
-		Client:         mgr.GetClient(),
+		Client:         rc,
 		WatchNamespace: ns,
 		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("ReleaseGroup"),
 		Scheme:         mgr.GetScheme(),
@@ -147,7 +156,7 @@ func run() {
 		os.Exit(1)
 	}
 	if err = (&helmcontrollers.ChartReconciler{
-		Client:         mgr.GetClient(),
+		WithWatch:      rc,
 		WatchNamespace: ns,
 		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("Chart"),
 		Scheme:         mgr.GetScheme(),
@@ -156,7 +165,7 @@ func run() {
 		os.Exit(1)
 	}
 	if err = (&helmcontrollers.ValuesReconciler{
-		Client: mgr.GetClient(),
+		Client: rc,
 		Log:    ctrl.Log.WithName("controllers").WithName("helm").WithName("Values"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {

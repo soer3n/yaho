@@ -25,14 +25,19 @@ func (hc *Release) getInstalledValues() (map[string]interface{}, error) {
 	return client.Run(hc.Name)
 }
 
-func (hc *Release) valuesChanged(vals map[string]interface{}) (bool, error) {
+func (hc *Release) valuesChanged() (bool, error) {
 	var installedValues map[string]interface{}
 	var err error
+
+	vals := hc.ValuesTemplate.Values
+
+	hc.logger.Info("new values", "object", vals)
 
 	if installedValues, err = hc.getInstalledValues(); err != nil {
 		return false, err
 	}
 
+	hc.logger.Info("installed values", "object", installedValues)
 	hc.logger.Info("values parsed", "name", hc.Name, "chart", hc.Chart.Name(), "repo", hc.Repo, "values length", len(installedValues))
 
 	for key := range installedValues {

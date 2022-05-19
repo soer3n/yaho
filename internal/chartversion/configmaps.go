@@ -46,9 +46,10 @@ func (chartVersion *ChartVersion) getDefaultValuesFromConfigMap(name, version st
 	values := make(map[string]interface{})
 	configmap := &v1.ConfigMap{}
 
-	configMapName := "helm-default-" + name + "-" + version
+	configMapName := "helm-default-" + chartVersion.repo.Spec.Name + "-" + name + "-" + version
 
 	if err = chartVersion.k8sClient.Get(context.Background(), types.NamespacedName{Namespace: chartVersion.namespace, Name: configMapName}, configmap); err != nil {
+		chartVersion.logger.Info("error on getting default values", "msg", err.Error())
 		return values
 	}
 
@@ -125,7 +126,7 @@ func (chartVersion *ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, 
 	}
 
 	objectMeta := metav1.ObjectMeta{
-		Name:      "helm-" + name + "-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
+		Name:      "helm-" + name + "-" + chartVersion.repo.Spec.Name + "-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 		Namespace: chartVersion.namespace,
 		Labels: map[string]string{
 			configMapLabelKey:     chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
@@ -164,7 +165,7 @@ func (chartVersion *ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, 
 			configMapMap[key] = v1.ConfigMap{
 				Immutable: immutable,
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "helm-" + name + "-" + chartVersion.Version.Metadata.Name + "-" + key + "-" + chartVersion.Version.Metadata.Version,
+					Name:      "helm-" + name + "-" + chartVersion.repo.Spec.Name + "-" + chartVersion.Version.Metadata.Name + "-" + key + "-" + chartVersion.Version.Metadata.Version,
 					Namespace: chartVersion.namespace,
 					Labels: map[string]string{
 						configMapLabelKey:     chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
@@ -195,7 +196,7 @@ func (chartVersion *ChartVersion) createDefaultValueConfigMap(cm chan v1.ConfigM
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
-		Name:      "helm-default-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
+		Name:      "helm-default-" + chartVersion.repo.Spec.Name + "-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
 		Namespace: chartVersion.namespace,
 		Labels: map[string]string{
 			configMapLabelKey:     chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,

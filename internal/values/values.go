@@ -2,7 +2,8 @@ package values
 
 import (
 	"encoding/json"
-	"sync"
+	"errors"
+	"time"
 
 	"github.com/go-logr/logr"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
@@ -44,12 +45,18 @@ func MergeValues(specValues map[string]interface{}, helmChart *helmchart.Chart) 
 	c := make(chan map[string]interface{}, 1)
 
 	// run coalesce values in separate goroutine to avoid memory leak in main goroutine
-	go func(c chan map[string]interface{}, specValues map[string]interface{}, helmChart *helmchart.Chart) {
+	go func() {
 		cv, _ := chartutil.CoalesceValues(helmChart, specValues)
 		c <- cv
-	}(c, specValues, helmChart)
+	}()
 
-	return <-c
+	select {
+	case t := <-c:
+		return t
+
+	case <-time.After(10 * time.Second):
+		return map[string]interface{}{}
+	}
 }
 
 // ManageValues represents parsing of a map with interfaces into HelmValueTemplate struct
@@ -64,39 +71,49 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 		}).
 		Filter(hv.ValuesRef)
 
+	if len(base) == 0 {
+		return map[string]interface{}{}, errors.New("no references for parent resource")
+	}
+
 	merged = make(map[string]interface{})
-	var wg sync.WaitGroup
+	//var wg sync.WaitGroup
 	c := make(chan map[string]interface{}, 1)
+	d := make(chan map[string]interface{}, 1)
 
 	for _, ref := range base {
+		hv.logger.Info("manage values ref", "struct", ref)
 		if values, err = hv.manageStruct(ref); err != nil {
 			return merged, err
 		}
 
-		refValues := ref.Ref
-		wg.Add(1)
+		refValues := ref.Ref.DeepCopy()
+		//wg.Add(1)
 
-		go func(refValues *helmv1alpha1.Values, values map[string]interface{}, c chan<- map[string]interface{}) {
-			defer wg.Done()
+		go func() {
+			//defer wg.Done()
 			c <- hv.transformToMap(refValues, values, true)
-		}(refValues, values, c)
+		}()
 	}
+
+	// wg.Wait()
+	// close(c)
 
 	go func() {
-		wg.Wait()
-		close(c)
+		for i := range c {
+			m := utils.MergeMaps(i, merged)
+			d <- m
+		}
+		// close(d)
 	}()
 
-	d := make(chan map[string]interface{}, 1)
-
-	for i := range c {
-		go func(d chan map[string]interface{}, i, merged map[string]interface{}) {
-			d <- utils.MergeMaps(i, merged)
-		}(d, i, merged)
-		merged = <-d
+	select {
+	case t := <-d:
+		merged = t
+		return merged, nil
+	case <-time.After(10 * time.Second):
+		close(d)
+		return map[string]interface{}{}, errors.New("timeout on value parsing")
 	}
-
-	return merged, nil
 }
 
 func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface{}, error) {
@@ -104,12 +121,21 @@ func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface
 	var merged map[string]interface{}
 	c := make(chan map[string]interface{}, 1)
 
+	hv.logger.Info("manage struct", "ref", valueMap)
+
 	if valueMap.Ref.Spec.Refs != nil {
 		temp := NewOptions(
 			map[string]string{
 				"parent": valueMap.Ref.ObjectMeta.Name,
 			}).
 			Filter(hv.ValuesRef)
+
+		hv.logger.Info("internal query result", "filter", "parent:"+valueMap.Ref.ObjectMeta.Name, "result", temp)
+
+		if len(temp) == 0 {
+			hv.logger.Info("skip due to empty list", "filter", "parent:"+valueMap.Ref.ObjectMeta.Name)
+			return valMap, nil
+		}
 
 		for _, v := range temp {
 			merged = make(map[string]interface{})
@@ -119,27 +145,36 @@ func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface
 				}
 			}
 
-			refKey := hv.getRefKeyByValue(v.Ref.Name, valueMap.Ref.Spec.Refs)
+			refKey := hv.getRefKeyByValue(valueMap.Key, valueMap.Ref.Name, valueMap.Ref.Spec.Refs)
 
-			go func(v *ValuesRef, merged, valMap map[string]interface{}, refKey string, c chan<- map[string]interface{}) {
+			go func(v *ValuesRef) {
 				merged = hv.transformToMap(v.Ref, merged, true, refKey)
 				c <- utils.MergeMaps(merged, valMap)
-			}(v, merged, valMap, refKey, c)
-			valMap = <-c
+			}(v)
+
+		}
+
+		select {
+		case t := <-c:
+			valMap = t
+			return valMap, nil
+		case <-time.After(10 * time.Second):
+			hv.logger.Info("timeout on managing struct reference", "struct", valueMap)
+			return nil, errors.New("time out on value parsing")
 		}
 	}
 
 	return valMap, nil
 }
 
-func (hv ValueTemplate) getRefKeyByValue(value string, refMap map[string]string) string {
+func (hv ValueTemplate) getRefKeyByValue(parent, value string, refMap map[string]string) string {
 	for k, v := range refMap {
 		if value == v {
-			return k
+			return parent + "." + k
 		}
 	}
 
-	return ""
+	return parent
 }
 
 func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, unstructed bool, parents ...string) map[string]interface{} {
@@ -154,6 +189,8 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 		parentKey = parentKey + parent
 	}
 
+	hv.logger.Info("parent key", "values", values.GetName(), "child", childMap, "parent", parentKey)
+
 	rawVals := values.Spec.ValuesMap
 	var convertedMap map[string]interface{}
 
@@ -163,7 +200,8 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 			return valMap
 		}
 
-		hv.logger.Info("converting map succeeded", "map name", values.Name, "map length", len(convertedMap))
+		hv.logger.Info("converting map succeeded", "map name", values.GetName(), "map length", len(convertedMap))
+		hv.logger.Info("converting map succeeded", "map name", values.GetName(), "map", convertedMap)
 
 		mapKey := ""
 

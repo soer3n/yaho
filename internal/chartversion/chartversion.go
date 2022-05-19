@@ -5,9 +5,12 @@ import (
 	b64 "encoding/base64"
 	"errors"
 	"sync"
+	"time"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/go-logr/logr"
@@ -30,7 +33,7 @@ const configMapRepoLabelKey = "helm.soer3n.info/repo"
 const configMapLabelType = "helm.soer3n.info/type"
 const configMapLabelSubName = "helm.soer3n.info/subname"
 
-func New(version, namespace string, chartObj *helmv1alpha1.Chart, vals chartutil.Values, index repo.ChartVersions, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface) (*ChartVersion, error) {
+func New(version, namespace string, chartObj *helmv1alpha1.Chart, vals chartutil.Values, index repo.ChartVersions, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface) (*ChartVersion, error) {
 
 	obj := &ChartVersion{
 		mu:        sync.Mutex{},
@@ -85,7 +88,7 @@ func New(version, namespace string, chartObj *helmv1alpha1.Chart, vals chartutil
 		vals = obj.getDefaultValuesFromConfigMap(chartObj.Name, parsedVersion)
 	}
 
-	c, err := obj.getChart(options, vals)
+	c, err := obj.getChart(chartObj.Spec.Name, options, vals)
 
 	if err != nil {
 		obj.logger.Info(err.Error())
@@ -170,12 +173,11 @@ func (chartVersion *ChartVersion) getControllerRepo() (*helmv1alpha1.Repository,
 
 	err := chartVersion.k8sClient.Get(context.Background(), types.NamespacedName{
 		Name: chartVersion.owner.Spec.Repository,
-		// Namespace: chartVersion.owner.ObjectMeta.Namespace,
 	}, instance)
 
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			chartVersion.logger.Info("HelmRepo resource not found. Ignoring since object must be deleted")
+			chartVersion.logger.Info("HelmRepo resource not found.", "name", chartVersion.owner.Spec.Repository)
 			return instance, err
 		}
 		// Error reading the object - requeue the request.
@@ -249,48 +251,75 @@ func (chartVersion *ChartVersion) getCredentials() *Auth {
 }
 
 func (chartVersion *ChartVersion) createOrUpdateSubChart(dep *helmv1alpha1.ChartDep) error {
-	current := &helmv1alpha1.Chart{}
-	err := chartVersion.k8sClient.Get(context.Background(), client.ObjectKey{
-		// Namespace: chartVersion.owner.ObjectMeta.Namespace,
-		Name: dep.Name + "-" + dep.Repo,
-	}, current)
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			group := new(string)
-			if _, ok := chartVersion.owner.ObjectMeta.Labels["repoGroup"]; ok {
-				v := chartVersion.owner.ObjectMeta.Labels["repoGroup"]
-				group = &v
-			}
 
-			obj := &helmv1alpha1.Chart{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: dep.Name + "-" + dep.Repo,
-					// Namespace: chartVersion.owner.ObjectMeta.Namespace,
-				},
-				Spec: helmv1alpha1.ChartSpec{
-					Name:       dep.Name,
-					Repository: dep.Repo,
-					CreateDeps: true,
-					Versions:   []string{dep.Version},
-				},
-			}
+	chartVersion.logger.Info("fetching chart related to release resource")
 
-			if obj.ObjectMeta.Labels == nil {
-				obj.ObjectMeta.Labels = map[string]string{}
-			}
+	charts := &helmv1alpha1.ChartList{}
+	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap("repo=" + dep.Repo)
+	labelSetChart, _ := labels.ConvertSelectorToLabelsMap("chart=" + dep.Name)
+	ls := labels.Merge(labelSetRepo, labelSetChart)
 
-			obj.ObjectMeta.Labels["repoGroup"] = *group
+	chartVersion.logger.Info("selector", "labelset", ls)
 
-			if err := controllerutil.SetControllerReference(chartVersion.repo, obj, chartVersion.scheme); err != nil {
-				return err
-			}
+	opts := &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(ls),
+	}
 
-			if err = chartVersion.k8sClient.Create(context.TODO(), obj); err != nil {
-				return err
-			}
+	if err := chartVersion.k8sClient.List(context.Background(), charts, opts); err != nil {
+		return err
+	}
+
+	var group *string
+
+	if len(charts.Items) == 0 {
+		chartVersion.logger.Info("chart not found")
+
+		obj := &helmv1alpha1.Chart{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: dep.Name + "-" + dep.Repo,
+			},
+			Spec: helmv1alpha1.ChartSpec{
+				Name:       dep.Name,
+				Repository: dep.Repo,
+				CreateDeps: true,
+				Versions:   []string{dep.Version},
+			},
 		}
 
-		return err
+		if obj.ObjectMeta.Labels == nil {
+			obj.ObjectMeta.Labels = map[string]string{}
+		}
+
+		if group != nil {
+			obj.ObjectMeta.Labels["repoGroup"] = *group
+		}
+
+		obj.ObjectMeta.Labels["repo"] = dep.Repo
+		obj.ObjectMeta.Labels["unmanaged"] = "true"
+
+		if err := controllerutil.SetControllerReference(chartVersion.repo, obj, chartVersion.scheme); err != nil {
+			return err
+		}
+
+		if err := chartVersion.k8sClient.Create(context.TODO(), obj); err != nil {
+			return err
+		}
+
+		if !chartVersion.watchForSubResourceSync(obj) {
+			return errors.New("subresource" + obj.ObjectMeta.Name + "not synced")
+
+		}
+
+		return nil
+	}
+
+	current := &charts.Items[0]
+
+	if _, ok := chartVersion.owner.ObjectMeta.Labels["repoGroup"]; ok {
+		v := chartVersion.owner.ObjectMeta.Labels["repoGroup"]
+		group = &v
+	} else {
+		group = nil
 	}
 
 	if utils.Contains(current.Spec.Versions, dep.Version) {
@@ -299,11 +328,50 @@ func (chartVersion *ChartVersion) createOrUpdateSubChart(dep *helmv1alpha1.Chart
 
 	current.Spec.Versions = append(current.Spec.Versions, dep.Version)
 
-	if err = chartVersion.k8sClient.Update(context.TODO(), current); err != nil {
+	if err := chartVersion.k8sClient.Update(context.TODO(), current); err != nil {
 		return err
 	}
 
+	if !chartVersion.watchForSubResourceSync(current) {
+		return errors.New("subresource" + current.ObjectMeta.Name + "not synced")
+	}
+
 	return nil
+}
+
+func (chartVersion *ChartVersion) watchForSubResourceSync(subResource *helmv1alpha1.Chart) bool {
+
+	r := &helmv1alpha1.ChartList{
+		Items: []helmv1alpha1.Chart{
+			*subResource,
+		},
+	}
+
+	watcher, err := chartVersion.k8sClient.Watch(context.Background(), r)
+
+	if err != nil {
+		chartVersion.logger.Info("cannot get watcher for subresource")
+		return false
+	}
+
+	defer watcher.Stop()
+
+	select {
+	case res := <-watcher.ResultChan():
+		ch := res.Object.(*helmv1alpha1.Chart)
+
+		if res.Type == watch.Modified {
+
+			synced := "synced"
+			if *ch.Status.Dependencies == synced && *ch.Status.Versions == synced {
+				return true
+			}
+		}
+	case <-time.After(10 * time.Second):
+		return false
+	}
+
+	return false
 }
 
 func (chartVersion *ChartVersion) getParsedVersion(version string, index repo.ChartVersions) (string, error) {

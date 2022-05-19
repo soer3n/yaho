@@ -16,8 +16,8 @@ func GetChartMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 	charts := []chartMock{}
 	versions := []chartVersionMock{}
 
-	c := chartMock{Name: "bar", Namespace: "one", Repository: "one", IsPresent: true, Labels: map[string]string{"repo": "one"}}
-	cv := chartVersionMock{Chart: "bar", Version: "0.0.1", Namespace: "one", IsPresent: true, URL: "https://foo.bar/charts/bar-0.0.1.tgz", Path: "../../../testutils/busybox-0.1.0.tgz"}
+	c := chartMock{Name: "one", Namespace: "one", Repository: "one", IsPresent: true, Labels: map[string]string{"repo": "one"}}
+	cv := chartVersionMock{Chart: "one", Version: "0.0.1", Namespace: "one", IsPresent: true, URL: "https://foo.bar/charts/bar-0.0.1.tgz", Path: "../../../testutils/busybox-0.1.0.tgz"}
 	versions = append(versions, cv)
 	c.Versions = versions
 	charts = append(charts, c)
@@ -31,9 +31,9 @@ func GetChartMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 	charts = []chartMock{}
 	versions = []chartVersionMock{}
 
-	c = chartMock{Name: "baz", Namespace: "two", Repository: "two", IsPresent: true, Labels: map[string]string{"repo": "two"}}
+	c = chartMock{Name: "two", Namespace: "two", Repository: "two", IsPresent: true, Labels: map[string]string{"repo": "two"}}
 	dep := chartVersionMock{Chart: "testing-dep", Version: "0.1.0", Namespace: "two", IsPresent: true, URL: "https://foo.bar/charts/testing-dep-0.1.0.tgz", Path: "../../../testutils/busybox-0.1.0.tgz"}
-	cv = chartVersionMock{Chart: "baz", Version: "0.0.2", Namespace: "two", IsPresent: true, Dependencies: []chartVersionMock{dep}, URL: "https://foo.bar/charts/baz-0.0.2.tgz", Path: "../../../testutils/testing-0.1.0.tgz"}
+	cv = chartVersionMock{Chart: "two", Version: "0.0.2", Namespace: "two", IsPresent: true, Dependencies: []chartVersionMock{dep}, URL: "https://foo.bar/charts/baz-0.0.2.tgz", Path: "../../../testutils/testing-0.1.0.tgz"}
 	versions = append(versions, cv)
 	c.Versions = versions
 	charts = append(charts, c)
@@ -47,8 +47,8 @@ func GetChartMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 	charts = []chartMock{}
 	versions = []chartVersionMock{}
 
-	c = chartMock{Name: "bar", Namespace: "three", Repository: "three", IsPresent: false, Labels: map[string]string{"repo": "three"}}
-	cv = chartVersionMock{Chart: "bar", Version: "0.0.3", Namespace: "three", IsPresent: false, Dependencies: []chartVersionMock{}, URL: "https://foo.bar/charts/bar-0.0.3.tgz", Path: "../../../testutils/busybox-0.1.0.tgz"}
+	c = chartMock{Name: "three", Namespace: "three", Repository: "three", IsPresent: false, Labels: map[string]string{"repo": "three"}}
+	cv = chartVersionMock{Chart: "three", Version: "0.0.3", Namespace: "three", IsPresent: false, Dependencies: []chartVersionMock{}, URL: "https://foo.bar/charts/bar-0.0.3.tgz", Path: "../../../testutils/busybox-0.1.0.tgz"}
 	versions = append(versions, cv)
 	c.Versions = versions
 	charts = append(charts, c)
@@ -62,9 +62,9 @@ func GetChartMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 	charts = []chartMock{}
 	versions = []chartVersionMock{}
 
-	c = chartMock{Name: "foo", Namespace: "four", Repository: "four", IsPresent: false, Labels: map[string]string{"repo": "four"}}
+	c = chartMock{Name: "four", Namespace: "four", Repository: "four", IsPresent: false, Labels: map[string]string{"repo": "four"}}
 	dep = chartVersionMock{Chart: "testing-dep", Version: "0.1.0", Namespace: "four", IsPresent: false, URL: "https://foo.bar/charts/testing-dep-0.1.0.tgz", Path: "../../../testutils/testing-dep-0.1.1.tgz"}
-	cv = chartVersionMock{Chart: "foo", Version: "0.0.4", Namespace: "four", IsPresent: false, Dependencies: []chartVersionMock{dep}, URL: "https://foo.bar/charts/foo-0.0.4.tgz", Path: "../../../testutils/testing-0.1.0.tgz"}
+	cv = chartVersionMock{Chart: "four", Version: "0.0.4", Namespace: "four", IsPresent: false, Dependencies: []chartVersionMock{dep}, URL: "https://foo.bar/charts/foo-0.0.4.tgz", Path: "../../../testutils/testing-0.1.0.tgz"}
 	versions = append(versions, cv)
 	c.Versions = versions
 	charts = append(charts, c)
@@ -78,9 +78,9 @@ func GetChartMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 	charts = []chartMock{}
 	versions = []chartVersionMock{}
 
-	c = chartMock{Name: "foo", Namespace: "five", Repository: "five", IsPresent: false, Labels: map[string]string{"repo": "five"}}
+	c = chartMock{Name: "five", Namespace: "five", Repository: "five", IsPresent: false, Labels: map[string]string{"repo": "five"}}
 	dep = chartVersionMock{Chart: "testing-dep", Version: "0.1.0", Namespace: "five", IsPresent: false, Auth: &credentialsMock{User: "foo", Password: "bar"}, URL: "https://bar.foo/charts/testing-dep-0.1.0.tgz", Path: "../../../testutils/testing-dep-0.1.1.tgz"}
-	cv = chartVersionMock{Chart: "foo", Version: "0.0.5", Namespace: "five", IsPresent: false, Auth: &credentialsMock{User: "foo", Password: "bar"}, Dependencies: []chartVersionMock{dep}, URL: "https://bar.foo/charts/foo-0.0.5.tgz", Path: "../../../testutils/testing-0.1.0.tgz"}
+	cv = chartVersionMock{Chart: "five", Version: "0.0.5", Namespace: "five", IsPresent: false, Auth: &credentialsMock{User: "foo", Password: "bar"}, Dependencies: []chartVersionMock{dep}, URL: "https://bar.foo/charts/foo-0.0.5.tgz", Path: "../../../testutils/testing-0.1.0.tgz"}
 	versions = append(versions, cv)
 	c.Versions = versions
 	charts = append(charts, c)

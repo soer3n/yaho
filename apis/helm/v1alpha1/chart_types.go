@@ -58,12 +58,12 @@ type ChartVersion struct {
 type ChartStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Dependencies string             `json:"dependencies,omitempty"`
-	Versions     string             `json:"versions,omitempty"`
+	Dependencies *string            `json:"dependencies,omitempty"`
+	Versions     *string            `json:"versions,omitempty"`
 	Conditions   []metav1.Condition `json:"conditions"`
-	Deprecated   bool               `json:"deprecated,omitempty"`
-	Type         string             `json:"type,omitempty"`
-	Tags         string             `json:"tags,omitempty"`
+	Deprecated   *bool              `json:"deprecated,omitempty"`
+	Type         *string            `json:"type,omitempty"`
+	Tags         *string            `json:"tags,omitempty"`
 }
 
 // +kubebuilder:object:root=true

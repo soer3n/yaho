@@ -20,6 +20,7 @@ type ValueTemplate struct {
 type ValuesRef struct {
 	Ref    *helmv1alpha1.Values `json:"Ref" filter:"ref"`
 	Parent string               `json:"Parent" filter:"parent"`
+	Key    string               `json:"Key" filter:"key"`
 }
 
 // ListOptions represents struct for filters for searching in values kubernetes resources

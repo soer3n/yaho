@@ -11,20 +11,35 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/repo"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (chartVersion *ChartVersion) getChart(chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*chart.Chart, error) {
+func (chartVersion *ChartVersion) getChart(chartName string, chartPathOptions *action.ChartPathOptions, vals map[string]interface{}) (*chart.Chart, error) {
 
 	helmChart := &chart.Chart{}
-	chartObj := &helmv1alpha1.Chart{}
 
-	if err := chartVersion.k8sClient.Get(context.Background(), types.NamespacedName{
-		// Namespace: chartVersion.owner.ObjectMeta.Namespace,
-		Name: chartVersion.owner.Spec.Name + "-" + chartVersion.repo.Name,
-	}, chartObj); err != nil {
+	chartVersion.logger.Info("fetching chart related to release resource")
+	charts := &helmv1alpha1.ChartList{}
+	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap("repo=" + chartVersion.repo.GetName())
+	labelSetChart, _ := labels.ConvertSelectorToLabelsMap("chart=" + chartName)
+	ls := labels.Merge(labelSetRepo, labelSetChart)
+
+	chartVersion.logger.Info("selector", "labelset", ls)
+
+	opts := &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(ls),
+	}
+
+	if err := chartVersion.k8sClient.List(context.Background(), charts, opts); err != nil {
 		return nil, err
 	}
+
+	if len(charts.Items) == 0 {
+		return nil, k8serrors.NewBadRequest("chart not found")
+	}
+
+	chartObj := &charts.Items[0]
 
 	if err := chartVersion.loadChartByResources(helmChart, chartObj, chartPathOptions, vals); err != nil {
 		return nil, err

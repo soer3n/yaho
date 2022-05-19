@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -109,6 +110,43 @@ func (hr *Repo) Update(instance *helmv1alpha1.Repository, scheme *runtime.Scheme
 
 	repo := instance.DeepCopy()
 
+	// fetch installed charts related to repository resource
+	installedCharts := &helmv1alpha1.ChartList{}
+	requirement, _ := labels.ParseToRequirements("repo=" + hr.Name)
+	opts := &client.ListOptions{
+		LabelSelector: labels.NewSelector().Add(requirement[0]),
+	}
+
+	if err := hr.K8sClient.List(context.Background(), installedCharts, opts); err != nil {
+		hr.logger.Info("Error on listing charts for repository %v", hr.Name)
+	}
+
+	for _, item := range installedCharts.Items {
+
+		// skip if chart resource is created manually
+		if _, ok := item.ObjectMeta.Labels["unmanaged"]; ok {
+			continue
+		}
+
+		contains := false
+		for _, chart := range instance.Spec.Charts {
+
+			if chart.Name == item.Spec.Name {
+				contains = true
+				break
+			}
+		}
+
+		if !contains {
+			hr.logger.Info("deleting chart", "repo", hr.Name, "chart", item.ObjectMeta.Name)
+
+			if err := hr.K8sClient.Delete(context.Background(), &item); err != nil {
+				hr.logger.Info("error on deleting chart", "repo", hr.Name, "chart", item.ObjectMeta.Name)
+			}
+		}
+
+	}
+
 	for _, chart := range instance.Spec.Charts {
 		if err := hr.deployChart(repo, chart, selector, scheme); err != nil {
 			return err
@@ -123,6 +161,21 @@ func (hr *Repo) Update(instance *helmv1alpha1.Repository, scheme *runtime.Scheme
 func (hr *Repo) createIndexConfigmaps(instance *helmv1alpha1.Repository, scheme *runtime.Scheme) error {
 
 	for chart, versions := range hr.index.Entries {
+
+		if len(instance.Spec.Charts) > 0 {
+			ok := false
+			for _, sc := range instance.Spec.Charts {
+				if sc.Name == chart {
+					ok = true
+					break
+				}
+			}
+
+			if !ok {
+				continue
+			}
+		}
+
 		list, err := json.Marshal(versions)
 
 		if err != nil {
@@ -153,16 +206,16 @@ func (hr *Repo) createIndexConfigmaps(instance *helmv1alpha1.Repository, scheme 
 		}
 
 		if err := hr.K8sClient.Create(hr.ctx, cm); err != nil {
-			hr.logger.Info("error on chart configmap create", "error", err.Error())
 			if k8serrors.IsAlreadyExists(err) {
+				hr.logger.Info("chart configmap already exists", "chart", chart, "name", cm.ObjectMeta.Name)
 				if err := hr.K8sClient.Update(hr.ctx, cm); err != nil {
-					hr.logger.Info("could not update repository index chart configmap", "chart", chart)
+					hr.logger.Info("could not update repository index chart configmap", "chart", chart, "name", cm.ObjectMeta.Name)
 					return err
 				}
-				hr.logger.Info("chart configmap of repository index configmap updated", "chart", chart)
+				hr.logger.Info("chart configmap of repository index configmap updated", "chart", chart, "name", cm.ObjectMeta.Name)
 				return nil
 			}
-			hr.logger.Info("chart configmap of repository index configmap created", "chart", chart)
+			hr.logger.Info("chart configmap of repository index configmap created", "chart", chart, "name", cm.ObjectMeta.Name)
 		}
 	}
 

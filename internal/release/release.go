@@ -10,7 +10,6 @@ import (
 	"github.com/soer3n/yaho/internal/values"
 	"helm.sh/helm/v3/pkg/action"
 	helmchart "helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/release"
@@ -25,7 +24,7 @@ import (
 // const configMapLabelSubName = "helm.soer3n.info/subname"
 
 // New represents initialization of internal release struct
-func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.Scheme, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) (*Release, error) {
+func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.Scheme, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface, c kube.Client) (*Release, error) {
 	var helmRelease *Release
 	var specValues map[string]interface{}
 	var err error
@@ -78,8 +77,10 @@ func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.
 
 	helmRelease.ValuesTemplate = values.New(instance, helmRelease.logger, helmRelease.K8sClient)
 
-	if specValues, err = helmRelease.getValues(); err != nil {
-		return helmRelease, err
+	if len(instance.Spec.Values) != 0 {
+		if specValues, err = helmRelease.getValues(); err != nil {
+			return helmRelease, err
+		}
 	}
 
 	helmRelease.ValuesTemplate.Values = specValues
@@ -133,20 +134,22 @@ func (hc *Release) Update() error {
 
 	hc.logger.Info("configupdate: "+fmt.Sprint(hc.Config), "name", hc.Name, "repo", hc.Repo)
 
-	vals := hc.Chart.Values
 	release, _ = hc.getRelease()
 
 	// Check if something changed regarding the existing release
 	if release != nil {
-		if ok, err = hc.valuesChanged(vals); err != nil {
+		if ok, err = hc.valuesChanged(); err != nil {
 			return err
 		}
 
+		hc.Revision = release.Version
+
 		if ok {
-			if err := hc.upgrade(hc.Chart, vals); err != nil {
+			if err := hc.upgrade(hc.Chart); err != nil {
 				return err
 			}
 			hc.logger.Info("release updated.", "name", release.Name, "namespace", release.Namespace, "chart", hc.Chart.Name(), "repo", hc.Repo)
+			return nil
 		}
 
 		hc.logger.Info("nothing changed for release.", "name", release.Name, "namespace", release.Namespace, "chart", hc.Chart.Name(), "repo", hc.Repo)
@@ -159,10 +162,12 @@ func (hc *Release) Update() error {
 	client.CreateNamespace = false
 	hc.setInstallFlags(client)
 
-	if release, err = client.Run(hc.Chart, vals); err != nil {
+	if release, err = client.Run(hc.Chart, hc.ValuesTemplate.Values); err != nil {
 		hc.logger.Error(err, "error on installing chart", "release", hc.Name, "chart", hc.Chart.Name(), "repo", hc.Repo)
 		return err
 	}
+
+	hc.Revision = release.Version
 
 	hc.logger.Info("release successfully installed.", "name", release.Name, "namespace", release.Namespace, "chart", hc.Chart.Name(), "repo", hc.Repo)
 	return nil
@@ -181,9 +186,11 @@ func (hc *Release) getRelease() (*release.Release, error) {
 	return client.Run(hc.Name)
 }
 
-func (hc *Release) upgrade(helmChart *helmchart.Chart, vals chartutil.Values) error {
+func (hc *Release) upgrade(helmChart *helmchart.Chart) error {
 	var rel *release.Release
 	var err error
+
+	vals := hc.ValuesTemplate.Values
 
 	client := action.NewUpgrade(hc.Config)
 	client.Namespace = hc.Namespace.Name

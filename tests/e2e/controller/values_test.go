@@ -12,15 +12,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
-	valuesReleaseKind                          *helmv1alpha1.Release
-	valuesRelease                              *helmv1alpha1.Release
-	valuesReleaseChart                         *helmv1alpha1.Chart
-	valuesReleaseRepo, valuesReleaseRepoSecond *helmv1alpha1.Repository
-	values                                     *helmv1alpha1.Values
+	values *helmv1alpha1.Values
 )
 
 var _ = Context("Install a release with values", func() {
@@ -32,57 +27,141 @@ var _ = Context("Install a release with values", func() {
 		It("should create a new Repository resource with the specified name and specified url", func() {
 			ctx := context.Background()
 
-			By("should create a new namespace")
+			// wait on readiness of controllers
+			time.Sleep(2 * time.Second)
+
+			By("install a new namespace")
 			releaseNamespace := &v1.Namespace{
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
 			}
 
 			err = testClient.Create(ctx, releaseNamespace)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
-			By("should create a new Repository resources with the specified name and specified url")
-			valuesReleaseRepo = &helmv1alpha1.Repository{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: testRepoName,
-				},
-				Spec: helmv1alpha1.RepositorySpec{
-					Name: testRepoName,
-					URL:  testRepoURL,
-					Charts: []helmv1alpha1.Entry{
+			chartOneAssert := &ChartAssert{
+				Name:    testRepoChartNameAssert,
+				Version: testRepoChartNameAssertqVersion,
+			}
+
+			chartOneAssert.setDefault(testRepoName)
+
+			chartTwoAssert := &ChartAssert{
+				Name:    testRepoChartSecondNameAssert,
+				Version: testRepoChartSecondNameAssertVersion,
+			}
+
+			chartTwoAssert.setDefault(testRepoNameSecond)
+
+			chartThreeAssert := &ChartAssert{
+				Name:    testRepoChartThirdNameAssert,
+				Version: testRepoChartThirdNameAssertVersion,
+			}
+
+			chartThreeAssert.setDefault(testRepoName)
+
+			repoOneAssert := RepositoryAssert{
+				Name:          testRepoName,
+				ManagedCharts: []*ChartAssert{chartOneAssert, chartThreeAssert},
+			}
+
+			repoOneAssert.setDefault()
+
+			repoTwoAssert := RepositoryAssert{
+				Name:          testRepoNameSecond,
+				ManagedCharts: []*ChartAssert{chartTwoAssert},
+			}
+
+			repoTwoAssert.setDefault()
+
+			repoOneAssert.Do(namespace)
+			repoTwoAssert.Do(namespace)
+
+			By("creating needed repository group resource")
+
+			releaseRepoGroup = &helmv1alpha1.RepoGroup{
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{Name: testRepoName},
+				Spec: helmv1alpha1.RepoGroupSpec{
+					LabelSelector: "foo",
+					Repos: []helmv1alpha1.RepositorySpec{
 						{
-							Name:     "testing",
-							Versions: []string{"0.1.0"},
+							Name: testRepoName,
+							URL:  testRepoURL,
+							Charts: []helmv1alpha1.Entry{
+								{
+									Name:     testReleaseChartName,
+									Versions: []string{testReleaseChartVersion},
+								},
+								{
+									Name:     testReleaseChartThirdNameAssert,
+									Versions: []string{testReleaseChartThirdNameAssertVersion},
+								},
+							},
 						},
 						{
-							Name:     "testing-nested",
-							Versions: []string{"0.1.0"},
+							Name: testRepoNameSecond,
+							URL:  testRepoURLSecond,
+							Charts: []helmv1alpha1.Entry{
+								{
+									Name:     testReleaseChartNameSecond,
+									Versions: []string{testReleaseChartVersionSecond},
+								},
+							},
 						},
 					},
 				},
 			}
 
-			err = testClient.Create(context.Background(), valuesReleaseRepo)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+			err = testClient.Create(ctx, releaseRepoGroup)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
-			valuesReleaseRepoSecond = &helmv1alpha1.Repository{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: testRepoNameSecond,
-				},
-				Spec: helmv1alpha1.RepositorySpec{
-					Name: testRepoNameSecond,
-					URL:  testRepoURLSecond,
-					Charts: []helmv1alpha1.Entry{
-						{
-							Name:     "testing-dep",
-							Versions: []string{"0.1.0"},
-						},
+			chartOneAssert.setEverythingInstalled()
+			chartTwoAssert.setEverythingInstalled()
+			chartThreeAssert.setEverythingInstalled()
+
+			repoOneAssert.setEverythingInstalled()
+			repoTwoAssert.setEverythingInstalled()
+
+			repoOneAssert.Do(namespace)
+			repoTwoAssert.Do(namespace)
+
+			By("creating a new release resource with a valid repository and version")
+
+			releaseAssert := &ReleaseAssert{
+				Name: testReleaseName,
+				Obj: &helmv1alpha1.Release{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testReleaseName,
+						Namespace: namespace,
 					},
+				},
+				IsPresent: true,
+			}
+
+			releaseAssert.Obj = &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testReleaseName,
+					Namespace: namespace,
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:      testReleaseName,
+					Namespace: &namespace,
+					Chart:     testReleaseChartName,
+					Repo:      testRepoName,
+					Version:   testReleaseChartVersion,
 				},
 			}
 
-			err = testClient.Create(context.Background(), valuesReleaseRepoSecond)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+			err = testClient.Create(context.Background(), releaseAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+			releaseAssert.IsPresent = true
+			releaseAssert.Status = "success"
+			releaseAssert.Synced = BeTrue()
+			releaseAssert.Revision = 1
+
+			releaseAssert.Do(namespace)
 
 			By("should create a new values resource with specified")
 
@@ -150,6 +229,15 @@ var _ = Context("Install a release with values", func() {
 
 			By("should create a new values resource with specified")
 
+			nestedMap = map[string]string{
+				"bat": "fat",
+			}
+
+			valuesSpec = map[string]interface{}{
+				"foobar": "barfoo",
+				"doo":    nestedMap,
+			}
+
 			valuesSpecRaw, err = json.Marshal(valuesSpec)
 			Expect(err).NotTo(HaveOccurred(), "failed to convert values")
 
@@ -168,68 +256,26 @@ var _ = Context("Install a release with values", func() {
 			err = testClient.Create(context.Background(), values)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
+			time.Sleep(time.Second)
+
 			By("should create a new Release resource with specified")
 
-			deployment := &helmv1alpha1.Repository{}
-			valuesReleaseChart = &helmv1alpha1.Chart{}
-			valuesRelease = &helmv1alpha1.Release{}
-			configmap := &v1.ConfigMap{}
-
-			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName}, deployment),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, valuesReleaseChart),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			valuesReleaseKind = &helmv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      testReleaseName,
-					Namespace: namespace,
-				},
-				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    testReleaseName,
-					Chart:   testReleaseChartName,
-					Repo:    testRepoName,
-					Version: testReleaseChartVersion,
-					Values: []string{
-						"testresource",
-						"notpresent",
-					},
+			releaseAssert.Obj.Spec = helmv1alpha1.ReleaseSpec{
+				Name:    testReleaseName,
+				Chart:   testReleaseChartName,
+				Repo:    testRepoName,
+				Version: testReleaseChartVersion,
+				Values: []string{
+					"testresource",
 				},
 			}
 
-			err = testClient.Create(context.Background(), valuesReleaseKind)
+			err = testClient.Update(context.Background(), releaseAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			Eventually(
-				GetReleaseFunc(context.Background(), client.ObjectKey{Name: testReleaseName, Namespace: valuesReleaseKind.Namespace}, valuesRelease),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
+			releaseAssert.Revision = 2
 
-			Expect(valuesRelease.ObjectMeta.Name).To(Equal(testReleaseName))
-
-			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, valuesReleaseChart),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Eventually(
-				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-tmpl-" + testReleaseChartName + "-" + testReleaseChartVersion, Namespace: valuesReleaseKind.Namespace}, configmap),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(configmap.ObjectMeta.Name).To(Equal("helm-tmpl-" + testReleaseChartName + "-" + testReleaseChartVersion))
-
-			Eventually(
-				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-crds-" + testReleaseChartName + "-" + testReleaseChartVersion, Namespace: valuesReleaseKind.Namespace}, configmap),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(configmap.ObjectMeta.Name).To(Equal("helm-crds-" + testReleaseChartName + "-" + testReleaseChartVersion))
-
-			Eventually(
-				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-default-" + testReleaseChartName + "-" + testReleaseChartVersion, Namespace: valuesReleaseKind.Namespace}, configmap),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
-
-			Expect(configmap.ObjectMeta.Name).To(Equal("helm-default-" + testReleaseChartName + "-" + testReleaseChartVersion))
+			releaseAssert.Do(namespace)
 
 			By("should update release after changing value resource")
 
@@ -255,64 +301,43 @@ var _ = Context("Install a release with values", func() {
 			err = testClient.Update(context.Background(), values)
 			Expect(err).NotTo(HaveOccurred(), "failed to update values resource")
 
-			secondValuesReleaseKind := &helmv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      testReleaseNameSecond,
-					Namespace: namespace,
-				},
-				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    testReleaseNameSecond,
-					Chart:   testReleaseChartNameSecond,
-					Repo:    testRepoNameSecond,
-					Version: testReleaseChartVersionSecond,
-					Values: []string{
-						"testresource",
-					},
-				},
+			releaseAssert.Revision = 3
+
+			releaseAssert.Do(namespace)
+
+			releaseAssert.Obj.Spec.Values = []string{
+				"testresource",
+				"notpresent",
 			}
 
-			err = testClient.Create(context.Background(), secondValuesReleaseKind)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+			err = testClient.Update(context.Background(), releaseAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to udpate test resource")
+
+			releaseAssert.Do(namespace)
 
 			By("should remove this Release resource with the specified configmaps after deletion")
 
-			err = testClient.Delete(context.Background(), valuesReleaseKind)
+			err = testClient.Delete(context.Background(), releaseAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			err = testClient.Delete(context.Background(), secondValuesReleaseKind)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
+			releaseAssert.IsPresent = false
 
-			Eventually(
-				GetReleaseFunc(context.Background(), client.ObjectKey{Name: testReleaseName, Namespace: valuesReleaseKind.Namespace}, valuesRelease),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+			releaseAssert.Do(namespace)
 
-			By("should remove this Repository resources with the specified name and specified url")
+			By("should remove this Repository resource with the specified name and specified url")
 
-			err = testClient.Delete(context.Background(), valuesReleaseRepo)
-			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
+			err = testClient.Delete(context.Background(), releaseRepoGroup)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
-			err = testClient.Delete(context.Background(), valuesReleaseRepoSecond)
-			Expect(err).NotTo(HaveOccurred(), "failed to delete test MyKind resource")
+			chartOneAssert.setDefault(testRepoName)
+			chartTwoAssert.setDefault(testRepoNameSecond)
+			chartThreeAssert.setDefault(testRepoName)
 
-			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName}, deployment),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+			repoOneAssert.setDefault()
+			repoTwoAssert.setDefault()
 
-			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testReleaseChartName + "-" + testRepoName}, valuesReleaseChart),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
-
-			Eventually(
-				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-tmpl-" + testReleaseChartName + "-" + testReleaseChartVersion, Namespace: valuesReleaseKind.Namespace}, configmap),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
-
-			Eventually(
-				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-crds-" + testReleaseChartName + "-" + testReleaseChartVersion, Namespace: valuesReleaseKind.Namespace}, configmap),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
-
-			Eventually(
-				GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-default-" + testReleaseChartName + "-" + testReleaseChartVersion, Namespace: valuesReleaseKind.Namespace}, configmap),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+			repoOneAssert.Do(namespace)
+			repoTwoAssert.Do(namespace)
 
 			By("by deletion of namespace")
 			releaseNamespace = &v1.Namespace{

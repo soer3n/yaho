@@ -2,6 +2,7 @@ package helm
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -20,6 +21,8 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // GetTestReleaseSpecs returns testcases for testing release cr
@@ -29,8 +32,8 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 		{
 			ReturnValue: GetTestReleaseChartConfigMapsValid(),
 			ReturnError: map[string]error{
-				"init":   nil,
-				"update": nil,
+				"init":   errors.New("no references for parent resource"),
+				"update": k8serrors.NewBadRequest("chart not loaded on action update"),
 				"remove": nil,
 			},
 			Input: &helmv1alpha1.Release{
@@ -50,8 +53,8 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 		{
 			ReturnValue: GetTestReleaseChartConfigMapsValid(),
 			ReturnError: map[string]error{
-				"init":   nil,
-				"update": nil,
+				"init":   errors.New("no references for parent resource"),
+				"update": k8serrors.NewBadRequest("chart not loaded on action update"),
 				"remove": nil,
 			},
 			Input: &helmv1alpha1.Release{
@@ -111,67 +114,79 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 					Config:  &config,
 				},
 			},
-		},
-		/*{
-			ReturnValue: GetTestReleaseChartConfigMapsValid(),
-			ReturnError: nil,
-			Input: &helmv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "release",
-					Namespace: "foo",
-					Labels: map[string]string{
-						"label": "selector",
+		}, /*
+			{
+				ReturnValue: GetTestReleaseChartConfigMapsValid(),
+				ReturnError: map[string]error{
+					"init":   nil,
+					"update": nil,
+					"remove": nil,
+				},
+				Input: &helmv1alpha1.Release{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "release",
+						Namespace: "foo",
+						Labels: map[string]string{
+							"label": "selector",
+						},
+					},
+					Spec: helmv1alpha1.ReleaseSpec{
+						Name:    "release",
+						Chart:   "chart",
+						Repo:    "repo",
+						Version: "0.0.1",
+						Values:  []string{"notpresent"},
 					},
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    "release",
-					Chart:   "chart",
-					Repo:    "repo",
-					Version: "0.0.1",
-					Values:  []string{"notpresent"},
-				},
 			},
-		},
-		{
-			ReturnValue: []v1.ConfigMap{},
-			ReturnError: k8serrors.NewBadRequest("chart not loaded on action update"),
-			Input: &helmv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "bar",
-					Labels: map[string]string{
-						"label": "selector",
+			{
+				ReturnValue: []v1.ConfigMap{},
+				ReturnError: map[string]error{
+					"init":   nil,
+					"update": k8serrors.NewBadRequest("chart not loaded on action update"),
+					"remove": nil,
+				},
+				Input: &helmv1alpha1.Release{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "bar",
+						Labels: map[string]string{
+							"label": "selector",
+						},
+					},
+					Spec: helmv1alpha1.ReleaseSpec{
+						Name:    "test",
+						Chart:   "notfound",
+						Repo:    "repo",
+						Version: "0.0.1",
+						Values:  []string{"notpresent"},
 					},
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    "test",
-					Chart:   "notfound",
-					Repo:    "repo",
-					Version: "0.0.1",
-					Values:  []string{"notpresent"},
-				},
 			},
-		},
-		{
-			ReturnValue: []v1.ConfigMap{},
-			ReturnError: k8serrors.NewBadRequest("chart not loaded on action update"),
-			Input: &helmv1alpha1.Release{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "baz",
-					Labels: map[string]string{
-						"label": "selector",
+			{
+				ReturnValue: []v1.ConfigMap{},
+				ReturnError: map[string]error{
+					"init":   nil,
+					"update": k8serrors.NewBadRequest("chart not loaded on action update"),
+					"remove": nil,
+				},
+				Input: &helmv1alpha1.Release{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "baz",
+						Labels: map[string]string{
+							"label": "selector",
+						},
+					},
+					Spec: helmv1alpha1.ReleaseSpec{
+						Name:    "test",
+						Chart:   "notfound",
+						Repo:    "notfound",
+						Version: "0.0.1",
+						Values:  []string{"notpresent"},
 					},
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
-					Name:    "test",
-					Chart:   "notfound",
-					Repo:    "notfound",
-					Version: "0.0.1",
-					Values:  []string{"notpresent"},
-				},
-			},
-		},*/
+			},*/
 	}
 }
 

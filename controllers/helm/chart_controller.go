@@ -39,7 +39,7 @@ import (
 
 // ChartReconciler reconciles a Chart object
 type ChartReconciler struct {
-	client.Client
+	client.WithWatch
 	WatchNamespace string
 	Log            logr.Logger
 	Scheme         *runtime.Scheme
@@ -66,6 +66,8 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	// fetch app instance
 	instance := &helmv1alpha1.Chart{}
 
+	reqLogger.Info("start reconcile loop")
+
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -80,8 +82,37 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	instance.Status.Versions = "notSynced"
-	instance.Status.Dependencies = "notSynced"
+	// set intial status
+	versions := "notSynced"
+	deps := "notSynced"
+	instance.Status.Versions = &versions
+	instance.Status.Dependencies = &deps
+
+	if instance.ObjectMeta.Labels == nil {
+		instance.ObjectMeta.Labels = map[string]string{}
+	}
+
+	_, repoLabelIsSet := instance.ObjectMeta.Labels["repo"]
+	_, chartLabelIsSet := instance.ObjectMeta.Labels["chart"]
+
+	if !chartLabelIsSet {
+		reqLogger.Info("update chart label")
+		// set chart as label
+		instance.ObjectMeta.Labels["chart"] = instance.Spec.Name
+		_ = r.WithWatch.Update(ctx, instance)
+	}
+
+	if !repoLabelIsSet {
+		reqLogger.Info("update repo label and add unmanaged label")
+		// set repository as label
+		instance.ObjectMeta.Labels["repo"] = instance.Spec.Repository
+		// set unmanaged label
+		instance.ObjectMeta.Labels["unmanaged"] = "true"
+		// update resource after modifying labels and exit current reconcile loop
+		_ = r.WithWatch.Update(ctx, instance)
+		// return ctrl.Result{}, nil
+	}
+
 	settings := utils.GetEnvSettings(map[string]string{})
 
 	g := http.Client{
@@ -97,14 +128,20 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		Log:     nopLogger,
 	}
 
-	hc := chart.New(instance, r.WatchNamespace, settings, r.Scheme, reqLogger, r.Client, &g, c)
+	hc, err := chart.New(instance, r.WatchNamespace, settings, r.Scheme, reqLogger, r.WithWatch, &g, c)
+
+	if err != nil {
+		reqLogger.Info("failed to initialize chart resource struct", "name", instance.ObjectMeta.Name)
+		return r.syncStatus(ctx, instance, metav1.ConditionTrue, "initChartFailed", err.Error())
+	}
 
 	if err := hc.Update(instance); err != nil {
 		reqLogger.Info("failed to updatechart resource", "name", instance.ObjectMeta.Name)
 		return r.syncStatus(ctx, instance, metav1.ConditionTrue, "createConfigmapsFailed", err.Error())
 	}
 
-	instance.Status.Versions = "synced"
+	versions = "synced"
+	instance.Status.Versions = &versions
 
 	if instance.Spec.CreateDeps {
 		if err := hc.CreateOrUpdateSubCharts(); err != nil {
@@ -112,9 +149,10 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return r.syncStatus(ctx, instance, metav1.ConditionTrue, "createDepsFailed", err.Error())
 
 		}
-	}
 
-	instance.Status.Dependencies = "synced"
+		deps = "synced"
+		instance.Status.Dependencies = &deps
+	}
 
 	reqLogger.Info("chart up to date", "name", instance.ObjectMeta.Name)
 
@@ -131,11 +169,12 @@ func (r *ChartReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1
 	meta.SetStatusCondition(&instance.Status.Conditions, condition)
 
 	if err := r.Status().Update(ctx, instance); err != nil {
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+		r.Log.Info("could not update status. reconcile", "chart", instance.ObjectMeta.Name)
+		return ctrl.Result{}, err
 	}
 
-	r.Log.Info("reconcile chart regular after sync.")
-	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	r.Log.Info("don't reconcile.", "chart", instance.ObjectMeta.Name)
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

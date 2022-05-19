@@ -19,7 +19,6 @@ func TestChartSubCharts(t *testing.T) {
 	settings := cli.New()
 	cases := testcases.GetTestHelmChartMaps()
 	clientMock, httpMock := helmmocks.GetChartMock()
-	var err error
 
 	_ = helmv1alpha1.AddToScheme(scheme.Scheme)
 
@@ -27,7 +26,8 @@ func TestChartSubCharts(t *testing.T) {
 
 	for _, v := range cases {
 		ver := v.Input.(*helmv1alpha1.Chart)
-		testObj := chart.New(ver, ver.Namespace, settings, scheme.Scheme, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj, err := chart.New(ver, ver.Namespace, settings, scheme.Scheme, logf.Log, clientMock, httpMock, kube.Client{})
+		assert.Equal(nil, err)
 		err = testObj.CreateOrUpdateSubCharts()
 		assert.Equal(v.ReturnError["subCharts"], err)
 
@@ -38,13 +38,13 @@ func TestChartUpdate(t *testing.T) {
 	settings := cli.New()
 	cases := testcases.GetTestHelmChartMaps()
 	clientMock, httpMock := helmmocks.GetChartMock()
-	var err error
 
 	assert := assert.New(t)
 
 	for _, v := range cases {
 		ver := v.Input.(*helmv1alpha1.Chart)
-		testObj := chart.New(ver, ver.Namespace, settings, &runtime.Scheme{}, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj, err := chart.New(ver, ver.Namespace, settings, &runtime.Scheme{}, logf.Log, clientMock, httpMock, kube.Client{})
+		assert.Equal(nil, err)
 		err = testObj.Update(ver)
 		assert.Equal(v.ReturnError["update"], err)
 

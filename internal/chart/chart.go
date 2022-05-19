@@ -16,7 +16,7 @@ import (
 )
 
 // New represents initialization of internal chart struct
-func New(instance *helmv1alpha1.Chart, namespace string, settings *cli.EnvSettings, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Chart {
+func New(instance *helmv1alpha1.Chart, namespace string, settings *cli.EnvSettings, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface, c kube.Client) (*Chart, error) {
 
 	var err error
 
@@ -27,7 +27,7 @@ func New(instance *helmv1alpha1.Chart, namespace string, settings *cli.EnvSettin
 
 	if err != nil {
 		logger.Info("Error on getting action config for chart")
-		return chart
+		return nil, err
 	}
 
 	logger.Info("init metadata")
@@ -38,7 +38,7 @@ func New(instance *helmv1alpha1.Chart, namespace string, settings *cli.EnvSettin
 
 	if err != nil {
 		chart.logger.Info(err.Error())
-		return chart
+		return nil, err
 	}
 
 	chart.index = *ix
@@ -46,9 +46,10 @@ func New(instance *helmv1alpha1.Chart, namespace string, settings *cli.EnvSettin
 	chart.logger.Info("set versions")
 	if err := chart.setVersions(instance, namespace, scheme); err != nil {
 		chart.logger.Info(err.Error())
+		return nil, err
 	}
 
-	return chart
+	return chart, nil
 }
 
 func (c *Chart) Update(instance *helmv1alpha1.Chart) error {
@@ -88,15 +89,15 @@ func (c *Chart) setVersions(instance *helmv1alpha1.Chart, namespace string, sche
 		}
 
 		if c.Deprecated == nil {
-			instance.Status.Deprecated = obj.Version.Deprecated
+			instance.Status.Deprecated = &obj.Version.Deprecated
 		}
 
 		if c.Type == nil {
-			instance.Status.Type = obj.Version.Type
+			instance.Status.Type = &obj.Version.Type
 		}
 
 		if c.Tags == nil {
-			instance.Status.Tags = obj.Version.Tags
+			instance.Status.Tags = &obj.Version.Tags
 		}
 
 		chartVersions = append(chartVersions, obj)
@@ -123,7 +124,7 @@ func (c *Chart) updateVersions() error {
 	return nil
 }
 
-func (c *Chart) setMetadata(instance *helmv1alpha1.Chart, namespace string, config *action.Configuration, settings *cli.EnvSettings, logger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface) {
+func (c *Chart) setMetadata(instance *helmv1alpha1.Chart, namespace string, config *action.Configuration, settings *cli.EnvSettings, logger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface) {
 	c.Name = instance.Spec.Name
 	c.Namespace = namespace
 	c.helmConfig = config

@@ -60,6 +60,8 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// fetch app instance
 	instance := &helmv1alpha1.RepoGroup{}
 
+	reqLogger.Info("start reconcile loop")
+
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -171,7 +173,13 @@ func (r *RepoGroupReconciler) deployRepo(g helmv1alpha1.Repository, instance *he
 		}
 		return
 	}
-	r.Log.Info("Repo already installed.", "group", instance.ObjectMeta.Name, "repo", repo.Name)
+
+	repo.ObjectMeta = installedRepo.ObjectMeta
+	if err = r.Client.Update(ctx, repo); err != nil {
+		r.Log.Error(err, "error on updated", "group", instance.ObjectMeta.Name, "repo", repo.Name)
+	}
+
+	r.Log.Info("repository resource updated.", "group", instance.ObjectMeta.Name, "repo", repo.Name)
 }
 
 // SetupWithManager sets up the controller with the Manager.

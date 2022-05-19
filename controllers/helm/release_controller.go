@@ -38,11 +38,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // ReleaseReconciler reconciles a Release object
 type ReleaseReconciler struct {
-	client.Client
+	client.WithWatch
 	WatchNamespace string
 	Log            logr.Logger
 	Scheme         *runtime.Scheme
@@ -68,6 +69,8 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// fetch app instance
 	instance := &helmv1alpha1.Release{}
+
+	reqLogger.Info("start reconcile loop")
 
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
@@ -107,12 +110,41 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		Log:     nopLogger,
 	}
 
-	instance.Status.Synced = false
+	synced := false
+	instance.Status.Synced = &synced
 
-	helmRelease, err := release.New(instance, r.WatchNamespace, r.Scheme, settings, reqLogger, r.Client, &g, c)
+	helmRelease, err := release.New(instance, r.WatchNamespace, r.Scheme, settings, reqLogger, r.WithWatch, &g, c)
+
+	if instance.Status.Revision == nil {
+
+		reqLogger.Info("set inital revision status")
+
+		status := "initResource"
+		instance.Status.Status = &status
+
+		initRevision := 0
+		instance.Status.Revision = &initRevision
+
+		if err := r.syncStatus(ctx, instance, metav1.ConditionFalse, "initResource", "start struct initialization", status, synced, initRevision); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	if err != nil {
-		return ctrl.Result{}, err
+		reqLogger.Info(err.Error(), "error on init struct", err.Error())
+		status := "initError"
+
+		if *instance.Status.Status == status {
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+
+		instance.Status.Status = &status
+
+		if err := r.syncStatus(ctx, instance, metav1.ConditionFalse, "initError", err.Error(), status, synced, helmRelease.Revision); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
@@ -134,7 +166,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{}, err
 		}
 
-		return ctrl.Result{}, nil
+		// return ctrl.Result{}, nil
 	}
 
 	if instance.Spec.Values == nil {
@@ -142,15 +174,25 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if err := helmRelease.Update(); err != nil {
-		instance.Status.Status = "updateFailed"
-		return r.syncStatus(ctx, instance, metav1.ConditionFalse, "updateFailed", err.Error())
+		status := "updateFailed"
+		instance.Status.Status = &status
+
+		if err := r.syncStatus(ctx, instance, metav1.ConditionFalse, "updateFailed", err.Error(), status, synced, helmRelease.Revision); err != nil {
+			reqLogger.Info(err.Error())
+		}
+
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	status := "success"
+	synced = true
+
+	if err := r.syncStatus(ctx, instance, metav1.ConditionTrue, "success", "all up to date", status, synced, helmRelease.Revision); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	reqLogger.Info("Don't reconcile releases.")
-	instance.Status.Status = "success"
-	instance.Status.Synced = true
-	instance.Status.Revision = helmRelease.Revision
-	return r.syncStatus(ctx, instance, metav1.ConditionTrue, "success", "all up to date")
+	return ctrl.Result{}, nil
 }
 
 func (r *ReleaseReconciler) handleFinalizer(helmRelease *release.Release, instance *helmv1alpha1.Release, isRepoMarkedToBeDeleted bool) (bool, error) {
@@ -169,27 +211,69 @@ func (r *ReleaseReconciler) handleFinalizer(helmRelease *release.Release, instan
 	return false, nil
 }
 
-func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Release, stats metav1.ConditionStatus, reason, message string) (ctrl.Result, error) {
-	c := meta.FindStatusCondition(instance.Status.Conditions, "synced")
-	if c != nil && c.Message == message && c.Status == stats {
-		return ctrl.Result{}, nil
+func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Release, stats metav1.ConditionStatus, reason, message, status string, synced bool, revision int) error {
+
+	r.Log.Info("sync status", "release", instance.GetName())
+	instanceLabels := instance.GetLabels()
+
+	r.Log.Info("current labels", "value", instanceLabels)
+
+	if _, ok := instanceLabels["helm.soer3n.info/reconcile"]; ok {
+
+		delete(instanceLabels, "helm.soer3n.info/reconcile")
+		instance.ObjectMeta.Labels = instanceLabels
+
+		if err := r.Update(ctx, instance); err != nil {
+			r.Log.Info("error on updating resource labels.", "error", err.Error())
+			return err
+		}
 	}
 
+	r.Log.Info("current status", "value", instance.Status)
+
+	instance.Status.Status = &status
+	instance.Status.Synced = &synced
+
+	c := meta.FindStatusCondition(instance.Status.Conditions, "synced")
+	if c != nil && c.Message == message && c.Status == stats {
+		if *instance.Status.Revision == revision {
+			r.Log.Info("status resource is already up to date.")
+			return nil
+		}
+	}
+
+	instance.Status.Revision = &revision
 	condition := metav1.Condition{Type: "synced", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
 	meta.SetStatusCondition(&instance.Status.Conditions, condition)
 
+	r.Log.Info("updated labels", "value", instanceLabels)
+	r.Log.Info("current release status", "value", instance.Status)
+
 	if err := r.Status().Update(ctx, instance); err != nil {
-		return ctrl.Result{}, err
+		r.Log.Info("error on status resource update.", "error", err.Error())
+		return err
 	}
 
-	r.Log.Info("Don't reconcile releases after sync.")
-	return ctrl.Result{}, nil
+	r.Log.Info("updated status", "value", instance.Status)
+	r.Log.Info("status resource and labels validated and updated.")
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ReleaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
+	selector := metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"helm.soer3n.info/reconcile": "true",
+		},
+	}
+
+	lsPredicate, _ := predicate.LabelSelectorPredicate(selector)
+	pred := predicate.Or(predicate.GenerationChangedPredicate{}, lsPredicate)
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&helmv1alpha1.Release{}).
+		WithEventFilter(pred).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 2}).
 		Complete(r)
 }

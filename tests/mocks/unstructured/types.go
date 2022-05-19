@@ -10,7 +10,7 @@ import (
 // K8SClientMock represents mock struct for k8s runtime client
 type K8SClientMock struct {
 	mock.Mock
-	client.Client
+	client.WithWatch
 }
 
 // K8SResourceMock represents struct for mocking a unstructured resource

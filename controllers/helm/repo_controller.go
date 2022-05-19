@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
@@ -88,6 +89,11 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	var hc *repository.Repo
 	var requeue bool
 
+	synced := false
+	if instance.Status.Synced == nil {
+		instance.Status.Synced = &synced
+	}
+
 	g := http.Client{
 		Timeout: time.Second * 10,
 		CheckRedirect: func(r *http.Request, via []*http.Request) error {
@@ -105,9 +111,12 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	hc = repository.New(instance, r.WatchNamespace, ctx, settings, reqLogger, r.Client, &g, c)
 
+	// TODO:
+	// should be before struct initialization
+	// or divided into two tasks (finalizer creation and deletion)
 	if requeue, err = r.handleFinalizer(hc, instance); err != nil {
 		reqLogger.Info("Failed on handling finalizer", "repo", instance.Spec.Name)
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+		return ctrl.Result{}, err
 	}
 
 	if requeue {
@@ -123,9 +132,12 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return r.syncStatus(ctx, instance, err)
 	}
 
+	synced = true
+	instance.Status.Synced = &synced
+
 	reqLogger.Info("Repo deployed", "name", instance.Spec.Name, "namespace", instance.ObjectMeta.Namespace)
 	reqLogger.Info("Don't reconcile repos.", "name", instance.Spec.Name)
-	return r.syncStatus(ctx, instance, err)
+	return r.syncStatus(ctx, instance, nil)
 }
 
 func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Repository, err error) (ctrl.Result, error) {
@@ -133,22 +145,55 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.
 	message := ""
 	reason := "install"
 
+	// fetch umanaged charts related to current repository
+	r.Log.Info("fetching unmanaged charts related to repository resource")
+	unmanagedCharts := &helmv1alpha1.ChartList{}
+	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap("repo=" + instance.Spec.Name)
+	labelSetUnmanaged, _ := labels.ConvertSelectorToLabelsMap("unmanaged=true")
+	ls := labels.Merge(labelSetRepo, labelSetUnmanaged)
+
+	r.Log.Info("selector", "labelset", ls)
+
+	opts := &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(ls),
+	}
+
+	if err := r.List(context.Background(), unmanagedCharts, opts); err != nil {
+		r.Log.Info("Error on listing unmanaged charts for repository %v", instance.Spec.Name)
+	}
+
+	r.Log.Info("unmanaged charts", "charts", unmanagedCharts.Items)
+
+	newChartCount := int64(len(instance.Spec.Charts) + len(unmanagedCharts.Items))
+	r.Log.Info("chartlength", "value", newChartCount)
+
 	if err != nil {
 		stats = metav1.ConditionFalse
 		message = err.Error()
 	}
 
-	if meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", stats) && instance.Status.Conditions[0].Message == message {
-		return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
+	condition := metav1.Condition{Type: "synced", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
+
+	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", stats) || instance.Status.Conditions[0].Message != message {
+		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+		instance.Status.Charts = &newChartCount
+		_ = r.Status().Update(ctx, instance)
+		return ctrl.Result{}, nil
 	}
 
-	condition := metav1.Condition{Type: "synced", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
-	meta.SetStatusCondition(&instance.Status.Conditions, condition)
+	if *instance.Status.Charts != newChartCount {
+		instance.Status.Charts = &newChartCount
+		_ = r.Status().Update(ctx, instance)
+		return ctrl.Result{}, nil
+	}
 
-	_ = r.Status().Update(ctx, instance)
+	if *instance.Status.Synced {
+		r.Log.Info("Reconcile repo after status sync regular in 10 seconds.", "repo", instance.ObjectMeta.Name)
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
 
-	r.Log.Info("Don't reconcile repo after status sync.", "repo", instance.ObjectMeta.Name)
-	return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
+	r.Log.Info("Reconcile unsynced repo in 10 seconds.", "repo", instance.ObjectMeta.Name)
+	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 }
 
 func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1alpha1.Repository) (bool, error) {
@@ -172,6 +217,6 @@ func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1al
 func (r *RepoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&helmv1alpha1.Repository{}).
-		WithOptions(controller.Options{MaxConcurrentReconciles: 2}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 }

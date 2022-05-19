@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -40,39 +41,46 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 	}
 
 	clientMock.On("Create", context.Background(), mock.MatchedBy(func(c *helmv1alpha1.Chart) bool {
-		return c.ObjectMeta.Name == chartMock.Name+"-"+chartMock.Repository
+		return c.ObjectMeta.Name == chartMock.Name
 	})).Return(ce)
 
 	clientMock.On("Update", context.Background(), mock.MatchedBy(func(c *helmv1alpha1.Chart) bool {
-		return c.ObjectMeta.Name == chartMock.Name+"-"+chartMock.Repository
+		return c.ObjectMeta.Name == chartMock.Name
 	})).Return(e)
 
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: chartMock.Name + "-" + chartMock.Repository}, &helmv1alpha1.Chart{}).Return(e).Run(func(args mock.Arguments) {
-		c := args.Get(2).(*helmv1alpha1.Chart)
+	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, mock.MatchedBy(func(cList []client.ListOption) bool {
+
+		opt := cList[0].(*client.ListOptions)
+
+		if opt.LabelSelector != nil {
+			return opt.LabelSelector.String() == "chart="+chartMock.Name+",repo="+chartMock.Repository
+		}
+
+		return false
+	})).Return(nil).Run(func(args mock.Arguments) {
+		c := args.Get(1).(*helmv1alpha1.ChartList)
+		c.Items = []helmv1alpha1.Chart{}
 		v := []string{}
 
 		for _, e := range chartMock.Versions {
 			v = append(v, e.Version)
 		}
 
-		spec := helmv1alpha1.Chart{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   chartMock.Name + "-" + chartMock.Repository,
-				Labels: chartMock.Labels,
-			},
-			Spec: helmv1alpha1.ChartSpec{
-				Name:       chartMock.Name,
-				Repository: chartMock.Repository,
-				Versions:   []string{},
-			},
+		if e == nil {
+			c.Items = []helmv1alpha1.Chart{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   chartMock.Name,
+						Labels: chartMock.Labels,
+					},
+					Spec: helmv1alpha1.ChartSpec{
+						Name:       chartMock.Name,
+						Repository: chartMock.Repository,
+						Versions:   []string{},
+					},
+				},
+			}
 		}
-
-		if chartMock.IsPresent {
-			spec.Spec.Versions = v
-		}
-
-		c.Spec = spec.Spec
-		c.ObjectMeta = spec.ObjectMeta
 	})
 
 	cl := &helmv1alpha1.ChartList{}
@@ -82,7 +90,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 
 		cl.Items = append(cl.Items, helmv1alpha1.Chart{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: v.Chart + "-" + chartMock.Repository,
+				Name: v.Chart,
 			},
 			Spec: helmv1alpha1.ChartSpec{
 				Name:       v.Chart,
@@ -130,7 +138,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 
 			it := helmv1alpha1.Chart{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: d.Chart + "-" + chartMock.Repository,
+					Name: d.Chart,
 				},
 				Spec: helmv1alpha1.ChartSpec{
 					Name:       d.Chart,
@@ -156,27 +164,69 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 				op = "Create"
 			}
 
-			clientMock.On("Get", context.Background(), types.NamespacedName{Name: d.Chart + "-" + chartMock.Repository}, &helmv1alpha1.Chart{}).Return(e).Run(func(args mock.Arguments) {
-				c := args.Get(2).(*helmv1alpha1.Chart)
+			clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, mock.MatchedBy(func(cList []client.ListOption) bool {
 
-				spec := helmv1alpha1.Chart{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: d.Chart + "-" + chartMock.Repository,
-					},
-					Spec: helmv1alpha1.ChartSpec{
-						Name:       d.Chart,
-						Repository: chartMock.Repository,
-						Versions:   []string{},
-					},
+				opt := cList[0].(*client.ListOptions)
+
+				if opt.LabelSelector != nil {
+					return opt.LabelSelector.String() == "chart="+d.Chart+",repo="+chartMock.Repository
 				}
 
-				if d.IsPresent {
-					spec.Spec.Versions = []string{d.Version}
-				}
+				return false
+			})).Return(nil).Run(func(args mock.Arguments) {
+				c := args.Get(1).(*helmv1alpha1.ChartList)
+				c.Items = []helmv1alpha1.Chart{}
 
-				c.Spec = spec.Spec
-				c.ObjectMeta = spec.ObjectMeta
+				if e == nil {
+					c.Items = []helmv1alpha1.Chart{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: d.Chart,
+							},
+							Spec: helmv1alpha1.ChartSpec{
+								Name:       d.Chart,
+								Repository: chartMock.Repository,
+								Versions:   []string{},
+							},
+						},
+					}
+
+					if d.IsPresent {
+						c.Items[0].Spec.Versions = []string{d.Version}
+					}
+				}
 			})
+
+			watchChan := watch.NewFake()
+			synced := "synced"
+			watchList := &helmv1alpha1.ChartList{
+				Items: []helmv1alpha1.Chart{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: d.Chart,
+						},
+						Spec: helmv1alpha1.ChartSpec{
+							Name:       d.Chart,
+							Repository: chartMock.Repository,
+							Versions:   []string{},
+						},
+						Status: helmv1alpha1.ChartStatus{
+							Dependencies: &synced,
+							Versions:     &synced,
+						},
+					},
+				},
+			}
+
+			clientMock.On("Watch", context.Background(), mock.MatchedBy(func(c *helmv1alpha1.ChartList) bool {
+				return d.Chart+"-"+chartMock.Repository == c.Items[0].GetName()
+			})).Return(
+				watchChan, nil,
+			).Run(func(args mock.Arguments) {
+				go func() {
+					watchChan.Modify(&watchList.Items[0])
+				}()
+			}).Once()
 
 			clientMock.On(op, context.Background(), mock.MatchedBy(func(c *helmv1alpha1.Chart) bool {
 				return d.Chart+"-"+chartMock.Repository == c.Name

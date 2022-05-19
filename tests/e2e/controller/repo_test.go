@@ -2,34 +2,29 @@ package helm
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var (
-	repoKind   *helmv1alpha1.Repository
-	deployment *helmv1alpha1.Repository
-	repoChart  *helmv1alpha1.Chart
-)
+var _ = Context("Install and configure a repository", func() {
 
-var _ = Context("Install a repository", func() {
+	obj := setupNamespace()
+	namespace := obj.ObjectMeta.Name
+
 	Describe("when no existing resource exist", func() {
-
-		obj := setupNamespace()
-		namespace := obj.ObjectMeta.Name
 
 		It("should start with creating dependencies", func() {
 			ctx := context.Background()
 
-			// namespace = "test-" + randStringRunes(7)
+			// wait on readiness of controllers
+			time.Sleep(2 * time.Second)
 
 			By("install a new namespace")
 			repoNamespace := &v1.Namespace{
@@ -40,55 +35,195 @@ var _ = Context("Install a repository", func() {
 			err = testClient.Create(ctx, repoNamespace)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test MyKind resource")
 
-			By("creating a new repository resource with the specified name and specified url")
-			repoKind = &helmv1alpha1.Repository{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: testRepoName,
+			chartOneAssert := &ChartAssert{
+				Name:               testRepoChartNameAssert,
+				Version:            testRepoChartNameAssertqVersion,
+				IsPresent:          BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "helm.soer3n.info"}, "testing-testresource")),
+				IndicesInstalled:   BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-testresource-testing-index")),
+				ResourcesInstalled: BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present")),
+				Synced:             BeFalse(),
+				Deps:               BeFalse(),
+			}
+
+			chartTwoAssert := &ChartAssert{
+				Name:               testRepoChartSecondNameAssert,
+				Version:            testRepoChartSecondNameAssertVersion,
+				IsPresent:          BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "helm.soer3n.info"}, "testing-dep-testresource-2")),
+				IndicesInstalled:   BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-testresource-2-testing-dep-index")),
+				ResourcesInstalled: BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present")),
+				Synced:             BeFalse(),
+				Deps:               BeFalse(),
+			}
+
+			chartThreeAssert := &ChartAssert{
+				Name:               testRepoChartThirdNameAssert,
+				Version:            testRepoChartThirdNameAssertVersion,
+				IsPresent:          BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "helm.soer3n.info"}, "testing-nested-testresource")),
+				IndicesInstalled:   BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-testresource-testing-nested-index")),
+				ResourcesInstalled: BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present")),
+				Synced:             BeFalse(),
+				Deps:               BeFalse(),
+			}
+
+			repoOneAssert := RepositoryAssert{
+				Name:            testRepoName,
+				IsPresent:       false,
+				Synced:          BeFalse(),
+				Status:          BeFalse(),
+				InstalledCharts: int64(0),
+				ManagedCharts:   []*ChartAssert{chartOneAssert, chartThreeAssert},
+			}
+
+			repoTwoAssert := RepositoryAssert{
+				Name:            testRepoNameSecond,
+				IsPresent:       false,
+				Synced:          BeFalse(),
+				Status:          BeFalse(),
+				InstalledCharts: int64(0),
+				ManagedCharts:   []*ChartAssert{chartTwoAssert},
+			}
+
+			repoOneAssert.Obj = &helmv1alpha1.Repository{ObjectMeta: metav1.ObjectMeta{Name: testRepoName}}
+			repoTwoAssert.Obj = &helmv1alpha1.Repository{ObjectMeta: metav1.ObjectMeta{Name: testRepoNameSecond}}
+
+			chartOneAssert.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartOneAssert.Name}}
+			chartTwoAssert.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartTwoAssert.Name}}
+			chartThreeAssert.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartThreeAssert.Name}}
+
+			repoOneAssert.Do(namespace)
+			repoTwoAssert.Do(namespace)
+
+			By("creating a new repository resource with wrong url")
+
+			repoOneAssert.Obj.Spec = helmv1alpha1.RepositorySpec{
+				Name:   testRepoName,
+				URL:    testRepoURL + "foo",
+				Charts: []helmv1alpha1.Entry{},
+			}
+
+			err = testClient.Create(context.Background(), repoOneAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+			repoOneAssert.IsPresent = true
+
+			repoOneAssert.Do(namespace)
+			repoTwoAssert.Do(namespace)
+
+			By("updating the repository resource with correct url")
+
+			repoOneAssert.Obj.Spec.URL = testRepoURL
+
+			err = testClient.Update(context.Background(), repoOneAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+			repoOneAssert.Status = BeTrue()
+			repoOneAssert.Synced = BeNil()
+			chartOneAssert.IndicesInstalled = BeNil()
+
+			chartThreeAssert.IndicesInstalled = BeNil()
+
+			repoOneAssert.Do(namespace)
+			repoTwoAssert.Do(namespace)
+
+			By("updating the repository resource with charts should create index configmaps")
+
+			repoOneAssert.Obj.Spec.Charts = []helmv1alpha1.Entry{
+				{
+					Name:     testRepoChartNameAssert,
+					Versions: []string{},
 				},
-				Spec: helmv1alpha1.RepositorySpec{
-					Name: "deployment-name",
-					URL:  testRepoURL,
-					Charts: []helmv1alpha1.Entry{
-						{
-							Name:     "testing",
-							Versions: []string{"0.1.0"},
-						},
-						{
-							Name:     "testing-nested",
-							Versions: []string{"0.1.0"},
-						},
-					},
+				{
+					Name:     testRepoChartThirdNameAssert,
+					Versions: []string{},
 				},
 			}
 
-			err = testClient.Create(context.Background(), repoKind)
+			err = testClient.Update(context.Background(), repoOneAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
-			deployment = &helmv1alpha1.Repository{}
-			repoChart = &helmv1alpha1.Chart{}
+			repoOneAssert.InstalledCharts = int64(2)
 
-			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName}, deployment),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
+			chartOneAssert.IsPresent = BeNil()
+			chartOneAssert.Synced = BeTrue()
+			chartOneAssert.Deps = BeTrue()
 
-			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert + "-" + testRepoName}, repoChart),
-				time.Second*20, time.Millisecond*1500).Should(BeNil())
+			chartThreeAssert.IsPresent = BeNil()
+			chartThreeAssert.Synced = BeTrue()
+			chartThreeAssert.Deps = BeTrue()
 
-			By("should remove this repository resource with the specified name and specified url")
+			repoOneAssert.Do(namespace)
+			repoTwoAssert.Do(namespace)
 
-			err = testClient.Delete(context.Background(), repoKind)
+			By("updating the repository resource with chart versions belonging to it should create configmaps for chart version")
+
+			repoOneAssert.Obj.Spec.Charts = []helmv1alpha1.Entry{
+				{
+					Name:     testRepoChartNameAssert,
+					Versions: []string{testRepoChartNameAssertqVersion},
+				},
+				{
+					Name:     testRepoChartThirdNameAssert,
+					Versions: []string{testRepoChartThirdNameAssertVersion},
+				},
+			}
+
+			err = testClient.Update(context.Background(), repoOneAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+			chartOneAssert.ResourcesInstalled = BeNil()
+			chartOneAssert.Deps = BeTrue()
+
+			chartThreeAssert.ResourcesInstalled = BeNil()
+			chartThreeAssert.Deps = BeTrue()
+
+			repoOneAssert.Do(namespace)
+			repoTwoAssert.Do(namespace)
+
+			By("deleting the first chart of the repository resource")
+
+			repoOneAssert.Obj.Spec.Charts = []helmv1alpha1.Entry{
+				{
+					Name:     testRepoChartThirdNameAssert,
+					Versions: []string{testRepoChartThirdNameAssertVersion},
+				},
+			}
+
+			err = testClient.Update(context.Background(), repoOneAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+			chartOneAssert.IsPresent = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "helm.soer3n.info"}, testRepoChartNameAssert+"-"+testRepoName))
+			chartOneAssert.ResourcesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present"))
+			chartOneAssert.Synced = BeFalse()
+			chartOneAssert.Deps = BeFalse()
+
+			repoOneAssert.InstalledCharts = int64(1)
+
+			repoOneAssert.Do(namespace)
+			repoTwoAssert.Do(namespace)
+
+			By("deleting the repository resource should also cleanup related resources")
+
+			err = testClient.Delete(context.Background(), repoOneAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")
 
-			Eventually(
-				GetResourceFunc(context.Background(), client.ObjectKey{Name: testRepoName}, deployment),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+			chartOneAssert.IndicesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-testresource-testing-index"))
 
-			Eventually(
-				GetChartFunc(context.Background(), client.ObjectKey{Name: testRepoChartNameAssert + "-" + testRepoName}, repoChart),
-				time.Second*20, time.Millisecond*1500).ShouldNot(BeNil())
+			chartThreeAssert.IsPresent = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "helm.soer3n.info"}, testRepoChartThirdNameAssert+"-"+testRepoName))
+			chartThreeAssert.IndicesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-testresource-testing-nested-index"))
+			chartThreeAssert.Deps = BeFalse()
+			chartThreeAssert.Synced = BeFalse()
+			chartThreeAssert.ResourcesInstalled = BeFalse()
+
+			repoOneAssert.IsPresent = false
+			repoOneAssert.InstalledCharts = int64(0)
+			repoOneAssert.Status = BeFalse()
+			repoOneAssert.Synced = BeFalse()
+
+			repoOneAssert.Do(namespace)
+			repoTwoAssert.Do(namespace)
 
 			By("by deletion of namespace test should finish successfully")
+
 			repoNamespace = &v1.Namespace{
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: namespace},
@@ -99,24 +234,3 @@ var _ = Context("Install a repository", func() {
 		})
 	})
 })
-
-func GetResourceFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repository) func() error {
-	return func() error {
-		if err := testClient.Get(ctx, key, obj); err != nil {
-			return err
-		}
-
-		if len(obj.Status.Conditions) > 0 {
-			return nil
-		}
-
-		fmt.Println("status error")
-		return &errors.StatusError{}
-	}
-}
-
-func GetChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() error {
-	return func() error {
-		return testClient.Get(ctx, key, obj)
-	}
-}

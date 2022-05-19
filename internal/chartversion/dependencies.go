@@ -25,7 +25,7 @@ import (
 func (chartVersion *ChartVersion) addDependencies() error {
 
 	repoSelector := make(map[string]string)
-	group := new(string)
+	var group *string
 
 	chartVersion.logger.Info("set selector")
 	if _, ok := chartVersion.owner.ObjectMeta.Labels["repoGroup"]; ok {
@@ -144,30 +144,38 @@ func (chartVersion *ChartVersion) getRepoName(dep *chart.Dependency, group *stri
 
 	repository := chartVersion.repo.Spec.Name
 
-	if chartVersion.Obj != nil {
+	// if chartVersion.Obj != nil {
+
+	// TODO: more logic needed for handling unmanaged charts !!!
+	if chartVersion.repo.Spec.URL != dep.Repository {
+
+		ls := labels.Set{}
 
 		if group != nil {
-			repoList := &helmv1alpha1.RepositoryList{}
+			// filter repositories by group selector if set
+			ls = labels.Merge(ls, labels.Set{"repoGroup": *group})
+		}
 
-			if err := chartVersion.k8sClient.List(context.Background(), repoList, &client.ListOptions{
-				LabelSelector: labels.SelectorFromSet(labels.Set{"repoGroup": *group}),
-				// Namespace:     chartVersion.owner.Namespace,
-			}); err != nil {
-				return repository, err
-			}
+		repoList := &helmv1alpha1.RepositoryList{}
 
-			if len(repoList.Items) == 0 {
-				return repository, nil
-			}
+		if err := chartVersion.k8sClient.List(context.Background(), repoList, &client.ListOptions{
+			LabelSelector: labels.SelectorFromSet(ls),
+		}); err != nil {
+			return repository, err
+		}
 
-			for _, r := range repoList.Items {
-				if r.Spec.URL == dep.Repository {
-					return r.Name, nil
+		if len(repoList.Items) == 0 {
+			return repository, nil
+		}
 
-				}
+		for _, r := range repoList.Items {
+			if r.Spec.URL == dep.Repository {
+				return r.Name, nil
+
 			}
 		}
 	}
+	// }
 
 	return repository, nil
 }

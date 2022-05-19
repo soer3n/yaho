@@ -28,7 +28,7 @@ type Release struct {
 	Config           *action.Configuration
 	Settings         *cli.EnvSettings
 	Client           *action.Install
-	K8sClient        client.Client
+	K8sClient        client.WithWatch
 	scheme           *runtime.Scheme
 	getter           utils.HTTPClientInterface
 	logger           logr.Logger

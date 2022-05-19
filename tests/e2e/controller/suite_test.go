@@ -23,15 +23,19 @@ import (
 	mr "math/rand"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/types"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	controllers "github.com/soer3n/yaho/controllers/helm"
 	v1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -55,22 +59,64 @@ var (
 )
 
 const (
-	testRepoName                  = "testresource"
-	testRepoURL                   = "https://soer3n.github.io/charts/testing_a"
-	testRepoNameSecond            = "testresource-2"
-	testRepoURLSecond             = "https://soer3n.github.io/charts/testing_b"
-	testRepoChartNameAssert       = "testing"
-	testRepoChartSecondNameAssert = "testing-dep"
+	testRepoName                         = "testresource"
+	testRepoURL                          = "https://soer3n.github.io/charts/testing_a"
+	testRepoNameSecond                   = "testresource-2"
+	testRepoURLSecond                    = "https://soer3n.github.io/charts/testing_b"
+	testRepoChartNameAssert              = "testing"
+	testRepoChartNameAssertqVersion      = "0.1.1"
+	testRepoChartSecondNameAssert        = "testing-dep"
+	testRepoChartSecondNameAssertVersion = "0.1.1"
+	testRepoChartThirdNameAssert         = "testing-nested"
+	testRepoChartThirdNameAssertVersion  = "0.1.0"
+	testRepoChartNotValidVersion         = "9.9.9"
 )
 
 const (
-	testReleaseName               = "testresource"
-	testReleaseChartName          = "testing"
-	testReleaseChartVersion       = "0.1.0"
-	testReleaseNameSecond         = "testresource-2"
-	testReleaseChartNameSecond    = "testing-dep"
-	testReleaseChartVersionSecond = "0.1.0"
+	testReleaseName                        = "testresource"
+	testReleaseChartName                   = "testing"
+	testReleaseChartVersion                = "0.1.1"
+	testReleaseNameSecond                  = "testresource-2"
+	testReleaseChartNameSecond             = "testing-dep"
+	testReleaseChartVersionSecond          = "0.1.1"
+	testReleaseChartThirdNameAssert        = "testing-nested"
+	testReleaseChartThirdNameAssertVersion = "0.1.0"
+	testReleaseChartNotValidVersion        = "9.9.9"
 )
+
+type ChartAsserts struct {
+	Items []*ChartAssert
+}
+
+type RepositoryAssert struct {
+	Name            string
+	Obj             *helmv1alpha1.Repository
+	IsPresent       bool
+	InstalledCharts int64
+	Status          types.GomegaMatcher
+	Synced          types.GomegaMatcher
+	ManagedCharts   []*ChartAssert
+}
+
+type ChartAssert struct {
+	Name               string
+	Obj                *helmv1alpha1.Chart
+	Version            string
+	IsPresent          types.GomegaMatcher
+	IndicesInstalled   types.GomegaMatcher
+	ResourcesInstalled types.GomegaMatcher
+	Synced             types.GomegaMatcher
+	Deps               types.GomegaMatcher
+}
+
+type ReleaseAssert struct {
+	Name      string
+	Obj       *helmv1alpha1.Release
+	IsPresent bool
+	Revision  int
+	Synced    types.GomegaMatcher
+	Status    string
+}
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -92,6 +138,14 @@ func setupNamespace() *v1.Namespace {
 		mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
+		config := mgr.GetConfig()
+		rc, err := client.NewWithWatch(config, client.Options{Scheme: mgr.GetScheme(), Mapper: mgr.GetRESTMapper()})
+
+		if err != nil {
+			logf.Log.Error(err, "failed to setup rest client")
+			os.Exit(1)
+		}
+
 		err = (&controllers.RepoReconciler{
 			Client:         mgr.GetClient(),
 			WatchNamespace: ns,
@@ -110,7 +164,7 @@ func setupNamespace() *v1.Namespace {
 		Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
 
 		err = (&controllers.ChartReconciler{
-			Client:         mgr.GetClient(),
+			WithWatch:      rc,
 			WatchNamespace: ns,
 			Log:            logf.Log,
 			Scheme:         mgr.GetScheme(),
@@ -128,7 +182,7 @@ func setupNamespace() *v1.Namespace {
 		Expect(err).NotTo(HaveOccurred(), "failed to setup release group controller")
 
 		err = (&controllers.ReleaseReconciler{
-			Client:         mgr.GetClient(),
+			WithWatch:      rc,
 			WatchNamespace: ns,
 			Log:            logf.Log,
 			Scheme:         mgr.GetScheme(),
@@ -215,4 +269,311 @@ func randStringRunes(n int) string {
 		b[i] = letterRunes[n.Uint64()]
 	}
 	return string(b)
+}
+
+func GetRepositoryFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repository) func() error {
+	return func() error {
+		if err := testClient.Get(ctx, key, obj); err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
+func GetRepositoryStatusFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repository) func() bool {
+	return func() bool {
+		if err := testClient.Get(ctx, key, obj); err != nil {
+			return false
+		}
+
+		if obj.Status.Synced == nil {
+			return false
+		}
+
+		if *obj.Status.Synced {
+			return true
+		}
+
+		return false
+	}
+}
+
+func GetRepositoryCountFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repository) func() *int64 {
+	return func() *int64 {
+		if err := testClient.Get(ctx, key, obj); err != nil {
+			l := int64(0)
+			return &l
+		}
+
+		return obj.Status.Charts
+	}
+}
+
+func GetChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() error {
+	return func() error {
+		return testClient.Get(ctx, key, obj)
+	}
+}
+
+func GetChartSyncedStatusFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() bool {
+	return func() bool {
+		if err := testClient.Get(ctx, key, obj); err != nil {
+			return false
+		}
+
+		if obj.Status.Versions == nil {
+			return false
+		}
+
+		if *obj.Status.Versions == "synced" {
+			return true
+		}
+
+		return false
+	}
+}
+
+func GetChartDependencyStatusFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() bool {
+	return func() bool {
+		if err := testClient.Get(ctx, key, obj); err != nil {
+			return false
+		}
+
+		if obj.Status.Dependencies == nil {
+			return false
+		}
+
+		if *obj.Status.Dependencies == "synced" {
+			return true
+		}
+
+		return false
+	}
+}
+
+func getRepoGroupFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.RepoGroup) func() error {
+	return func() error {
+		return testClient.Get(ctx, key, obj)
+	}
+}
+
+func GetReleaseFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Release) func() error {
+	return func() error {
+		if err := testClient.Get(ctx, key, obj); err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
+func GetReleaseStatusFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Release, status string) func() bool {
+	return func() bool {
+		if err := testClient.Get(ctx, key, obj); err != nil {
+			return false
+		}
+
+		if obj.Status.Status == nil {
+			return false
+		}
+
+		if *obj.Status.Status == status {
+			return true
+		}
+
+		return false
+	}
+}
+
+func GetReleaseRevisionFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Release, revision int) func() bool {
+	return func() bool {
+		if err := testClient.Get(ctx, key, obj); err != nil {
+			return false
+		}
+
+		if obj.Status.Revision == nil {
+			return false
+		}
+
+		if *obj.Status.Revision == revision {
+			return true
+		}
+
+		return false
+	}
+}
+
+func GetReleaseSyncedFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Release) func() bool {
+	return func() bool {
+		if err := testClient.Get(ctx, key, obj); err != nil {
+			return false
+		}
+
+		if obj.Status.Synced == nil {
+			return false
+		}
+
+		return *obj.Status.Synced
+	}
+}
+
+func GetConfigMapFunc(ctx context.Context, key client.ObjectKey, obj *v1.ConfigMap) func() error {
+	return func() error {
+		return testClient.Get(ctx, key, obj)
+	}
+}
+
+func GetReleaseGroupFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.ReleaseGroup) func() error {
+	return func() error {
+		return testClient.Get(ctx, key, obj)
+	}
+}
+
+func (r *RepositoryAssert) Do(namespace string) {
+
+	configmap := &v1.ConfigMap{}
+	chartReturnError := BeNil()
+
+	if !r.IsPresent {
+		chartReturnError = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "repositories", Group: "helm.soer3n.info"}, r.Name))
+	}
+
+	Eventually(
+		GetRepositoryFunc(context.Background(), client.ObjectKey{Name: r.Name}, r.Obj),
+		time.Second*20, time.Millisecond*1500).Should(chartReturnError)
+
+	Eventually(
+		GetRepositoryStatusFunc(context.Background(), client.ObjectKey{Name: r.Name}, r.Obj),
+		time.Second*20, time.Millisecond*1500).Should(r.Status)
+
+	Eventually(
+		GetRepositoryCountFunc(context.Background(), client.ObjectKey{Name: r.Name}, r.Obj),
+		time.Second*20, time.Millisecond*1500).Should(BeEquivalentTo(&r.InstalledCharts))
+
+	for _, chartAssert := range r.ManagedCharts {
+
+		Eventually(
+			GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-" + r.Name + "-" + chartAssert.Name + "-index", Namespace: namespace}, configmap),
+			time.Second*20, time.Millisecond*1500).Should(chartAssert.IndicesInstalled)
+
+		chartAssert.Do(namespace, r.Name)
+	}
+}
+
+func (r *RepositoryAssert) setDefault() {
+
+	r.IsPresent = false
+	r.Synced = BeFalse()
+	r.Status = BeFalse()
+	r.InstalledCharts = int64(0)
+
+	if r.Obj == nil {
+		r.Obj = &helmv1alpha1.Repository{ObjectMeta: metav1.ObjectMeta{Name: r.Name}}
+	}
+}
+
+func (r *RepositoryAssert) setEverythingInstalled() {
+
+	r.IsPresent = true
+	r.Synced = BeTrue()
+	r.Status = BeTrue()
+	r.InstalledCharts = int64(len(r.ManagedCharts))
+
+	if r.Obj == nil {
+		r.Obj = &helmv1alpha1.Repository{ObjectMeta: metav1.ObjectMeta{Name: r.Name}}
+	}
+
+}
+
+func (c *ChartAssert) Do(namespace, repo string) {
+
+	configmap := &v1.ConfigMap{}
+
+	Eventually(
+		GetChartFunc(context.Background(), client.ObjectKey{Name: c.Name + "-" + repo}, c.Obj),
+		time.Second*20, time.Millisecond*1500).Should(c.IsPresent)
+
+	Eventually(
+		GetChartSyncedStatusFunc(context.Background(), client.ObjectKey{Name: c.Name + "-" + repo}, c.Obj),
+		time.Second*20, time.Millisecond*1500).Should(c.Synced)
+
+	Eventually(
+		GetChartDependencyStatusFunc(context.Background(), client.ObjectKey{Name: c.Name + "-" + repo}, c.Obj),
+		time.Second*20, time.Millisecond*1500).Should(c.Deps)
+
+	tmplMatcher := BeNil()
+	crdMatcher := BeNil()
+	defaultValueMatcher := BeNil()
+
+	if !reflect.DeepEqual(c.ResourcesInstalled, BeNil()) {
+		tmplMatcher = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-tmpl-"+repo+"-"+c.Name+"-"+c.Version))
+		crdMatcher = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-crds-"+repo+"-"+c.Name+"-"+c.Version))
+		defaultValueMatcher = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-default-"+repo+"-"+c.Name+"-"+c.Version))
+	}
+
+	Eventually(
+		GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-tmpl-" + repo + "-" + c.Name + "-" + c.Version, Namespace: namespace}, configmap),
+		time.Second*20, time.Millisecond*1500).Should(tmplMatcher)
+
+	Eventually(
+		GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-crds-" + repo + "-" + c.Name + "-" + c.Version, Namespace: namespace}, configmap),
+		time.Second*20, time.Millisecond*1500).Should(crdMatcher)
+
+	Eventually(
+		GetConfigMapFunc(context.Background(), client.ObjectKey{Name: "helm-default-" + repo + "-" + c.Name + "-" + c.Version, Namespace: namespace}, configmap),
+		time.Second*20, time.Millisecond*1500).Should(defaultValueMatcher)
+
+}
+
+func (c *ChartAssert) setDefault(repo string) {
+
+	c.IsPresent = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "helm.soer3n.info"}, c.Name+"-"+repo))
+	c.IndicesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-"+repo+"-"+c.Name+"-index"))
+	c.ResourcesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present"))
+	c.Synced = BeFalse()
+	c.Deps = BeFalse()
+
+	if c.Obj == nil {
+		c.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: c.Name}}
+	}
+
+}
+
+func (c *ChartAssert) setEverythingInstalled() {
+
+	c.IsPresent = BeNil()
+	c.IndicesInstalled = BeNil()
+	c.ResourcesInstalled = BeNil()
+	c.Synced = BeTrue()
+	c.Deps = BeTrue()
+
+	if c.Obj == nil {
+		c.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: c.Name}}
+	}
+}
+
+func (r ReleaseAssert) Do(namespace string) {
+
+	Eventually(
+		GetReleaseFunc(context.Background(), client.ObjectKey{Name: r.Name, Namespace: namespace}, r.Obj),
+		time.Second*20, time.Millisecond*1500).Should(BeNil())
+
+	if r.IsPresent {
+		Eventually(
+			GetReleaseStatusFunc(context.Background(), client.ObjectKey{Name: r.Name, Namespace: namespace}, r.Obj, r.Status),
+			time.Second*20, time.Millisecond*1500).Should(BeTrue())
+
+		Eventually(
+			GetReleaseRevisionFunc(context.Background(), client.ObjectKey{Name: r.Name, Namespace: namespace}, r.Obj, r.Revision),
+			time.Second*20, time.Millisecond*1500).Should(BeTrue())
+
+		Eventually(
+			GetReleaseSyncedFunc(context.Background(), client.ObjectKey{Name: r.Name, Namespace: namespace}, r.Obj),
+			time.Second*20, time.Millisecond*1500).Should(r.Synced)
+	}
+
+}
+
+func AssertValueResource() {
 }

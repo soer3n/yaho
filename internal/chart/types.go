@@ -25,7 +25,7 @@ type Chart struct {
 	index      repo.ChartVersions
 	helmConfig *action.Configuration
 	Repo       string
-	K8sClient  client.Client
+	K8sClient  client.WithWatch
 	getter     utils.HTTPClientInterface
 	logger     logr.Logger
 	mu         *sync.Mutex

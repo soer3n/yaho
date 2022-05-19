@@ -25,7 +25,7 @@ type ChartVersion struct {
 	Templates     []*chart.File
 	CRDs          []*chart.File
 	DefaultValues map[string]interface{}
-	k8sClient     client.Client
+	k8sClient     client.WithWatch
 	getter        utils.HTTPClientInterface
 	logger        logr.Logger
 	mu            sync.Mutex

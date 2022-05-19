@@ -42,9 +42,9 @@ type ReleaseSpec struct {
 type ReleaseStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Synced     bool               `json:"synced,omitempty"`
-	Status     string             `json:"status,omitempty"`
-	Revision   int                `json:"revision,omitempty"`
+	Synced     *bool              `json:"synced,omitempty"`
+	Status     *string            `json:"status,omitempty"`
+	Revision   *int               `json:"revision,omitempty"`
 	Conditions []metav1.Condition `json:"conditions"`
 }
 

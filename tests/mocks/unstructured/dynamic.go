@@ -47,6 +47,20 @@ func (client *K8SClientMock) Update(ctx context.Context, obj client.Object, opts
 	return err
 }
 
+func (client *K8SClientMock) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
+	args := client.Called(ctx, obj)
+	err := args.Error(1)
+	return err
+}
+
+// Watch represents mock func for similar dynamic runtime client func
+func (client *K8SClientMock) Watch(ctx context.Context, obj client.ObjectList, opts ...client.ListOption) (watch.Interface, error) {
+	args := client.Called(ctx, obj)
+	values := args.Get(0).(watch.Interface)
+	err := args.Error(1)
+	return values, err
+}
+
 // Resource represents mock func for similar dynamic runtime client func for getting a resource struct
 func (getter *K8SDynamicClientMock) Resource(resource schema.GroupVersionResource) dynamic.NamespaceableResourceInterface {
 	args := getter.Called(resource)
