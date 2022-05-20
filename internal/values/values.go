@@ -62,8 +62,7 @@ func MergeValues(specValues map[string]interface{}, helmChart *helmchart.Chart) 
 // ManageValues represents parsing of a map with interfaces into HelmValueTemplate struct
 func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 	var base []*ValuesRef
-	var values, merged map[string]interface{}
-	var err error
+	var merged map[string]interface{}
 
 	base = NewOptions(
 		map[string]string{
@@ -82,38 +81,38 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 
 	for _, ref := range base {
 		hv.logger.Info("manage values ref", "struct", ref)
-		if values, err = hv.manageStruct(ref); err != nil {
-			return merged, err
-		}
 
 		refValues := ref.Ref.DeepCopy()
-		//wg.Add(1)
 
-		go func() {
-			//defer wg.Done()
-			c <- hv.transformToMap(refValues, values, true)
-		}()
+		go hv.parse(ref, refValues, c)
 	}
-
-	// wg.Wait()
-	// close(c)
 
 	go func() {
 		for i := range c {
 			m := utils.MergeMaps(i, merged)
 			d <- m
 		}
-		// close(d)
 	}()
 
 	select {
 	case t := <-d:
-		merged = t
-		return merged, nil
+		return t, nil
 	case <-time.After(10 * time.Second):
 		close(d)
 		return map[string]interface{}{}, errors.New("timeout on value parsing")
 	}
+}
+
+func (hv *ValueTemplate) parse(ref *ValuesRef, refValues *helmv1alpha1.Values, c chan map[string]interface{}) {
+
+	values, err := hv.manageStruct(ref)
+
+	if err != nil {
+		hv.logger.Info("parsing values reference failed", "error", err.Error())
+		return
+	}
+
+	c <- hv.transformToMap(refValues, values, true)
 }
 
 func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface{}, error) {
