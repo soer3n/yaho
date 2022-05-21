@@ -10,13 +10,11 @@ import (
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/client-go/kubernetes/scheme"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestChartVersion(t *testing.T) {
-	settings := cli.New()
 	cases := testcases.GetTestHelmChartMaps()
 	clientMock, httpMock := helmmocks.GetChartMock()
 
@@ -29,7 +27,7 @@ func TestChartVersion(t *testing.T) {
 		cv := testcases.GetChartVersions(ver.Spec.Name)
 		testObj, err := chartversion.New(v.ChartVersion, ver.Namespace, ver, map[string]interface{}{}, cv, scheme.Scheme, logf.Log, clientMock, httpMock)
 		assert.Equal(v.ReturnError["init"], err)
-		config, _ := utils.InitActionConfig(settings, kube.Client{})
+		config, _ := utils.InitActionConfig(cli.New().RESTClientGetter(), []byte(""), logf.Log)
 		err = testObj.Prepare(config)
 		assert.Equal(v.ReturnError["prepare"], err)
 		err = testObj.ManageSubResources()

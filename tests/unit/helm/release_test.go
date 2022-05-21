@@ -10,7 +10,6 @@ import (
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/kubectl/pkg/scheme"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -26,7 +25,7 @@ func TestReleaseUpdate(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj.Input.(*helmv1alpha1.Release)
-		testObj, err := release.New(current, current.Namespace, scheme.Scheme, settings, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj, err := release.New(current, current.Namespace, scheme.Scheme, settings, logf.Log, clientMock, httpMock, cli.New().RESTClientGetter(), []byte(""))
 		assert.Equal(apiObj.ReturnError["init"], err)
 
 		testObj.Config = testcases.GetTestReleaseFakeActionConfig(t)

@@ -26,20 +26,20 @@ import (
 )
 
 func NewRESTClientGetter(config *helmv1alpha1.Config, namespace string, c client.Client, logger logr.Logger) (*HelmRESTClientGetter, error) {
-	kubeConfig, err := getKubeconfig(config, namespace, c)
 
-	if err != nil {
+	getter := &HelmRESTClientGetter{
+		Namespace: namespace,
+		logger:    logger,
+	}
+
+	if err := getter.setKubeconfig(config, namespace, c); err != nil {
 		return nil, err
 	}
 
-	return &HelmRESTClientGetter{
-		Namespace:  namespace,
-		KubeConfig: string(kubeConfig),
-		logger:     logger,
-	}, nil
+	return getter, nil
 }
 
-func getKubeconfig(config *helmv1alpha1.Config, namespace string, c client.Client) ([]byte, error) {
+func (h *HelmRESTClientGetter) setKubeconfig(config *helmv1alpha1.Config, namespace string, c client.Client) error {
 
 	serviceAccount := &v1.ServiceAccount{}
 	serviceAccountName := "default"
@@ -50,7 +50,7 @@ func getKubeconfig(config *helmv1alpha1.Config, namespace string, c client.Clien
 
 	if err := c.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: serviceAccountName}, serviceAccount); err != nil {
 		fmt.Printf("error on getting default values. msg: %v", err.Error())
-		return nil, err
+		return err
 	}
 
 	secret := &v1.Secret{}
@@ -96,13 +96,11 @@ func getKubeconfig(config *helmv1alpha1.Config, namespace string, c client.Clien
 	rawConfig, err := runtime.Encode(clientcmdlatest.Codec, &clientConfig)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	//kubeConfig := string(rawConfig)
-	//fmt.Print(kubeConfig)
-
-	return rawConfig, nil
+	h.KubeConfig = string(rawConfig)
+	return nil
 
 }
 

@@ -354,11 +354,13 @@ func GetChartDependencyStatusFunc(ctx context.Context, key client.ObjectKey, obj
 	}
 }
 
+/*
 func getRepoGroupFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.RepoGroup) func() error {
 	return func() error {
 		return testClient.Get(ctx, key, obj)
 	}
 }
+*/
 
 func GetReleaseFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Release) func() error {
 	return func() error {

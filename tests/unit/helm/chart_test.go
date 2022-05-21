@@ -9,7 +9,6 @@ import (
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -26,7 +25,7 @@ func TestChartSubCharts(t *testing.T) {
 
 	for _, v := range cases {
 		ver := v.Input.(*helmv1alpha1.Chart)
-		testObj, err := chart.New(ver, ver.Namespace, settings, scheme.Scheme, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj, err := chart.New(ver, ver.Namespace, settings, scheme.Scheme, logf.Log, clientMock, httpMock, cli.New().RESTClientGetter(), []byte(""))
 		assert.Equal(nil, err)
 		err = testObj.CreateOrUpdateSubCharts()
 		assert.Equal(v.ReturnError["subCharts"], err)
@@ -43,7 +42,7 @@ func TestChartUpdate(t *testing.T) {
 
 	for _, v := range cases {
 		ver := v.Input.(*helmv1alpha1.Chart)
-		testObj, err := chart.New(ver, ver.Namespace, settings, &runtime.Scheme{}, logf.Log, clientMock, httpMock, kube.Client{})
+		testObj, err := chart.New(ver, ver.Namespace, settings, &runtime.Scheme{}, logf.Log, clientMock, httpMock, cli.New().RESTClientGetter(), []byte(""))
 		assert.Equal(nil, err)
 		err = testObj.Update(ver)
 		assert.Equal(v.ReturnError["update"], err)
