@@ -8,22 +8,22 @@ import (
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 )
 
 // New represents initialization of internal chart struct
-func New(instance *helmv1alpha1.Chart, namespace string, settings *cli.EnvSettings, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface, c kube.Client) (*Chart, error) {
+func New(instance *helmv1alpha1.Chart, namespace string, settings *cli.EnvSettings, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface, getter genericclioptions.RESTClientGetter, kubeconfig []byte) (*Chart, error) {
 
 	var err error
 
 	chart := &Chart{}
 
 	logger.Info("init chart")
-	config, err := utils.InitActionConfig(settings, c)
+	config, err := utils.InitActionConfig(getter, kubeconfig, logger)
 
 	if err != nil {
 		logger.Info("Error on getting action config for chart")

@@ -79,6 +79,10 @@ spec:
                   install:
                     type: boolean
                 type: object
+              serviceAccountName:
+                type: string
+            required:
+            - serviceAccountName
             type: object
           status:
             description: ConfigStatus defines the observed state of Config

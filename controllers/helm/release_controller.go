@@ -27,13 +27,14 @@ import (
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/internal/release"
 	"github.com/soer3n/yaho/internal/utils"
-	"helm.sh/helm/v3/pkg/kube"
+	"helm.sh/helm/v3/pkg/cli"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/record"
-	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -104,16 +105,44 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	_ = os.Setenv("HELM_NAMESPACE", *releaseNamespace)
 
-	settings := utils.GetEnvSettings(map[string]string{})
-	c := kube.Client{
-		Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
-		Log:     nopLogger,
+	config, err := r.getConfig(instance.Spec, instance.ObjectMeta.Namespace)
+
+	var releaseRestGetter genericclioptions.RESTClientGetter
+	kubeconfig := ""
+
+	if err == nil {
+		releaseRestGetter, err = utils.NewRESTClientGetter(config, instance.ObjectMeta.Namespace, r.WithWatch, r.Log)
+
+		if err != nil {
+			r.Log.Info(err.Error())
+			return ctrl.Result{}, err
+		}
+
+		casted := releaseRestGetter.(*utils.HelmRESTClientGetter)
+		kubeconfig = casted.KubeConfig
+
+		//restConfig, err := releaseRestGetter.ToRESTConfig()
+
+		//if err != nil {
+		//	r.Log.Info("error on getting rest client from helm client", "msg", err.Error())
+		//}
+
+		//settings := utils.GetEnvSettings(map[string]string{
+		// "KubeConfig": releaseRestGetter.KubeConfig,
+		//	"KubeToken": restConfig.BearerToken,
+		//})
+	} else {
+		r.Log.Info(err.Error())
 	}
 
 	synced := false
 	instance.Status.Synced = &synced
 
-	helmRelease, err := release.New(instance, r.WatchNamespace, r.Scheme, settings, reqLogger, r.WithWatch, &g, c)
+	if releaseRestGetter == nil {
+		releaseRestGetter = cli.New().RESTClientGetter()
+	}
+
+	helmRelease, err := release.New(instance, r.WatchNamespace, r.Scheme, utils.GetEnvSettings(map[string]string{}), reqLogger, r.WithWatch, &g, releaseRestGetter, []byte(kubeconfig))
 
 	if instance.Status.Revision == nil {
 
@@ -257,6 +286,26 @@ func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alph
 	r.Log.Info("updated status", "value", instance.Status)
 	r.Log.Info("status resource and labels validated and updated.")
 	return nil
+}
+
+func (r *ReleaseReconciler) getConfig(spec helmv1alpha1.ReleaseSpec, namespace string) (*helmv1alpha1.Config, error) {
+
+	if spec.Config == nil {
+		return nil, nil
+	}
+
+	instance := &helmv1alpha1.Config{}
+
+	err := r.Get(context.Background(), types.NamespacedName{
+		Name:      *spec.Config,
+		Namespace: namespace,
+	}, instance)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return instance, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

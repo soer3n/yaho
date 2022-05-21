@@ -3,8 +3,15 @@ package utils
 import (
 	"net/http"
 
+	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type HelmRESTClientGetter struct {
+	Namespace  string
+	KubeConfig string
+	logger     logr.Logger
+}
 
 // ClientInterface repesents interface for mocking custom k8s client
 type ClientInterface interface {

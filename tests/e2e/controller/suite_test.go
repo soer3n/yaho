@@ -33,9 +33,11 @@ import (
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	controllers "github.com/soer3n/yaho/controllers/helm"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -576,4 +578,87 @@ func (r ReleaseAssert) Do(namespace string) {
 }
 
 func AssertValueResource() {
+}
+
+func SetupRBAC(namespace string) {
+
+	serviceAccount := &v1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "account",
+			Namespace: namespace,
+		},
+	}
+
+	role := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "account-role",
+			Namespace: namespace,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{""},
+				Resources: []string{"serviceaccounts", "pods", "services", "secrets"},
+				Verbs:     []string{"get", "list", "create", "delete", "update"},
+			},
+			{
+				APIGroups: []string{"apps"},
+				Resources: []string{"deployments"},
+				Verbs:     []string{"get", "list", "create", "delete", "update"},
+			},
+		},
+	}
+
+	roleBindung := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "account-rolebinding",
+			Namespace: namespace,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "Role",
+			Name:     "account-role",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Namespace: namespace,
+				Name:      "account",
+			},
+		},
+	}
+
+	err = testClient.Create(context.Background(), serviceAccount)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+	err = testClient.Create(context.Background(), role)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+	err = testClient.Create(context.Background(), roleBindung)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+}
+
+func RemoveRBAC(namespace string) {
+
+	serviceAccount := &v1.ServiceAccount{}
+	role := &rbacv1.Role{}
+	roleBinding := &rbacv1.RoleBinding{}
+
+	err = testClient.Get(context.Background(), apitypes.NamespacedName{Name: "account", Namespace: namespace}, serviceAccount)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+	err = testClient.Get(context.Background(), apitypes.NamespacedName{Name: "account-role", Namespace: namespace}, role)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+	err = testClient.Get(context.Background(), apitypes.NamespacedName{Name: "account-rolebinding", Namespace: namespace}, roleBinding)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+	err = testClient.Delete(context.Background(), serviceAccount)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+	err = testClient.Delete(context.Background(), role)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+	err = testClient.Delete(context.Background(), roleBinding)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 }

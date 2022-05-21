@@ -1,18 +1,22 @@
 package utils
 
 import (
+	"errors"
+	"fmt"
 	actionlog "log"
 
+	"github.com/go-logr/logr"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 )
 
 // InitActionConfig represents the initialization of an helm configuration
-func InitActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configuration, error) {
+func InitActionConfig(getter genericclioptions.RESTClientGetter, kubeconfig []byte, logger logr.Logger) (*action.Configuration, error) {
 	/*
 		/ we cannot use helm init func here due to data race issues on concurrent execution (helm's kube client tries to update the namespace field on each initialization)
 
@@ -20,13 +24,32 @@ func InitActionConfig(settings *cli.EnvSettings, c kube.Client) (*action.Configu
 		// err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionlog.Printf)
 	*/
 
-	getter := settings.RESTClientGetter()
-	set, _ := cmdutil.NewFactory(getter).KubernetesClientSet()
+	if getter == nil {
+		logger.Info("getter is nil")
+		return nil, errors.New("getter is nil")
+	}
+
+	c := kube.New(getter)
+	f := cmdutil.NewFactory(getter)
+	set, err := f.KubernetesClientSet()
+
+	if err != nil {
+		fmt.Print(err.Error())
+		return nil, err
+	}
+
+	casted, ok := getter.(*HelmRESTClientGetter)
+	namespace := "default"
+
+	if ok {
+		namespace = casted.Namespace
+	}
+
 	conf := &action.Configuration{
 		RESTClientGetter: getter,
-		KubeClient:       &c,
+		KubeClient:       c,
 		Log:              actionlog.Printf,
-		Releases:         storage.Init(driver.NewSecrets(set.CoreV1().Secrets(settings.Namespace()))),
+		Releases:         storage.Init(driver.NewSecrets(set.CoreV1().Secrets(namespace))),
 	}
 
 	return conf, nil

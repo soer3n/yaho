@@ -20,7 +20,7 @@ var _ = Context("Install a release", func() {
 		obj := setupNamespace()
 		namespace := obj.ObjectMeta.Name
 
-		It("should start with creating dependencies", func() {
+		FIt("should start with creating dependencies", func() {
 			ctx := context.Background()
 
 			By("install a new namespace")
@@ -202,6 +202,7 @@ var _ = Context("Install a release", func() {
 					Namespace: namespace,
 				},
 				Spec: helmv1alpha1.ConfigSpec{
+					ServiceAccountName: "account",
 					Namespace: helmv1alpha1.Namespace{
 						Allowed: []string{namespace},
 					},
@@ -235,10 +236,13 @@ var _ = Context("Install a release", func() {
 			releaseAssert.Obj.Spec = helmv1alpha1.ReleaseSpec{
 				Name:      "deployment-name",
 				Namespace: &namespace,
+				Config:    &s,
 				Chart:     testReleaseChartName,
 				Repo:      testRepoName,
 				Version:   testReleaseChartVersion,
 			}
+
+			SetupRBAC(namespace)
 
 			err = testClient.Update(context.Background(), releaseAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
@@ -327,6 +331,8 @@ var _ = Context("Install a release", func() {
 
 			repoOneAssert.Do(namespace)
 			repoTwoAssert.Do(namespace)
+
+			RemoveRBAC(namespace)
 
 			By("by deletion of namespace")
 			releaseNamespace = &v1.Namespace{

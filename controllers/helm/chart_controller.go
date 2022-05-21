@@ -26,13 +26,11 @@ import (
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	"github.com/soer3n/yaho/internal/chart"
 	"github.com/soer3n/yaho/internal/utils"
-	"helm.sh/helm/v3/pkg/kube"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
-	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -123,12 +121,7 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		},
 	}
 
-	c := kube.Client{
-		Factory: cmdutil.NewFactory(settings.RESTClientGetter()),
-		Log:     nopLogger,
-	}
-
-	hc, err := chart.New(instance, r.WatchNamespace, settings, r.Scheme, reqLogger, r.WithWatch, &g, c)
+	hc, err := chart.New(instance, r.WatchNamespace, settings, r.Scheme, reqLogger, r.WithWatch, &g, settings.RESTClientGetter(), []byte{})
 
 	if err != nil {
 		reqLogger.Info("failed to initialize chart resource struct", "name", instance.ObjectMeta.Name)

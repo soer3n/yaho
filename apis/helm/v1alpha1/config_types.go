@@ -30,8 +30,9 @@ type ConfigSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Flags     *Flags    `json:"flags,omitempty"`
-	Namespace Namespace `json:"namespace,omitempty"`
+	Flags              *Flags    `json:"flags,omitempty"`
+	Namespace          Namespace `json:"namespace,omitempty"`
+	ServiceAccountName string    `json:"serviceAccountName"`
 }
 
 // Namespace represents struct for release namespace data
