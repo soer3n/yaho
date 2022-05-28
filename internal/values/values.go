@@ -22,6 +22,7 @@ func New(instance *helmv1alpha1.Release, logger logr.Logger, k8sClient client.Cl
 		// ValuesRef: valuesList,
 		logger:    logger,
 		k8sClient: k8sClient,
+		Values:    map[string]interface{}{},
 	}
 
 	if instance.Spec.Values != nil {
@@ -71,13 +72,14 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 		Filter(hv.ValuesRef)
 
 	if len(base) == 0 {
-		return map[string]interface{}{}, errors.New("no references for parent resource")
+		return merged, errors.New("no references for parent resource")
 	}
 
 	merged = make(map[string]interface{})
-	//var wg sync.WaitGroup
+	// var wg sync.WaitGroup
 	c := make(chan map[string]interface{}, 1)
 	d := make(chan map[string]interface{}, 1)
+	counter := 0
 
 	for _, ref := range base {
 		hv.logger.Info("manage values ref", "struct", ref)
@@ -87,38 +89,38 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 		go hv.parse(ref, refValues, c)
 	}
 
-	go func() {
-		for i := range c {
-			m := utils.MergeMaps(i, merged)
-			d <- m
-		}
-	}()
+	for {
+		select {
+		case i := <-c:
+			merged = utils.MergeMaps(i, merged)
+			counter++
+			if counter == len(base) {
+				return merged, nil
+			}
 
-	select {
-	case t := <-d:
-		return t, nil
-	case <-time.After(10 * time.Second):
-		close(d)
-		return map[string]interface{}{}, errors.New("timeout on value parsing")
+		case <-time.After(1000 * time.Second):
+			close(d)
+			return map[string]interface{}{}, errors.New("timeout on value parsing")
+		}
 	}
 }
 
 func (hv *ValueTemplate) parse(ref *ValuesRef, refValues *helmv1alpha1.Values, c chan map[string]interface{}) {
 
-	values, err := hv.manageStruct(ref)
-
-	if err != nil {
+	if err := hv.manageStruct(ref); err != nil {
 		hv.logger.Info("parsing values reference failed", "error", err.Error())
 		return
 	}
 
-	c <- hv.transformToMap(refValues, values, true)
+	values, _ := hv.transformToMap(refValues, true)
+	c <- values
 }
 
-func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface{}, error) {
-	valMap := make(map[string]interface{})
+func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef, parents ...string) error {
+
 	var merged map[string]interface{}
 	c := make(chan map[string]interface{}, 1)
+	counter := 0
 
 	hv.logger.Info("manage struct", "ref", valueMap)
 
@@ -133,62 +135,62 @@ func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef) (map[string]interface
 
 		if len(temp) == 0 {
 			hv.logger.Info("skip due to empty list", "filter", "parent:"+valueMap.Ref.ObjectMeta.Name)
-			return valMap, nil
+			return nil
 		}
 
 		for _, v := range temp {
 			merged = make(map[string]interface{})
+			parents = append(parents, valueMap.Key)
 			if v.Ref.Spec.Refs != nil {
-				if merged, err := hv.manageStruct(v); err != nil {
-					return merged, err
+				if err := hv.manageStruct(v, parents...); err != nil {
+					return err
 				}
 			}
 
-			refKey := hv.getRefKeyByValue(valueMap.Key, valueMap.Ref.Name, valueMap.Ref.Spec.Refs)
+			refKey := hv.getRefKeyByValue(parents, v.Ref.Name, valueMap.Ref.Spec.Refs)
 
 			go func(v *ValuesRef) {
-				merged = hv.transformToMap(v.Ref, merged, true, refKey)
-				c <- utils.MergeMaps(merged, valMap)
+				merged, _ = hv.transformToMap(v.Ref, true, refKey...)
+				c <- merged
 			}(v)
 
 		}
 
-		select {
-		case t := <-c:
-			valMap = t
-			return valMap, nil
-		case <-time.After(10 * time.Second):
-			hv.logger.Info("timeout on managing struct reference", "struct", valueMap)
-			return nil, errors.New("time out on value parsing")
+		for {
+			select {
+			case t := <-c:
+				// merge child map directly to struct field is better !!!
+				hv.Values = utils.MergeMaps(hv.Values, t)
+				counter++
+				if counter == len(temp) {
+					return nil
+				}
+				return nil
+			case <-time.After(1000 * time.Second):
+				hv.logger.Info("timeout on managing struct reference", "struct", valueMap)
+				return errors.New("time out on value parsing")
+			}
 		}
 	}
 
-	return valMap, nil
+	return nil
 }
 
-func (hv ValueTemplate) getRefKeyByValue(parent, value string, refMap map[string]string) string {
+func (hv ValueTemplate) getRefKeyByValue(parents []string, value string, refMap map[string]string) []string {
 	for k, v := range refMap {
 		if value == v {
-			return parent + "." + k
+			parents = append(parents, k)
 		}
 	}
 
-	return parent
+	return parents
 }
 
-func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map[string]interface{}, unstructed bool, parents ...string) map[string]interface{} {
+func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, unstructed bool, parents ...string) (map[string]interface{}, error) {
 	valMap := make(map[string]interface{})
 	var parentKey string
 
-	for _, parent := range parents {
-		if parentKey != "" {
-			parentKey = parentKey + "."
-		}
-
-		parentKey = parentKey + parent
-	}
-
-	hv.logger.Info("parent key", "values", values.GetName(), "child", childMap, "parent", parentKey)
+	hv.logger.Info("parent key", "values", values.GetName(), "parent", parentKey)
 
 	rawVals := values.Spec.ValuesMap
 	var convertedMap map[string]interface{}
@@ -196,22 +198,14 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, childMap map
 	if rawVals != nil && rawVals.Raw != nil {
 		if err := json.Unmarshal(rawVals.Raw, &convertedMap); err != nil {
 			hv.logger.Error(err, "error on parsing map", "map", rawVals)
-			return valMap
+			return valMap, err
 		}
 
-		hv.logger.Info("converting map succeeded", "map name", values.GetName(), "map length", len(convertedMap))
-		hv.logger.Info("converting map succeeded", "map name", values.GetName(), "map", convertedMap)
+		hv.logger.Info("converting map succeeded", "parent", parentKey, "map name", values.GetName(), "map length", len(convertedMap))
+		hv.logger.Info("converting map succeeded", "parent", parentKey, "map name", values.GetName(), "map", convertedMap)
 
-		mapKey := ""
-
-		if len(parents) > 0 {
-			mapKey = parents[0]
-		}
-
-		if unstructed {
-			valMap = utils.MergeUntypedMaps(convertedMap, valMap, mapKey)
-		}
 	}
 
-	return utils.MergeUntypedMaps(childMap, valMap, parentKey)
+	valMap = utils.MergeUntypedMaps(hv.Values, convertedMap, parents...)
+	return valMap, nil
 }

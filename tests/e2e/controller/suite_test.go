@@ -19,6 +19,7 @@ package helm
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"math/big"
 	mr "math/rand"
 	"os"
@@ -32,6 +33,8 @@ import (
 	"github.com/onsi/gomega/types"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	controllers "github.com/soer3n/yaho/controllers/helm"
+	"github.com/soer3n/yaho/internal/utils"
+	"helm.sh/helm/v3/pkg/action"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -663,4 +666,62 @@ func RemoveRBAC(namespace string) {
 
 	err = testClient.Delete(context.Background(), roleBinding)
 	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+}
+
+func SetupConfig(namespace string) {
+
+	config := &helmv1alpha1.Config{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "config",
+			Namespace: namespace,
+		},
+		Spec: helmv1alpha1.ConfigSpec{
+			ServiceAccountName: "account",
+			Namespace: helmv1alpha1.Namespace{
+				Allowed: []string{namespace},
+			},
+		},
+	}
+
+	err = testClient.Create(context.Background(), config)
+	Expect(err).NotTo(HaveOccurred(), "failed to create helm config")
+}
+
+func RemoveConfig(namespace string) {
+
+	config := &helmv1alpha1.Config{}
+
+	err = testClient.Get(context.Background(), apitypes.NamespacedName{Name: "config", Namespace: namespace}, config)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+	err = testClient.Delete(context.Background(), config)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+}
+
+func CompareValues(name, namespace string, expected map[string]interface{}) error {
+
+	config := &helmv1alpha1.Config{}
+
+	err = testClient.Get(context.Background(), apitypes.NamespacedName{Name: "config", Namespace: namespace}, config)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+	getter, _ := utils.NewRESTClientGetter(config, namespace, testClient, logf.Log)
+	ac, err := utils.InitActionConfig(getter, []byte{}, logf.Log)
+
+	if err != nil {
+		return err
+	}
+
+	client := action.NewGetValues(ac)
+	v, err := client.Run(name)
+
+	if err != nil {
+		return err
+	}
+
+	if reflect.DeepEqual(expected, v) {
+		return nil
+	}
+
+	return errors.New("values are not equal")
 }

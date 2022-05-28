@@ -100,14 +100,38 @@ func GetValueMock() (*unstructuredmocks.K8SClientMock, *mocks.HTTPClientMock) {
 	values := valueMock{Name: "foo", Namespace: "foo", Values: map[string]interface{}{"foo": "bar", "boo": "baz"}, IsPresent: false, Releases: []string{"release"}}
 	setValues(clientMock, httpMock, values)
 
-	values = valueMock{Name: "second", Namespace: "foo", Values: map[string]interface{}{"foo": "bar", "boo": "baz"}, IsPresent: true, Releases: []string{"release"}}
-	setValues(clientMock, httpMock, values)
+	valuesSecond := valueMock{Name: "second", Namespace: "foo", Values: map[string]interface{}{"foo": "bar", "boo": "baz"}, IsPresent: true, Releases: []string{"release"}}
+	setValues(clientMock, httpMock, valuesSecond)
 
-	values = valueMock{Name: "third", Namespace: "foo", Values: map[string]interface{}{"foo": "bar", "boo": "baz"}, IsPresent: false, Releases: []string{"release"}}
-	setValues(clientMock, httpMock, values)
+	valuesThird := valueMock{Name: "third", Namespace: "foo", Values: map[string]interface{}{"foo": "bar", "boo": "baz"}, IsPresent: false, Releases: []string{"release"}}
+	setValues(clientMock, httpMock, valuesThird)
 
-	values = valueMock{Name: "fourth", Namespace: "foo", Values: map[string]interface{}{"foo": "bar", "boo": "baz"}, IsPresent: true, Releases: []string{"release"}}
-	setValues(clientMock, httpMock, values)
+	valuesFourth := valueMock{Name: "fourth", Namespace: "foo", Values: map[string]interface{}{"foo": "bar", "boo": "baz"}, IsPresent: true, Releases: []string{"release"}, Refs: []valueRefMock{{
+		Key:  "ref",
+		Mock: valuesSecond,
+	}}}
+	setValues(clientMock, httpMock, valuesFourth)
+
+	valuesFifth := valueMock{Name: "fifth", Namespace: "foo", Values: map[string]interface{}{"foo": "bar", "boo": "baz"}, IsPresent: true, Releases: []string{"release"}, Refs: []valueRefMock{{
+		Key:  "ref",
+		Mock: valuesFourth,
+	}}}
+	setValues(clientMock, httpMock, valuesFifth)
+
+	valuesSixth := valueMock{Name: "sixth", Namespace: "foo", Values: map[string]interface{}{"foo": "bar", "boo": "baz"}, IsPresent: true, Releases: []string{"release"}, Refs: []valueRefMock{{
+		Key:  "ref",
+		Mock: valuesFifth,
+	}}}
+	setValues(clientMock, httpMock, valuesSixth)
+
+	valuesSeventh := valueMock{Name: "seventh", Namespace: "foo", Values: map[string]interface{}{"foo": "bar", "boo": "baz"}, IsPresent: true, Releases: []string{"release"}}
+	setValues(clientMock, httpMock, valuesSeventh)
+
+	valuesEigth := valueMock{Name: "eigth", Namespace: "foo", Values: map[string]interface{}{"foo": "bar", "boo": "baz"}, IsPresent: true, Releases: []string{"release"}, Refs: []valueRefMock{{
+		Key:  "ref2",
+		Mock: valuesSeventh,
+	}}}
+	setValues(clientMock, httpMock, valuesEigth)
 
 	return clientMock, httpMock
 }

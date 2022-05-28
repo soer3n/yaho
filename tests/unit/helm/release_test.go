@@ -16,7 +16,6 @@ import (
 
 func TestReleaseUpdate(t *testing.T) {
 	clientMock, httpMock := helmmocks.GetReleaseMock()
-	settings := cli.New()
 	apiObjList := testcases.GetTestReleaseSpecs()
 	assert := assert.New(t)
 
@@ -25,7 +24,7 @@ func TestReleaseUpdate(t *testing.T) {
 	for _, apiObj := range apiObjList {
 
 		current := apiObj.Input.(*helmv1alpha1.Release)
-		testObj, err := release.New(current, current.Namespace, scheme.Scheme, settings, logf.Log, clientMock, httpMock, cli.New().RESTClientGetter(), []byte(""))
+		testObj, err := release.New(current, current.Namespace, scheme.Scheme, logf.Log, clientMock, httpMock, cli.New().RESTClientGetter(), []byte(""))
 		assert.Equal(apiObj.ReturnError["init"], err)
 
 		testObj.Config = testcases.GetTestReleaseFakeActionConfig(t)

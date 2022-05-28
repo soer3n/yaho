@@ -9,7 +9,6 @@ import (
 	"github.com/soer3n/yaho/internal/values"
 	"helm.sh/helm/v3/pkg/action"
 	helmchart "helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/cli"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -26,7 +25,6 @@ type Release struct {
 	releaseNamespace string
 	Flags            *helmv1alpha1.Flags
 	Config           *action.Configuration
-	Settings         *cli.EnvSettings
 	Client           *action.Install
 	K8sClient        client.WithWatch
 	scheme           *runtime.Scheme
@@ -47,7 +45,6 @@ type spec struct {
 type helm struct {
 	client   *action.Install
 	flags    *helmv1alpha1.Flags
-	settings *cli.EnvSettings
 	config   *action.Configuration
 }
 

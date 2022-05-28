@@ -24,7 +24,7 @@ var _ = Context("Install a release with values", func() {
 		obj := setupNamespace()
 		namespace := obj.ObjectMeta.Name
 
-		It("should create a new Repository resource with the specified name and specified url", func() {
+		FIt("should create a new Repository resource with the specified name and specified url", func() {
 			ctx := context.Background()
 
 			// wait on readiness of controllers
@@ -77,6 +77,9 @@ var _ = Context("Install a release with values", func() {
 			repoOneAssert.Do(namespace)
 			repoTwoAssert.Do(namespace)
 
+			SetupRBAC(namespace)
+			SetupConfig(namespace)
+
 			By("creating needed repository group resource")
 
 			releaseRepoGroup = &helmv1alpha1.RepoGroup{
@@ -128,6 +131,8 @@ var _ = Context("Install a release with values", func() {
 
 			By("creating a new release resource with a valid repository and version")
 
+			s := "config"
+
 			releaseAssert := &ReleaseAssert{
 				Name: testReleaseName,
 				Obj: &helmv1alpha1.Release{
@@ -150,6 +155,7 @@ var _ = Context("Install a release with values", func() {
 					Chart:     testReleaseChartName,
 					Repo:      testRepoName,
 					Version:   testReleaseChartVersion,
+					Config:    &s,
 				},
 			}
 
@@ -162,6 +168,11 @@ var _ = Context("Install a release with values", func() {
 			releaseAssert.Revision = 1
 
 			releaseAssert.Do(namespace)
+
+			var expectedValues map[string]interface{}
+
+			err = CompareValues(releaseAssert.Obj.ObjectMeta.Name, namespace, expectedValues)
+			Expect(err).NotTo(HaveOccurred())
 
 			By("should create a new values resource with specified")
 
@@ -197,14 +208,6 @@ var _ = Context("Install a release with values", func() {
 
 			By("should create a new values resource with specified")
 
-			nestedMap = map[string]string{
-				"baz": "faz",
-			}
-			valuesSpec = map[string]interface{}{
-				"foo": "bar",
-				"boo": nestedMap,
-			}
-
 			valuesSpecRaw, err = json.Marshal(valuesSpec)
 			Expect(err).NotTo(HaveOccurred(), "failed to convert values")
 
@@ -229,16 +232,15 @@ var _ = Context("Install a release with values", func() {
 
 			By("should create a new values resource with specified")
 
-			nestedMap = map[string]string{
-				"bat": "fat",
+			refMap := map[string]string{
+				"baz": "faz",
+			}
+			refSpec := map[string]interface{}{
+				"foo": "bar",
+				"boo": refMap,
 			}
 
-			valuesSpec = map[string]interface{}{
-				"foobar": "barfoo",
-				"doo":    nestedMap,
-			}
-
-			valuesSpecRaw, err = json.Marshal(valuesSpec)
+			refSpecRaw, err := json.Marshal(refSpec)
 			Expect(err).NotTo(HaveOccurred(), "failed to convert values")
 
 			values = &helmv1alpha1.Values{
@@ -248,7 +250,7 @@ var _ = Context("Install a release with values", func() {
 				},
 				Spec: helmv1alpha1.ValuesSpec{
 					ValuesMap: &runtime.RawExtension{
-						Raw: []byte(valuesSpecRaw),
+						Raw: []byte(refSpecRaw),
 					},
 				},
 			}
@@ -265,6 +267,7 @@ var _ = Context("Install a release with values", func() {
 				Chart:   testReleaseChartName,
 				Repo:    testRepoName,
 				Version: testReleaseChartVersion,
+				Config:  &s,
 				Values: []string{
 					"testresource",
 				},
@@ -276,6 +279,21 @@ var _ = Context("Install a release with values", func() {
 			releaseAssert.Revision = 2
 
 			releaseAssert.Do(namespace)
+
+			embeddedValues := map[string]interface{}{
+				"ref": refSpec,
+				"foo": "bar",
+				"boo": nestedMap,
+			}
+
+			expectedValues = map[string]interface{}{
+				"foo": "bar",
+				"boo": nestedMap,
+				"ref": embeddedValues,
+			}
+
+			err = CompareValues(releaseAssert.Obj.ObjectMeta.Name, namespace, expectedValues)
+			Expect(err).NotTo(HaveOccurred())
 
 			By("should update release after changing value resource")
 
@@ -305,6 +323,9 @@ var _ = Context("Install a release with values", func() {
 
 			releaseAssert.Do(namespace)
 
+			err = CompareValues(releaseAssert.Obj.ObjectMeta.Name, namespace, expectedValues)
+			Expect(err).NotTo(HaveOccurred())
+
 			releaseAssert.Obj.Spec.Values = []string{
 				"testresource",
 				"notpresent",
@@ -314,6 +335,9 @@ var _ = Context("Install a release with values", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to udpate test resource")
 
 			releaseAssert.Do(namespace)
+
+			err = CompareValues(releaseAssert.Obj.ObjectMeta.Name, namespace, expectedValues)
+			Expect(err).NotTo(HaveOccurred())
 
 			By("should remove this Release resource with the specified configmaps after deletion")
 
@@ -338,6 +362,9 @@ var _ = Context("Install a release with values", func() {
 
 			repoOneAssert.Do(namespace)
 			repoTwoAssert.Do(namespace)
+
+			RemoveConfig(namespace)
+			RemoveRBAC(namespace)
 
 			By("by deletion of namespace")
 			releaseNamespace = &v1.Namespace{

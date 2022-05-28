@@ -77,6 +77,9 @@ var _ = Context("Install a releasegroup", func() {
 			repoOneAssert.Do(namespace)
 			repoTwoAssert.Do(namespace)
 
+			SetupRBAC(namespace)
+			SetupConfig(namespace)
+
 			By("creating needed repository group resource")
 
 			releaseRepoGroup = &helmv1alpha1.RepoGroup{
@@ -158,6 +161,8 @@ var _ = Context("Install a releasegroup", func() {
 				IsPresent: false,
 			}
 
+			s := "config"
+
 			releaseGroupKind = &helmv1alpha1.ReleaseGroup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource",
@@ -172,6 +177,7 @@ var _ = Context("Install a releasegroup", func() {
 							Chart:   testReleaseChartName,
 							Repo:    testRepoName,
 							Version: testReleaseChartVersion,
+							Config:  &s,
 						},
 					},
 				},
@@ -197,12 +203,14 @@ var _ = Context("Install a releasegroup", func() {
 						Chart:   testReleaseChartName,
 						Repo:    testRepoName,
 						Version: testReleaseChartVersion,
+						Config:  &s,
 					},
 					{
 						Name:    testReleaseNameSecond,
 						Chart:   testReleaseChartNameSecond,
 						Repo:    testRepoNameSecond,
 						Version: testReleaseChartVersionSecond,
+						Config:  &s,
 					},
 				},
 			}
@@ -229,6 +237,7 @@ var _ = Context("Install a releasegroup", func() {
 						Chart:   testReleaseChartNameSecond,
 						Repo:    testRepoNameSecond,
 						Version: testReleaseChartVersionSecond,
+						Config:  &s,
 					},
 				},
 			}
@@ -265,6 +274,9 @@ var _ = Context("Install a releasegroup", func() {
 
 			repoOneAssert.Do(namespace)
 			repoTwoAssert.Do(namespace)
+
+			RemoveRBAC(namespace)
+			RemoveConfig(namespace)
 
 			By("by deletion of namespace")
 			releaseNamespace = &v1.Namespace{

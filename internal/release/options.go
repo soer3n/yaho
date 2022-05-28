@@ -11,10 +11,17 @@ import (
 
 func (hc *Release) setOptions(instance *helmv1alpha1.Config, namespace *string) error {
 
+	var rn string
 	hc.Flags = instance.Spec.Flags
 
+	if namespace == nil {
+		rn = instance.ObjectMeta.Namespace
+	} else {
+		rn = *namespace
+	}
+
 	for _, v := range instance.Spec.Namespace.Allowed {
-		if v == *namespace {
+		if v == rn {
 			return nil
 		}
 	}

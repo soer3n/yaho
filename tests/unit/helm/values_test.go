@@ -19,8 +19,9 @@ func TestValues(t *testing.T) {
 	for _, testcase := range testcases.GetTestValueSpecs() {
 		release := testcase.Input.(*helmv1alpha1.Release)
 		testObj := values.New(release, logf.Log, clientMock)
-		_, err := testObj.ManageValues()
+		v, err := testObj.ManageValues()
 
 		assert.Equal(testcase.ReturnError["manage"], err)
+		assert.Equal(testcase.ReturnValue, v)
 	}
 }

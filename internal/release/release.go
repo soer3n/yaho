@@ -10,7 +10,6 @@ import (
 	"github.com/soer3n/yaho/internal/values"
 	"helm.sh/helm/v3/pkg/action"
 	helmchart "helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,7 +23,7 @@ import (
 // const configMapLabelSubName = "helm.soer3n.info/subname"
 
 // New represents initialization of internal release struct
-func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.Scheme, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface, getter genericclioptions.RESTClientGetter, kubeconfig []byte) (*Release, error) {
+func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.Scheme, reqLogger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface, getter genericclioptions.RESTClientGetter, kubeconfig []byte) (*Release, error) {
 	var helmRelease *Release
 	var specValues map[string]interface{}
 	var err error
@@ -38,7 +37,6 @@ func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.
 		},
 		Version:   instance.Spec.Version,
 		Repo:      instance.Spec.Repo,
-		Settings:  settings,
 		K8sClient: k8sclient,
 		scheme:    scheme,
 		getter:    g,
@@ -55,14 +53,15 @@ func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.
 
 	helmRelease.Config, _ = utils.InitActionConfig(getter, kubeconfig, reqLogger)
 
-	helmRelease.logger.Info("parsed config", "name", instance.Spec.Name, "cache", helmRelease.Settings.RepositoryCache)
-
 	if instance.Spec.Config != nil {
 		config, err := helmRelease.getConfig(instance.Spec.Config)
 
 		if err != nil {
 			helmRelease.logger.Info(err.Error())
 		}
+
+		helmRelease.logger.Info("parsed config", "name", instance.Spec.Name, "config", config)
+
 		if err := helmRelease.setOptions(config, instance.Spec.Namespace); err != nil {
 			helmRelease.logger.Error(err, "set options", "name", instance.Spec.Name)
 		}

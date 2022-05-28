@@ -1,19 +1,54 @@
 package helm
 
 import (
-	"encoding/json"
-
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
-	"github.com/soer3n/yaho/internal/values"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // GetTestValueSpecs returns expected spec for testing helm values parsing
 func GetTestValueSpecs() []inttypes.TestCase {
 
+	vm := map[string]interface{}{"foo": "bar", "boo": "baz"}
+	embedded := map[string]interface{}{
+		"ref": vm,
+		"foo": "bar",
+		"boo": "baz",
+	}
+	embedded2 := map[string]interface{}{
+		"ref":  vm,
+		"ref2": vm,
+		"foo":  "bar",
+		"boo":  "baz",
+	}
+	embeddedEmbedded := map[string]interface{}{
+		"ref": embedded,
+		"foo": "bar",
+		"boo": "baz",
+	}
+
 	releaseSpec := []inttypes.TestCase{
+		{
+			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "release",
+					Namespace: "foo",
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:  "release",
+					Chart: "chart",
+					Repo:  "repo",
+					Values: []string{
+						"foo", "second",
+					},
+				},
+			},
+			ReturnError: map[string]error{
+				"init":   nil,
+				"manage": nil,
+			},
+			ReturnValue: vm,
+		},
 		{
 			Input: &helmv1alpha1.Release{
 				ObjectMeta: metav1.ObjectMeta{
@@ -33,95 +68,100 @@ func GetTestValueSpecs() []inttypes.TestCase {
 				"init":   nil,
 				"manage": nil,
 			},
+			ReturnValue: embedded,
 		},
-	}
-
-	firstVals := map[string]string{"foo": "bar"}
-	secVals := map[string]string{"foo": "bar"}
-	thirdVals := map[string]interface{}{"baf": "muh", "boo": map[string]string{
-		"fuz": "xyz",
-	}, "mah": map[string]interface{}{
-		"bah": map[string]string{
-			"aah": "wah",
-		},
-	}}
-	fourthVals := map[string]string{"foo": "bar"}
-
-	firstValsRaw, _ := json.Marshal(firstVals)
-	secValsRaw, _ := json.Marshal(secVals)
-	thirdValsRaw, _ := json.Marshal(thirdVals)
-	fourthValsRaw, _ := json.Marshal(fourthVals)
-
-	_ = []inttypes.TestCase{
 		{
-			Input: []*values.ValuesRef{
-				{
-					Ref: &helmv1alpha1.Values{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "foo",
-							Namespace: "foo",
-						},
-						Spec: helmv1alpha1.ValuesSpec{
-							ValuesMap: &runtime.RawExtension{
-								Raw: firstValsRaw,
-							},
-							Refs: map[string]string{
-								"bar": "second",
-								"boo": "third",
-							},
-						},
-					},
-					Parent: "base",
+			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "release",
+					Namespace: "foo",
 				},
-				{
-					Ref: &helmv1alpha1.Values{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "second",
-							Namespace: "foo",
-						},
-						Spec: helmv1alpha1.ValuesSpec{
-							ValuesMap: &runtime.RawExtension{
-								Raw: secValsRaw,
-							},
-							Refs: map[string]string{
-								"boo": "fourth",
-							},
-						},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:  "release",
+					Chart: "chart",
+					Repo:  "repo",
+					Values: []string{
+						"fourth",
 					},
-					Parent: "foo",
-				},
-				{
-					Ref: &helmv1alpha1.Values{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "third",
-							Namespace: "foo",
-						},
-						Spec: helmv1alpha1.ValuesSpec{
-							ValuesMap: &runtime.RawExtension{
-								Raw: thirdValsRaw,
-							},
-						},
-					},
-					Parent: "foo",
-				},
-				{
-					Ref: &helmv1alpha1.Values{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "fourth",
-							Namespace: "foo",
-						},
-						Spec: helmv1alpha1.ValuesSpec{
-							ValuesMap: &runtime.RawExtension{
-								Raw: fourthValsRaw,
-							},
-						},
-					},
-					Parent: "second",
 				},
 			},
-			ReturnError: nil,
+			ReturnError: map[string]error{
+				"init":   nil,
+				"manage": nil,
+			},
+			ReturnValue: embedded,
+		},
+		{
+			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "release",
+					Namespace: "foo",
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:  "release",
+					Chart: "chart",
+					Repo:  "repo",
+					Values: []string{
+						"fifth",
+					},
+				},
+			},
+			ReturnError: map[string]error{
+				"init":   nil,
+				"manage": nil,
+			},
+			ReturnValue: map[string]interface{}{
+				"ref": embedded,
+				"foo": "bar",
+				"boo": "baz",
+			},
+		},
+		{
+			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "release",
+					Namespace: "foo",
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:  "release",
+					Chart: "chart",
+					Repo:  "repo",
+					Values: []string{
+						"fourth", "eigth",
+					},
+				},
+			},
+			ReturnError: map[string]error{
+				"init":   nil,
+				"manage": nil,
+			},
+			ReturnValue: embedded2,
+		},
+		{
+			Input: &helmv1alpha1.Release{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "release",
+					Namespace: "foo",
+				},
+				Spec: helmv1alpha1.ReleaseSpec{
+					Name:  "release",
+					Chart: "chart",
+					Repo:  "repo",
+					Values: []string{
+						"sixth",
+					},
+				},
+			},
+			ReturnError: map[string]error{
+				"init":   nil,
+				"manage": nil,
+			},
+			ReturnValue: map[string]interface{}{
+				"ref": embeddedEmbedded,
+				"foo": "bar",
+				"boo": "baz",
+			},
 		},
 	}
-
 	return releaseSpec
 }

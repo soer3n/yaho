@@ -20,7 +20,6 @@ package helm
 import (
 	"context"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -97,13 +96,15 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		},
 	}
 
-	releaseNamespace := instance.Spec.Namespace
+	/*
+		releaseNamespace := instance.Spec.Namespace
 
-	if releaseNamespace == nil {
-		releaseNamespace = &instance.ObjectMeta.Namespace
-	}
+		if releaseNamespace == nil {
+			releaseNamespace = &instance.ObjectMeta.Namespace
+		}
 
-	_ = os.Setenv("HELM_NAMESPACE", *releaseNamespace)
+		_ = os.Setenv("HELM_NAMESPACE", *releaseNamespace)
+	*/
 
 	config, err := r.getConfig(instance.Spec, instance.ObjectMeta.Namespace)
 
@@ -120,17 +121,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 		casted := releaseRestGetter.(*utils.HelmRESTClientGetter)
 		kubeconfig = casted.KubeConfig
-
-		//restConfig, err := releaseRestGetter.ToRESTConfig()
-
-		//if err != nil {
-		//	r.Log.Info("error on getting rest client from helm client", "msg", err.Error())
-		//}
-
-		//settings := utils.GetEnvSettings(map[string]string{
-		// "KubeConfig": releaseRestGetter.KubeConfig,
-		//	"KubeToken": restConfig.BearerToken,
-		//})
 	} else {
 		r.Log.Info(err.Error())
 	}
@@ -142,7 +132,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		releaseRestGetter = cli.New().RESTClientGetter()
 	}
 
-	helmRelease, err := release.New(instance, r.WatchNamespace, r.Scheme, utils.GetEnvSettings(map[string]string{}), reqLogger, r.WithWatch, &g, releaseRestGetter, []byte(kubeconfig))
+	helmRelease, err := release.New(instance, r.WatchNamespace, r.Scheme, reqLogger, r.WithWatch, &g, releaseRestGetter, []byte(kubeconfig))
 
 	if instance.Status.Revision == nil {
 
@@ -194,8 +184,6 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			reqLogger.Error(err, "error in reconciling")
 			return ctrl.Result{}, err
 		}
-
-		// return ctrl.Result{}, nil
 	}
 
 	if instance.Spec.Values == nil {

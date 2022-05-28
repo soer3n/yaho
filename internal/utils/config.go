@@ -21,7 +21,7 @@ func InitActionConfig(getter genericclioptions.RESTClientGetter, kubeconfig []by
 		/ we cannot use helm init func here due to data race issues on concurrent execution (helm's kube client tries to update the namespace field on each initialization)
 
 		// actionConfig := new(action.Configuration)
-		// err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionlog.Printf)
+		err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), actionlog.Printf)
 	*/
 
 	if getter == nil {
@@ -29,7 +29,6 @@ func InitActionConfig(getter genericclioptions.RESTClientGetter, kubeconfig []by
 		return nil, errors.New("getter is nil")
 	}
 
-	c := kube.New(getter)
 	f := cmdutil.NewFactory(getter)
 	set, err := f.KubernetesClientSet()
 
@@ -43,6 +42,12 @@ func InitActionConfig(getter genericclioptions.RESTClientGetter, kubeconfig []by
 
 	if ok {
 		namespace = casted.Namespace
+	}
+
+	c := &kube.Client{
+		Factory:   f,
+		Log:       actionlog.Printf,
+		Namespace: namespace,
 	}
 
 	conf := &action.Configuration{
@@ -77,37 +82,73 @@ func MergeMaps(source, dest map[string]interface{}) map[string]interface{} {
 }
 
 // MergeUntypedMaps returns distinct map of two as input
-func MergeUntypedMaps(dest, source map[string]interface{}, key string) map[string]interface{} {
-	for k, v := range source {
-		if key == "" {
-			if temp, ok := dest[k].(map[string]interface{}); ok {
-				temp = MergeUntypedMaps(temp, map[string]interface{}{
-					k: v,
-				}, key)
-				dest[k] = temp
-				continue
-			}
+func MergeUntypedMaps(dest, source map[string]interface{}, keys ...string) map[string]interface{} {
 
-			dest[k] = v
-			continue
-		}
+	trimedKeys := []string{}
+	copy := make(map[string]interface{})
 
-		if dest == nil {
-			dest = make(map[string]interface{})
-		}
-
-		sub, ok := dest[key].(map[string]interface{})
-
-		if !ok {
-			dest[key] = make(map[string]interface{})
-			sub = make(map[string]interface{})
-		}
-
-		sub[k] = v
-		dest[key] = sub
+	for k, v := range dest {
+		copy[k] = v
 	}
 
-	return dest
+	for _, v := range keys {
+		if v == "" {
+			continue
+		}
+		trimedKeys = append(trimedKeys, v)
+	}
+
+	for l, k := range trimedKeys {
+		if l == 0 {
+			_, ok := copy[k].(map[string]interface{})
+
+			if !ok {
+				copy[k] = make(map[string]interface{})
+			}
+
+			if len(trimedKeys) == 1 {
+				helper := copy[k].(map[string]interface{})
+				for kv, v := range source {
+					helper[kv] = v
+				}
+				copy[k] = helper
+			}
+
+			continue
+		} else {
+			if l > 1 {
+				break
+			}
+			if _, ok := copy[k].(map[string]interface{}); ok {
+				helper := copy[trimedKeys[0]].(map[string]interface{})
+				if l == len(trimedKeys)-1 {
+					subHelper, ok := helper[k].(map[string]interface{})
+
+					if ok {
+						for sk, sv := range source {
+							subHelper[sk] = sv
+						}
+						helper[k] = subHelper
+					} else {
+						helper[k] = source
+					}
+					copy[trimedKeys[0]] = helper
+				} else {
+					sub := MergeUntypedMaps(helper, source, trimedKeys[2:]...)
+					helper[k] = sub
+					copy[trimedKeys[0]] = helper
+				}
+			}
+		}
+	}
+
+	if len(trimedKeys) == 0 {
+		for k, v := range source {
+			copy[k] = v
+		}
+	}
+
+	return copy
 }
 
 // GetEnvSettings represents func for returning helm cli settings which are needed for helm actions
