@@ -60,11 +60,6 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 	})).Return(nil).Run(func(args mock.Arguments) {
 		c := args.Get(1).(*helmv1alpha1.ChartList)
 		c.Items = []helmv1alpha1.Chart{}
-		v := []string{}
-
-		for _, e := range chartMock.Versions {
-			v = append(v, e.Version)
-		}
 
 		if e == nil {
 			c.Items = []helmv1alpha1.Chart{

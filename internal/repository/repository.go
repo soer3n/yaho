@@ -140,7 +140,8 @@ func (hr *Repo) Update(instance *helmv1alpha1.Repository, scheme *runtime.Scheme
 		if !contains {
 			hr.logger.Info("deleting chart", "repo", hr.Name, "chart", item.ObjectMeta.Name)
 
-			if err := hr.K8sClient.Delete(context.Background(), &item); err != nil {
+			obj := item.DeepCopy()
+			if err := hr.K8sClient.Delete(context.Background(), obj); err != nil {
 				hr.logger.Info("error on deleting chart", "repo", hr.Name, "chart", item.ObjectMeta.Name)
 			}
 		}

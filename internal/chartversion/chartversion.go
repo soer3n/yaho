@@ -290,6 +290,10 @@ func (chartVersion *ChartVersion) createOrUpdateSubChart(dep *helmv1alpha1.Chart
 			obj.ObjectMeta.Labels = map[string]string{}
 		}
 
+		if v, ok := chartVersion.owner.ObjectMeta.Labels["repoGroup"]; ok {
+			group = &v
+		}
+
 		if group != nil {
 			obj.ObjectMeta.Labels["repoGroup"] = *group
 		}
@@ -314,13 +318,7 @@ func (chartVersion *ChartVersion) createOrUpdateSubChart(dep *helmv1alpha1.Chart
 	}
 
 	current := &charts.Items[0]
-
-	if _, ok := chartVersion.owner.ObjectMeta.Labels["repoGroup"]; ok {
-		v := chartVersion.owner.ObjectMeta.Labels["repoGroup"]
-		group = &v
-	} else {
-		group = nil
-	}
+	// group = nil
 
 	if utils.Contains(current.Spec.Versions, dep.Version) {
 		return nil

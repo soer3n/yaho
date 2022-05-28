@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"math/big"
 	mr "math/rand"
 	"os"
@@ -27,6 +28,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -719,9 +722,10 @@ func CompareValues(name, namespace string, expected map[string]interface{}) erro
 		return err
 	}
 
-	if reflect.DeepEqual(expected, v) {
-		return nil
+	if diff := cmp.Diff(expected, v); diff != "" {
+		fmt.Printf("CompareValues() mismatch (-want +got):\n%s", diff)
+		return errors.New("values are not equal")
 	}
 
-	return errors.New("values are not equal")
+	return nil
 }

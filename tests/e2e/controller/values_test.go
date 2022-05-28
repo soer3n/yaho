@@ -24,7 +24,7 @@ var _ = Context("Install a release with values", func() {
 		obj := setupNamespace()
 		namespace := obj.ObjectMeta.Name
 
-		FIt("should create a new Repository resource with the specified name and specified url", func() {
+		It("should create a new Repository resource with the specified name and specified url", func() {
 			ctx := context.Background()
 
 			// wait on readiness of controllers
@@ -176,7 +176,7 @@ var _ = Context("Install a release with values", func() {
 
 			By("should create a new values resource with specified")
 
-			nestedMap := map[string]string{
+			nestedMap := map[string]interface{}{
 				"baz": "faz",
 			}
 
@@ -232,7 +232,7 @@ var _ = Context("Install a release with values", func() {
 
 			By("should create a new values resource with specified")
 
-			refMap := map[string]string{
+			refMap := map[string]interface{}{
 				"baz": "faz",
 			}
 			refSpec := map[string]interface{}{
@@ -297,7 +297,7 @@ var _ = Context("Install a release with values", func() {
 
 			By("should update release after changing value resource")
 
-			nestedMap = map[string]string{
+			nestedMap = map[string]interface{}{
 				"baz": "foo",
 			}
 			valuesSpec = map[string]interface{}{
@@ -322,6 +322,10 @@ var _ = Context("Install a release with values", func() {
 			releaseAssert.Revision = 3
 
 			releaseAssert.Do(namespace)
+
+			helperMap := expectedValues["ref"].(map[string]interface{})
+			helperMap["boo"] = nestedMap
+			expectedValues["ref"] = helperMap
 
 			err = CompareValues(releaseAssert.Obj.ObjectMeta.Name, namespace, expectedValues)
 			Expect(err).NotTo(HaveOccurred())
