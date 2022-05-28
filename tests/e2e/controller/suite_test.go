@@ -92,10 +92,6 @@ const (
 	testReleaseChartNotValidVersion        = "9.9.9"
 )
 
-type ChartAsserts struct {
-	Items []*ChartAssert
-}
-
 type RepositoryAssert struct {
 	Name            string
 	Obj             *helmv1alpha1.Repository
@@ -434,12 +430,6 @@ func GetConfigMapFunc(ctx context.Context, key client.ObjectKey, obj *v1.ConfigM
 	}
 }
 
-func GetReleaseGroupFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.ReleaseGroup) func() error {
-	return func() error {
-		return testClient.Get(ctx, key, obj)
-	}
-}
-
 func (r *RepositoryAssert) Do(namespace string) {
 
 	configmap := &v1.ConfigMap{}
@@ -583,9 +573,6 @@ func (r ReleaseAssert) Do(namespace string) {
 			time.Second*20, time.Millisecond*1500).Should(r.Synced)
 	}
 
-}
-
-func AssertValueResource() {
 }
 
 func SetupRBAC(namespace string) {
