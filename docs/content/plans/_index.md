@@ -1,5 +1,5 @@
 +++
-title = "ToDos"
+title = "Plans"
 weight = 35
 chapter = true
 +++
@@ -12,3 +12,5 @@ chapter = true
 - switching to previous revision and back
 - auto-sync for new chart versions from repository
 - black- and whitelisting for charts when auto-sync for repository is enabled
+
+## Plans
