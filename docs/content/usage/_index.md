@@ -6,7 +6,7 @@ chapter = true
 
 #### General usage
 
-> There is a more complex configuration sample in [these](../examples/) directory. 
+> There is a more complex configuration sample in [these](https://github.com/soer3n/apps-operator/blob/master/examples) directory. 
 
 ##### Preparation
 
