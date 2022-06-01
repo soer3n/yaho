@@ -41,7 +41,7 @@ func InitActionConfig(getter genericclioptions.RESTClientGetter, kubeconfig []by
 	namespace := "default"
 
 	if ok {
-		namespace = casted.Namespace
+		namespace = casted.ReleaseNamespace
 	}
 
 	c := &kube.Client{

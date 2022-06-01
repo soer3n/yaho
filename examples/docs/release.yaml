@@ -1,0 +1,37 @@
+---
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Release
+metadata:
+  name: test-release
+  namespace: helm
+spec:
+  name: test-release
+  namespace: share
+  config: helm-release-config
+  repo: test-repo
+  chart: testing
+  version: 0.1.1
+  values:
+  - test-values
+
+---
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Values
+metadata:
+  name: test-values
+  namespace: helm
+spec:
+  json:
+    foo: bar
+  refs:
+    ref: test-values-2
+
+---
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Values
+metadata:
+  name: test-values-2
+  namespace: helm
+spec:
+  json:
+    test: it

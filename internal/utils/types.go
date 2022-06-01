@@ -4,13 +4,18 @@ import (
 	"net/http"
 
 	"github.com/go-logr/logr"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type HelmRESTClientGetter struct {
-	Namespace  string
-	KubeConfig string
-	logger     logr.Logger
+	Namespace        string
+	ReleaseNamespace string
+	KubeConfig       string
+	HelmConfig       *helmv1alpha1.Config
+	Client           client.Client
+	logger           logr.Logger
 }
 
 // ClientInterface repesents interface for mocking custom k8s client

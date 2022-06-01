@@ -1,12 +1,12 @@
 +++
 title = "Charts"
-chapter = true
+chapter = false
 weight = 20
 +++
 
-### Chart
+#### Chart
 
-> The chart resource represents the meta information of an helm chart. It's nearly similar to [helm chart.Metadata](https://github.com/helm/helm/blob/main/pkg/chart/metadata.go#L43-L80). Additional there are information about chart dependencies and the url for getting content for deploying a release. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/helm/v1alpha1/chart_types.go) for detailed information about the spec structure.
+> The chart resource represents the specification for an helm chart. For every specified and valid version the controller will create or update  3 configmaps for chart templates, crds and default values. If enabled dependency chart resources will be also created or updated. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/helm/v1alpha1/chart_types.go) for detailed information about the spec structure.
 
 {{< mermaid >}}
 %%{init:{"theme":"forest", "mirrorActors":"true", "sequence": {"showSequenceNumbers":false, "wrap": false,"useMaxWidth": true}}}%%

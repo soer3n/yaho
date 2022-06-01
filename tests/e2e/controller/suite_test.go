@@ -695,7 +695,7 @@ func CompareValues(name, namespace string, expected map[string]interface{}) erro
 	err = testClient.Get(context.Background(), apitypes.NamespacedName{Name: "config", Namespace: namespace}, config)
 	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
-	getter, _ := utils.NewRESTClientGetter(config, namespace, testClient, logf.Log)
+	getter, _ := utils.NewRESTClientGetter(config, namespace, namespace, testClient, logf.Log)
 	ac, err := utils.InitActionConfig(getter, []byte{}, logf.Log)
 
 	if err != nil {

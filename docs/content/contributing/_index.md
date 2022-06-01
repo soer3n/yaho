@@ -1,11 +1,11 @@
 +++
 title = "Contributing"
 weight = 40
-chapter = false
+chapter = true
 +++
 
 ## Contributing
 
-Pull requests are welcome. As these project is in a very early stage there is currently no traditional contribution guideline due to the fact that actually every issue is a bigger change which can bring incompatibility on update processes of this operator.
+Pull requests are welcome. As these project is in a early stage there is currently no guideline for it. 
 
-But everyone can feel welcome to mention ideas and adding features which makes sense what could be actually everything what you can do with helm. More than view is needed for a proper further development.
+If you find a bug while running the operator please open a [pull request](https://github.com/soer3n/yaho/pulls) or an [issue](https://github.com/soer3n/yaho/issues). If you want to make a feature request you should open an issue at first.

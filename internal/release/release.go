@@ -192,7 +192,7 @@ func (hc *Release) upgrade(helmChart *helmchart.Chart) error {
 	vals := hc.ValuesTemplate.Values
 
 	client := action.NewUpgrade(hc.Config)
-	client.Namespace = hc.Namespace.Name
+	client.Namespace = hc.releaseNamespace
 	hc.setUpgradeFlags(client)
 
 	if rel, err = client.Run(hc.Name, helmChart, vals); err != nil {

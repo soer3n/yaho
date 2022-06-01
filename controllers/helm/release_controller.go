@@ -96,15 +96,11 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		},
 	}
 
-	/*
-		releaseNamespace := instance.Spec.Namespace
+	releaseNamespace := instance.Spec.Namespace
 
-		if releaseNamespace == nil {
-			releaseNamespace = &instance.ObjectMeta.Namespace
-		}
-
-		_ = os.Setenv("HELM_NAMESPACE", *releaseNamespace)
-	*/
+	if releaseNamespace == nil {
+		releaseNamespace = &instance.ObjectMeta.Namespace
+	}
 
 	config, err := r.getConfig(instance.Spec, instance.ObjectMeta.Namespace)
 
@@ -112,7 +108,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	kubeconfig := ""
 
 	if err == nil {
-		releaseRestGetter, err = utils.NewRESTClientGetter(config, instance.ObjectMeta.Namespace, r.WithWatch, r.Log)
+		releaseRestGetter, err = utils.NewRESTClientGetter(config, instance.ObjectMeta.Namespace, *releaseNamespace, r.WithWatch, r.Log)
 
 		if err != nil {
 			r.Log.Info(err.Error())

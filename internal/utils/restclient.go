@@ -25,72 +25,30 @@ import (
 	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
 )
 
-func NewRESTClientGetter(config *helmv1alpha1.Config, namespace string, c client.Client, logger logr.Logger) (*HelmRESTClientGetter, error) {
+func NewRESTClientGetter(config *helmv1alpha1.Config, namespace, releaseNamespace string, c client.Client, logger logr.Logger) (*HelmRESTClientGetter, error) {
 
 	getter := &HelmRESTClientGetter{
-		Namespace: namespace,
-		logger:    logger,
+		Namespace:        namespace,
+		ReleaseNamespace: releaseNamespace,
+		HelmConfig:       config,
+		Client:           c,
+		logger:           logger,
 	}
 
-	if err := getter.setKubeconfig(config, namespace, c); err != nil {
+	if err := getter.setKubeconfig(); err != nil {
 		return nil, err
 	}
 
 	return getter, nil
 }
 
-func (h *HelmRESTClientGetter) setKubeconfig(config *helmv1alpha1.Config, namespace string, c client.Client) error {
+func (h *HelmRESTClientGetter) setKubeconfig() error {
 
-	serviceAccount := &v1.ServiceAccount{}
-	serviceAccountName := "default"
+	clienCmdConfig := h.ToRawKubeConfigLoader()
+	clientConfig, err := clienCmdConfig.RawConfig()
 
-	if config != nil {
-		serviceAccountName = config.Spec.ServiceAccountName
-	}
-
-	if err := c.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: serviceAccountName}, serviceAccount); err != nil {
-		fmt.Printf("error on getting default values. msg: %v", err.Error())
+	if err != nil {
 		return err
-	}
-
-	secret := &v1.Secret{}
-
-	for _, s := range serviceAccount.Secrets {
-		if err := c.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: s.Name}, secret); err != nil {
-			fmt.Printf("error on getting token secret. msg: %v", err.Error())
-			continue
-		}
-		break
-	}
-
-	rawToken := secret.Data["token"]
-
-	clusters := make(map[string]*clientcmdapi.Cluster)
-	clusters["default-cluster"] = &clientcmdapi.Cluster{
-		Server: "https://127.0.0.1:6443",
-		// Server:	"https://kubernetes.svc.default.cluster.local",
-		CertificateAuthorityData: secret.Data["ca.crt"],
-	}
-
-	contexts := make(map[string]*clientcmdapi.Context)
-	contexts["default-context"] = &clientcmdapi.Context{
-		Cluster:   "default-cluster",
-		Namespace: namespace,
-		AuthInfo:  namespace,
-	}
-
-	authinfos := make(map[string]*clientcmdapi.AuthInfo)
-	authinfos[namespace] = &clientcmdapi.AuthInfo{
-		Token: string(rawToken),
-	}
-
-	clientConfig := clientcmdapi.Config{
-		Kind:           "Config",
-		APIVersion:     "v1",
-		Clusters:       clusters,
-		Contexts:       contexts,
-		CurrentContext: "default-context",
-		AuthInfos:      authinfos,
 	}
 
 	rawConfig, err := runtime.Encode(clientcmdlatest.Codec, &clientConfig)
@@ -100,6 +58,7 @@ func (h *HelmRESTClientGetter) setKubeconfig(config *helmv1alpha1.Config, namesp
 	}
 
 	h.KubeConfig = string(rawConfig)
+
 	return nil
 
 }
@@ -148,13 +107,69 @@ func (c *HelmRESTClientGetter) ToRESTMapper() (meta.RESTMapper, error) {
 }
 
 func (c *HelmRESTClientGetter) ToRawKubeConfigLoader() clientcmd.ClientConfig {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	// use the standard defaults for this client command
-	// DEPRECATED: remove and replace with something more accurate
-	loadingRules.DefaultClientConfig = &clientcmd.DefaultClientConfig
+
+	serviceAccount := &v1.ServiceAccount{}
+	serviceAccountName := "default"
+
+	if c.HelmConfig != nil {
+		serviceAccountName = c.HelmConfig.Spec.ServiceAccountName
+	}
+
+	if err := c.Client.Get(context.Background(), types.NamespacedName{Namespace: c.Namespace, Name: serviceAccountName}, serviceAccount); err != nil {
+		fmt.Printf("error on getting default values. msg: %v", err.Error())
+		return nil
+	}
+
+	secret := &v1.Secret{}
+
+	for _, s := range serviceAccount.Secrets {
+		if err := c.Client.Get(context.Background(), types.NamespacedName{Namespace: c.Namespace, Name: s.Name}, secret); err != nil {
+			fmt.Printf("error on getting token secret. msg: %v", err.Error())
+			continue
+		}
+		break
+	}
+
+	rawToken := secret.Data["token"]
+
+	clusters := make(map[string]*clientcmdapi.Cluster)
+	clusters["default-cluster"] = &clientcmdapi.Cluster{
+		Server: "https://127.0.0.1:6443",
+		// Server:	"https://kubernetes.svc.default.cluster.local",
+		CertificateAuthorityData: secret.Data["ca.crt"],
+	}
+
+	contexts := make(map[string]*clientcmdapi.Context)
+	contexts["default-context"] = &clientcmdapi.Context{
+		Cluster:   "default-cluster",
+		Namespace: c.ReleaseNamespace,
+		AuthInfo:  c.ReleaseNamespace,
+	}
+
+	authinfos := make(map[string]*clientcmdapi.AuthInfo)
+	authinfos[c.ReleaseNamespace] = &clientcmdapi.AuthInfo{
+		Token: string(rawToken),
+	}
+
+	clientConfig := clientcmdapi.Config{
+		Kind:           "Config",
+		APIVersion:     "v1",
+		Clusters:       clusters,
+		Contexts:       contexts,
+		CurrentContext: "default-context",
+		AuthInfos:      authinfos,
+	}
 
 	overrides := &clientcmd.ConfigOverrides{ClusterDefaults: clientcmd.ClusterDefaults}
-	overrides.Context.Namespace = c.Namespace
+	overrides.Context.Namespace = c.ReleaseNamespace
 
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+	rawConfig, err := runtime.Encode(clientcmdlatest.Codec, &clientConfig)
+
+	if err != nil {
+		return nil
+	}
+
+	returnClient, _ := clientcmd.NewClientConfigFromBytes(rawConfig)
+
+	return returnClient
 }

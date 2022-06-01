@@ -4,7 +4,7 @@ weight = 10
 chapter = true
 +++
 
-## Kubectl
+#### Kubectl
 
 ```
 
@@ -14,7 +14,7 @@ kubectl apply -f https://raw.githubusercontent.com/soer3n/yaho/master/deploy/ope
 
 ```
 
-## Operator Lifecycle Manager
+#### Operator Lifecycle Manager
 
 ```
 

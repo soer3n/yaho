@@ -48,6 +48,7 @@ func (hc *Release) setInstallFlags(client *action.Install) {
 		return
 	}
 
+	client.Namespace = hc.releaseNamespace
 	client.Atomic = hc.Flags.Atomic
 	client.DisableHooks = hc.Flags.DisableHooks
 	client.DisableOpenAPIValidation = hc.Flags.DisableOpenAPIValidation
