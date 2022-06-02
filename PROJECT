@@ -5,8 +5,8 @@ multigroup: true
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
-projectName: apps-operators
-repo: github.com/soer3n/apps-operator
+projectName: yaho
+repo: github.com/soer3n/yaho
 resources:
 - api:
     crdVersion: v1

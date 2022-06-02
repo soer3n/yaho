@@ -62,14 +62,34 @@ func newRootCmd() *cobra.Command {
 }
 
 func newOperatorCmd() *cobra.Command {
-	return &cobra.Command{
+
+	var metricsAddr string
+	var enableLeaderElection bool
+	var probeAddr string
+	var configFile string
+
+	cmd := &cobra.Command{
 		Use:   "operator",
 		Short: "runs the operator",
 		Long:  `apps operator`,
 		Run: func(cmd *cobra.Command, args []string) {
-			run()
+			configFile, _ = cmd.Flags().GetString("config")
+			metricsAddr, _ = cmd.Flags().GetString("metrics-bind-address")
+			probeAddr, _ = cmd.Flags().GetString("health-probe-bind-address")
+			enableLeaderElection, _ = cmd.Flags().GetBool("leader-elect")
+			run(configFile, metricsAddr, probeAddr, enableLeaderElection)
 		},
 	}
+
+	cmd.PersistentFlags().String("config", "", "The controller will load its initial configuration from this file. "+
+		"Omit this flag to use the default configuration values. "+
+		"Command-line flags override configuration from this file.")
+	cmd.PersistentFlags().String("metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	cmd.PersistentFlags().String("health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	cmd.PersistentFlags().Bool("leader-elect", false, "Enable leader election for controller manager. "+
+		"Enabling this will ensure there is only one active controller manager.")
+
+	return cmd
 }
 
 func init() {
@@ -79,34 +99,38 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-func run() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
+func run(configFile, metricsAddr, probeAddr string, enableLeaderElection bool) {
+
+	var err error
+
 	opts := zap.Options{
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
-
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	ns := getWatchNamespace()
-
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	// set default options
+	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "bb07b8f2.soer3n.info",
-		// Namespace:              watchNamespace,
-	})
+	}
+
+	if configFile != "" {
+		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFile))
+		if err != nil {
+			setupLog.Error(err, "unable to load the config file")
+			os.Exit(1)
+		}
+	}
+
+	ns := getWatchNamespace()
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)

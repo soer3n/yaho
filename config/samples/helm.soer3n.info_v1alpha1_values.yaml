@@ -1,0 +1,9 @@
+---
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Values
+metadata:
+  name: test-values
+  namespace: helm
+spec:
+  json:
+    test: it

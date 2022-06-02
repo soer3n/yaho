@@ -1,0 +1,9 @@
+---
+apiVersion: helm.soer3n.info/v1alpha1
+kind: Repository
+metadata:
+  name: test-repo
+spec:
+  name: test-repo
+  url: https://soer3n.github.io/charts/testing_a
+  charts: []

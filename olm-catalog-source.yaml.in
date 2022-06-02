@@ -1,0 +1,10 @@
+# catalogsource.yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: yaho
+  namespace: default
+spec:
+  displayName: Yaho Operators
+  image: soer3n/yaho:catalog
+  sourceType: grpc

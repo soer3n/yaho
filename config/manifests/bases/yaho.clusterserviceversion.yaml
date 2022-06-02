@@ -1,0 +1,72 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: yaho.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Chart is the Schema for the charts API
+      displayName: Chart
+      kind: Chart
+      name: charts.helm.soer3n.info
+      version: v1alpha1
+    - description: Config is the Schema for the configs API
+      displayName: Config
+      kind: Config
+      name: configs.helm.soer3n.info
+      version: v1alpha1
+    - description: ReleaseGroup is the Schema for the releasegroups API
+      displayName: Release Group
+      kind: ReleaseGroup
+      name: releasegroups.helm.soer3n.info
+      version: v1alpha1
+    - description: Release is the Schema for the releases API
+      displayName: Release
+      kind: Release
+      name: releases.helm.soer3n.info
+      version: v1alpha1
+    - description: RepoGroup is the Schema for the repogroups API
+      displayName: Repo Group
+      kind: RepoGroup
+      name: repogroups.helm.soer3n.info
+      version: v1alpha1
+    - description: Values is the Schema for the values API
+      displayName: Values
+      kind: Values
+      name: values.helm.soer3n.info
+      version: v1alpha1
+  description: helm operator
+  displayName: yaho
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - helm
+  links:
+  - name: Yaho
+    url: https://yaho.domain
+  maintainers:
+  - email: srenhenning@googlemail.com
+    name: soer3n
+  maturity: alpha
+  provider:
+    name: soer3n
+  version: 0.0.0

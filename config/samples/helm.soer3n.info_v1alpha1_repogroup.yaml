@@ -7,6 +7,4 @@ spec:
   labelSelector: foo
   repos:
     - name: nextcloud
-      url: https://nextcloud.github.io/helm/
-    - name: bitnami
-      url: https://charts.bitnami.com/bitnami
+      url: https://soer3n.github.io/charts/testing_a

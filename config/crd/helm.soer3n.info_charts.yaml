@@ -1,49 +1,41 @@
+
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: releases.helm.soer3n.info
+  name: charts.helm.soer3n.info
 spec:
   group: helm.soer3n.info
   names:
-    kind: Release
-    listKind: ReleaseList
-    plural: releases
-    singular: release
-  scope: Namespaced
+    kind: Chart
+    listKind: ChartList
+    plural: charts
+    singular: chart
+  scope: Cluster
   versions:
   - additionalPrinterColumns:
     - jsonPath: .metadata.labels['repoGroup']
       name: Group
       type: string
-    - jsonPath: .spec.repo
+    - jsonPath: .spec.repository
       name: Repo
       type: string
-    - jsonPath: .spec.chart
-      name: Chart
+    - jsonPath: .status.versions
+      name: Versions
       type: string
-    - jsonPath: .spec.version
-      name: Version
+    - jsonPath: .status.dependencies
+      name: Deps
       type: string
-    - jsonPath: .status.synced
-      name: Synced
-      type: string
-    - jsonPath: .status.status
-      name: Status
-      type: string
-    - jsonPath: .status.revision
-      name: Revision
-      type: number
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Release is the Schema for the releases API
+        description: Chart is the Schema for the charts API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -58,43 +50,38 @@ spec:
           metadata:
             type: object
           spec:
-            description: ReleaseSpec defines the desired state of Release
+            description: ChartSpec defines the desired state of Chart
             properties:
-              chart:
-                type: string
-              config:
-                type: string
+              createDeps:
+                description: The tags to check to enable chart
+                type: boolean
               name:
                 type: string
-              namespace:
+              repository:
                 type: string
-              repo:
-                type: string
-              values:
+              versions:
+                description: A SemVer 2 conformant version string of the chart
                 items:
                   type: string
                 type: array
-              version:
-                type: string
             required:
-            - chart
-            - name
-            - repo
+            - repository
             type: object
           status:
-            description: ReleaseStatus defines the observed state of Release
+            description: ChartStatus defines the observed state of Chart
             properties:
               conditions:
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
                     use as an array at the field path .status.conditions.  For example,
-                    type FooStatus struct{ // Represents the observations of a foo's
-                    current state. // Known .status.conditions.type are: \"Available\",
-                    \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
-                    // +listType=map // +listMapKey=type Conditions []metav1.Condition
-                    `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
-                    protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                    type FooStatus struct{     // Represents the observations of a
+                    foo's current state.     // Known .status.conditions.type are:
+                    \"Available\", \"Progressing\", and \"Degraded\"     // +patchMergeKey=type
+                    \    // +patchStrategy=merge     // +listType=map     // +listMapKey=type
+                    \    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`
+                    \n     // other fields }"
                   properties:
                     lastTransitionTime:
                       description: lastTransitionTime is the last time the condition
@@ -152,15 +139,19 @@ spec:
                   - type
                   type: object
                 type: array
-              revision:
-                type: integer
-              status:
-                type: string
-              synced:
+              dependencies:
                 description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
                   of cluster Important: Run "make" to regenerate code after modifying
                   this file'
+                type: string
+              deprecated:
                 type: boolean
+              tags:
+                type: string
+              type:
+                type: string
+              versions:
+                type: string
             required:
             - conditions
             type: object
