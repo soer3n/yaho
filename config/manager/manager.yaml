@@ -1,28 +1,21 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    control-plane: controller-manager
-  name: system
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: controller-manager
-  namespace: system
   labels:
-    control-plane: controller-manager
+    "operators.soeren.dev": yaho
 spec:
   selector:
     matchLabels:
-      control-plane: controller-manager
+      "operators.soeren.dev": yaho
   replicas: 1
   template:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
-        control-plane: controller-manager
+        "operators.soeren.dev": yaho
     spec:
       securityContext:
         runAsUser: 65532
@@ -32,8 +25,7 @@ spec:
         - operator
         args:
         - --leader-elect
-        #image: soer3n/yaho:v0.0.1
-        image: docker.io/library/controller:v0.0.1
+        image: soer3n/yaho:0.0.1
         name: manager
         securityContext:
           allowPrivilegeEscalation: false

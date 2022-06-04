@@ -3,7 +3,7 @@ ARCH = $(shell go env GOARCH)
 # Current Operator version
 VERSION ?= 0.0.1
 # Default bundle image tag
-BUNDLE_IMG ?= soer3n/yaho:bundle
+BUNDLE_IMG ?= soer3n/yaho-bundle:$(VERSION)
 # Options for 'bundle-build'
 ifneq ($(origin CHANNELS), undefined)
 BUNDLE_CHANNELS := --channels=$(CHANNELS)
@@ -52,7 +52,7 @@ ifeq ($(USE_IMAGE_DIGESTS), true)
 endif
 
 # Image URL to use all building/pushing image targets
-IMG ?= soer3n/yaho:latest
+IMG ?= soer3n/yaho:$(VERSION)
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -157,6 +157,7 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
+	rm -rf $(LOCALBIN)/kustomize
 	curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
@@ -205,7 +206,7 @@ ifeq (,$(shell which opm 2>/dev/null))
 	@{ \
 	set -e ;\
 	mkdir -p $(dir $(OPM)) ;\
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.19.1/$(OS)-$(ARCH)-opm ;\
+	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.23.0/$(OS)-$(ARCH)-opm ;\
 	chmod +x $(OPM) ;\
 	}
 else 
@@ -225,10 +226,10 @@ ifneq ($(origin CATALOG_BASE_IMG), undefined)
 FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
 endif
 
-CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION) ifneq ($(origin CATALOG_BASE_IMG), undefined) FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG) endif 
+CATALOG_IMG ?= soer3n/yaho:catalog ifneq ($(origin CATALOG_BASE_IMG), undefined) FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG) endif 
 .PHONY: catalog-build
 catalog-build: opm
-	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT) --permissive
 
 .PHONY: catalog-push
 catalog-push: ## Push the catalog image.
@@ -237,9 +238,8 @@ catalog-push: ## Push the catalog image.
 .PHONY: artifacts-build
 artifacts-build: controller-gen bundle
 	mkdir -p artifacts
-	$(CONTROLLER_GEN) rbac:roleName=manager-role paths="./..." output:stdout > artifacts/yaho-v$(VERSION)-rbac.yaml
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd paths="./..." output:crd:stdout > artifacts/yaho-v$(VERSION)-crds.yaml
-	$(KUSTOMIZE) build config/manager/ > artifacts/yaho-v$(VERSION)-operator.yaml
-	envsubst < olm-catalog-source.yaml.in > artifacts/yaho-v$(VERSION)-catalog-source.yaml
-	envsubst < olm-operatorgroup.yaml.in > artifacts/yaho-v$(VERSION)-operatorgroup.yaml
-	envsubst < olm-subscription.yaml.in > artifacts/yaho-v$(VERSION)-subscription.yaml
+	rm -rf artifacts/*
+	make generate
+	echo "---" >> artifacts/yaho-v$(VERSION)-deployment.yaml
+	$(KUSTOMIZE) build config/default >> artifacts/yaho-v$(VERSION)-deployment.yaml
+	envsubst < olm/release.yaml.in >> artifacts/yaho-v$(VERSION)-olm.yaml

@@ -44,7 +44,9 @@ type ChartReconciler struct {
 	Recorder       record.EventRecorder
 }
 
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources="repositories",verbs=get;list;watch
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=charts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=charts/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=charts/finalizers,verbs=update
 

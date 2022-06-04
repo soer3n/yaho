@@ -42,7 +42,8 @@ type ReleaseGroupReconciler struct {
 	Recorder       record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releasegroups,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releasegroups,verbs=get;list;watch
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releases,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=releasegroups/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=releasegroups/finalizers,verbs=update
 

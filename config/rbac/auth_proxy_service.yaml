@@ -2,9 +2,8 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    control-plane: controller-manager
+    "operators.soeren.dev": yaho
   name: controller-manager-metrics-service
-  namespace: system
 spec:
   ports:
   - name: https
@@ -12,4 +11,4 @@ spec:
     protocol: TCP
     targetPort: https
   selector:
-    control-plane: controller-manager
+    "operators.soeren.dev": yaho

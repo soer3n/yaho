@@ -40,7 +40,8 @@ type RepoGroupReconciler struct {
 	Recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repogroups,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repogroups,verbs=get;list;watch
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources="repositories",verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=repogroups/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=repogroups/finalizers,verbs=update
 

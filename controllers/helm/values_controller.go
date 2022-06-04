@@ -42,7 +42,9 @@ type ValuesReconciler struct {
 	Recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=values,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=values,verbs=get;list;watch
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releases,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releases/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=values/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=values/finalizers,verbs=update
 

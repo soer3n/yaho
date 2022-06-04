@@ -1,0 +1,86 @@
+{
+    "schema": "olm.package",
+    "name": "yaho",
+    "defaultChannel": "alpha"
+}
+{
+    "schema": "olm.channel",
+    "name": "alpha",
+    "package": "yaho",
+    "entries": [
+        {
+            "name": "yaho.v0.0.1"
+        }
+    ]
+}
+{
+    "schema": "olm.bundle",
+    "name": "yaho.v0.0.1",
+    "package": "yaho",
+    "image": "soer3n/yaho-bundle:0.0.1",
+    "properties": [
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "helm.soer3n.info",
+                "kind": "Chart",
+                "version": "v1alpha1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "helm.soer3n.info",
+                "kind": "Config",
+                "version": "v1alpha1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "helm.soer3n.info",
+                "kind": "Release",
+                "version": "v1alpha1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "helm.soer3n.info",
+                "kind": "ReleaseGroup",
+                "version": "v1alpha1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "helm.soer3n.info",
+                "kind": "RepoGroup",
+                "version": "v1alpha1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "helm.soer3n.info",
+                "kind": "Repository",
+                "version": "v1alpha1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "helm.soer3n.info",
+                "kind": "Values",
+                "version": "v1alpha1"
+            }
+        },
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "yaho",
+                "version": "0.0.1"
+            }
+        }
+    ]
+}

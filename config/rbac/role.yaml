@@ -6,6 +6,25 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - helm.soer3n.info
   resources:
   - charts
@@ -36,12 +55,8 @@ rules:
   resources:
   - releasegroups
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - helm.soer3n.info
@@ -62,7 +77,6 @@ rules:
   resources:
   - releases
   verbs:
-  - create
   - delete
   - get
   - list
@@ -88,12 +102,8 @@ rules:
   resources:
   - repogroups
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - helm.soer3n.info
@@ -118,7 +128,6 @@ rules:
   - delete
   - get
   - list
-  - patch
   - update
   - watch
 - apiGroups:
@@ -140,12 +149,9 @@ rules:
   resources:
   - values
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch
-  - update
   - watch
 - apiGroups:
   - helm.soer3n.info

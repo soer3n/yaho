@@ -1,9 +1,0 @@
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  annotations:
-    olm.providedAPIs: Chart.v1alpha1.helm.soer3n.info,Config.v1alpha1.helm.soer3n.info,Release.v1alpha1.helm.soer3n.info,ReleaseGroup.v1alpha1.helm.soer3n.info,RepoGroup.v1alpha1.helm.soer3n.info,Repository.v1alpha1.helm.soer3n.info,Values.v1alpha1.helm.soer3n.info
-  name: yaho-operatorgroup
-  namespace: default
-spec:
-  upgradeStrategy: Default

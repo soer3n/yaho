@@ -1,3 +1,4 @@
+namespace: helm
 resources:
 - manager.yaml
 
@@ -13,4 +14,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: soer3n/yaho
-  newTag: latest
+  newTag: 0.0.2

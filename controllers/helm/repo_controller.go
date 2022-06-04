@@ -51,7 +51,9 @@ type RepoReconciler struct {
 	Recorder       record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repositories,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources="repositories",verbs=get;list;watch;update
+// +kubebuilder:rbac:groups=helm.soer3n.info,resources="charts",verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=repositories/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=helm.soer3n.info,resources=repositories/finalizers,verbs=update
 

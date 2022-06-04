@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: helm
+
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: yaho
+  namespace: helm
+spec:
+  displayName: Yaho Operators
+  image: soer3n/yaho:catalog
+  sourceType: grpc
+  updateStrategy:
+    registryPoll:
+      interval: 15m
+
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  annotations:
+    olm.providedAPIs: Chart.v1alpha1.helm.soer3n.info,Config.v1alpha1.helm.soer3n.info,Release.v1alpha1.helm.soer3n.info,ReleaseGroup.v1alpha1.helm.soer3n.info,RepoGroup.v1alpha1.helm.soer3n.info,Repository.v1alpha1.helm.soer3n.info,Values.v1alpha1.helm.soer3n.info
+  name: yaho-operatorgroup
+  namespace: helm
+spec:
+  upgradeStrategy: Default
+
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: yaho
+  namespace: helm
+spec:
+  channel: "$CHANNEL"
+  installPlanApproval: Automatic
+  name: yaho
+  source: yaho
+  sourceNamespace: helm
+  startingCSV: yaho.v$VERSION
+  config:
+    env:
+    - name: WATCH_NAMESPACE
+      value: helm
