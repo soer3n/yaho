@@ -34,7 +34,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	controllers "github.com/soer3n/yaho/controllers/helm"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/action"
@@ -436,7 +436,7 @@ func (r *RepositoryAssert) Do(namespace string) {
 	chartReturnError := BeNil()
 
 	if !r.IsPresent {
-		chartReturnError = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "repositories", Group: "helm.soer3n.info"}, r.Name))
+		chartReturnError = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "repositories", Group: "yaho.soer3n.dev"}, r.Name))
 	}
 
 	Eventually(
@@ -528,7 +528,7 @@ func (c *ChartAssert) Do(namespace, repo string) {
 
 func (c *ChartAssert) setDefault(repo string) {
 
-	c.IsPresent = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "helm.soer3n.info"}, c.Name+"-"+repo))
+	c.IsPresent = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "yaho.soer3n.dev"}, c.Name+"-"+repo))
 	c.IndicesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-"+repo+"-"+c.Name+"-index"))
 	c.ResourcesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present"))
 	c.Synced = BeFalse()

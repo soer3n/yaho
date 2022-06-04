@@ -12,7 +12,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 )
 
 // New represents initialization of internal chart struct

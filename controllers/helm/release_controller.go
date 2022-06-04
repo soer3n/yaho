@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"github.com/soer3n/yaho/internal/release"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/cli"
@@ -50,12 +50,12 @@ type ReleaseReconciler struct {
 	Recorder       record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releases,verbs=get;list;watch;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=values,verbs=get;list;watch;patch
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=releases,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=values,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releases/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releases/finalizers,verbs=update
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=releases/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=releases/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -214,13 +214,13 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *ReleaseReconciler) handleFinalizer(helmRelease *release.Release, instance *helmv1alpha1.Release, isRepoMarkedToBeDeleted bool) (bool, error) {
 
 	if isRepoMarkedToBeDeleted {
-		controllerutil.RemoveFinalizer(instance, "finalizer.releases.helm.soer3n.info")
+		controllerutil.RemoveFinalizer(instance, "finalizer.releases.yaho.soer3n.dev")
 		return true, nil
 	}
 
-	if !utils.Contains(instance.GetFinalizers(), "finalizer.releases.helm.soer3n.info") {
+	if !utils.Contains(instance.GetFinalizers(), "finalizer.releases.yaho.soer3n.dev") {
 		r.Log.Info("Adding Finalizer for the Release")
-		controllerutil.AddFinalizer(instance, "finalizer.releases.helm.soer3n.info")
+		controllerutil.AddFinalizer(instance, "finalizer.releases.yaho.soer3n.dev")
 		return true, nil
 	}
 
@@ -234,9 +234,9 @@ func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alph
 
 	r.Log.Info("current labels", "value", instanceLabels)
 
-	if _, ok := instanceLabels["helm.soer3n.info/reconcile"]; ok {
+	if _, ok := instanceLabels["yaho.soer3n.dev/reconcile"]; ok {
 
-		delete(instanceLabels, "helm.soer3n.info/reconcile")
+		delete(instanceLabels, "yaho.soer3n.dev/reconcile")
 		instance.ObjectMeta.Labels = instanceLabels
 
 		if err := r.Update(ctx, instance); err != nil {
@@ -300,7 +300,7 @@ func (r *ReleaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	selector := metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			"helm.soer3n.info/reconcile": "true",
+			"yaho.soer3n.dev/reconcile": "true",
 		},
 	}
 

@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"github.com/soer3n/yaho/internal/repository"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/kube"
@@ -51,11 +51,11 @@ type RepoReconciler struct {
 	Recorder       record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources="repositories",verbs=get;list;watch;update
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources="charts",verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources="repositories",verbs=get;list;watch;update
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources="charts",verbs=get;list;watch;create;update
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repositories/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=repositories/finalizers,verbs=update
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=repositories/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=repositories/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -202,13 +202,13 @@ func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1al
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
-		controllerutil.RemoveFinalizer(instance, "finalizer.repo.helm.soer3n.info")
+		controllerutil.RemoveFinalizer(instance, "finalizer.repo.yaho.soer3n.dev")
 		return true, nil
 	}
 
-	if !utils.Contains(instance.GetFinalizers(), "finalizer.repo.helm.soer3n.info") {
+	if !utils.Contains(instance.GetFinalizers(), "finalizer.repo.yaho.soer3n.dev") {
 		r.Log.Info("Adding Finalizer for the Repository Resource")
-		controllerutil.AddFinalizer(instance, "finalizer.repo.helm.soer3n.info")
+		controllerutil.AddFinalizer(instance, "finalizer.repo.yaho.soer3n.dev")
 		return true, nil
 	}
 

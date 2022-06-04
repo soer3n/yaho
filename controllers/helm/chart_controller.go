@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"github.com/soer3n/yaho/internal/chart"
 	"github.com/soer3n/yaho/internal/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -44,11 +44,11 @@ type ChartReconciler struct {
 	Recorder       record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources="repositories",verbs=get;list;watch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=charts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources="repositories",verbs=get;list;watch
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=charts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=charts/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=charts/finalizers,verbs=update
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=charts/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=charts/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

@@ -25,7 +25,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - charts
   verbs:
@@ -37,13 +37,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - charts/finalizers
   verbs:
   - update
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - charts/status
   verbs:
@@ -51,7 +51,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - releasegroups
   verbs:
@@ -59,13 +59,13 @@ rules:
   - list
   - watch
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - releasegroups/finalizers
   verbs:
   - update
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - releasegroups/status
   verbs:
@@ -73,7 +73,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - releases
   verbs:
@@ -84,13 +84,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - releases/finalizers
   verbs:
   - update
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - releases/status
   verbs:
@@ -98,7 +98,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - repogroups
   verbs:
@@ -106,13 +106,13 @@ rules:
   - list
   - watch
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - repogroups/finalizers
   verbs:
   - update
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - repogroups/status
   verbs:
@@ -120,7 +120,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - repositories
   verbs:
@@ -131,13 +131,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - repositories/finalizers
   verbs:
   - update
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - repositories/status
   verbs:
@@ -145,7 +145,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - values
   verbs:
@@ -154,13 +154,13 @@ rules:
   - patch
   - watch
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - values/finalizers
   verbs:
   - update
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - values/status
   verbs:

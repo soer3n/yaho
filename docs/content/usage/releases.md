@@ -13,7 +13,7 @@ Needed chart resources have to be present before creating a release resource.
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Release
 metadata:
   name: test-release
@@ -34,7 +34,7 @@ The release will be installed either into spec.namespace or if this field is not
 
 ```bash
 
-$ kubectl get releases.helm.soer3n.info -n helm 
+$ kubectl get releases.yaho.soer3n.dev -n helm 
 NAME           GROUP   REPO        CHART     VERSION   SYNCED   STATUS    REVISION   AGE
 test-release           test-repo   testing   0.1.1     true     success   1          4m4s
 
@@ -74,7 +74,7 @@ If we want to configure chart values for a release we need to create a value res
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Values
 metadata:
   name: test-values
@@ -84,7 +84,7 @@ spec:
     foo: bar
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Release
 metadata:
   name: test-release
@@ -107,7 +107,7 @@ The reference of values resource in release spec should configure release values
 
 ```bash
 
-$ kubectl get releases.helm.soer3n.info -n helm 
+$ kubectl get releases.yaho.soer3n.dev -n helm 
 NAME           GROUP   REPO        CHART     VERSION   SYNCED   STATUS    REVISION   AGE
 test-release           test-repo   testing   0.1.1     true     success   2          5m58s
 
@@ -130,7 +130,7 @@ Let's add another values resource and reference it in the first value resource.
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Values
 metadata:
   name: test-values-2
@@ -140,7 +140,7 @@ spec:
     test: it
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Values
 metadata:
   name: test-values
@@ -159,7 +159,7 @@ Release revision and values should be modified after applying new values resourc
 
 ```bash
 
-$ kubectl get releases.helm.soer3n.info -n helm 
+$ kubectl get releases.yaho.soer3n.dev -n helm 
 NAME           GROUP   REPO        CHART     VERSION   SYNCED   STATUS    REVISION   AGE
 test-release           test-repo   testing   0.1.1     true     success   3          13m
 

@@ -6,7 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,7 +38,7 @@ var _ = Context("Install and configure a repository", func() {
 			chartOneAssert := &ChartAssert{
 				Name:               testRepoChartNameAssert,
 				Version:            testRepoChartNameAssertqVersion,
-				IsPresent:          BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "helm.soer3n.info"}, "testing-testresource")),
+				IsPresent:          BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "yaho.soer3n.dev"}, "testing-testresource")),
 				IndicesInstalled:   BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-testresource-testing-index")),
 				ResourcesInstalled: BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present")),
 				Synced:             BeFalse(),
@@ -48,7 +48,7 @@ var _ = Context("Install and configure a repository", func() {
 			chartTwoAssert := &ChartAssert{
 				Name:               testRepoChartSecondNameAssert,
 				Version:            testRepoChartSecondNameAssertVersion,
-				IsPresent:          BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "helm.soer3n.info"}, "testing-dep-testresource-2")),
+				IsPresent:          BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "yaho.soer3n.dev"}, "testing-dep-testresource-2")),
 				IndicesInstalled:   BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-testresource-2-testing-dep-index")),
 				ResourcesInstalled: BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present")),
 				Synced:             BeFalse(),
@@ -58,7 +58,7 @@ var _ = Context("Install and configure a repository", func() {
 			chartThreeAssert := &ChartAssert{
 				Name:               testRepoChartThirdNameAssert,
 				Version:            testRepoChartThirdNameAssertVersion,
-				IsPresent:          BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "helm.soer3n.info"}, "testing-nested-testresource")),
+				IsPresent:          BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "yaho.soer3n.dev"}, "testing-nested-testresource")),
 				IndicesInstalled:   BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-testresource-testing-nested-index")),
 				ResourcesInstalled: BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present")),
 				Synced:             BeFalse(),
@@ -191,7 +191,7 @@ var _ = Context("Install and configure a repository", func() {
 			err = testClient.Update(context.Background(), repoOneAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
-			chartOneAssert.IsPresent = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "helm.soer3n.info"}, testRepoChartNameAssert+"-"+testRepoName))
+			chartOneAssert.IsPresent = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "yaho.soer3n.dev"}, testRepoChartNameAssert+"-"+testRepoName))
 			chartOneAssert.ResourcesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present"))
 			chartOneAssert.Synced = BeFalse()
 			chartOneAssert.Deps = BeFalse()
@@ -208,7 +208,7 @@ var _ = Context("Install and configure a repository", func() {
 
 			chartOneAssert.IndicesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-testresource-testing-index"))
 
-			chartThreeAssert.IsPresent = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "helm.soer3n.info"}, testRepoChartThirdNameAssert+"-"+testRepoName))
+			chartThreeAssert.IsPresent = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "yaho.soer3n.dev"}, testRepoChartThirdNameAssert+"-"+testRepoName))
 			chartThreeAssert.IndicesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-testresource-testing-nested-index"))
 			chartThreeAssert.Deps = BeFalse()
 			chartThreeAssert.Synced = BeFalse()

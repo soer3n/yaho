@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 )
 
 func NewRESTClientGetter(config *helmv1alpha1.Config, namespace, releaseNamespace string, c client.Client, logger logr.Logger) (*HelmRESTClientGetter, error) {

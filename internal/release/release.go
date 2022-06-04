@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"github.com/soer3n/yaho/internal/utils"
 	"github.com/soer3n/yaho/internal/values"
 	"helm.sh/helm/v3/pkg/action"
@@ -17,10 +17,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// const configMapLabelKey = "helm.soer3n.info/chart"
+// const configMapLabelKey = "yaho.soer3n.dev/chart"
 
-// const configMapRepoLabelKey = "helm.soer3n.info/repo"
-// const configMapLabelSubName = "helm.soer3n.info/subname"
+// const configMapRepoLabelKey = "yaho.soer3n.dev/repo"
+// const configMapLabelSubName = "yaho.soer3n.dev/subname"
 
 // New represents initialization of internal release struct
 func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.Scheme, reqLogger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface, getter genericclioptions.RESTClientGetter, kubeconfig []byte) (*Release, error) {

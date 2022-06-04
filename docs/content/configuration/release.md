@@ -8,7 +8,7 @@ chapter = true
 
 ```
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Config
 metadata:
   name: example-config

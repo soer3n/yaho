@@ -64,7 +64,7 @@ As a last step you need to setup a config resource. There you need to specify th
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Config
 metadata:
   name: helm-release-config

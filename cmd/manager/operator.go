@@ -22,7 +22,7 @@ import (
 	"log"
 	"os"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	helmcontrollers "github.com/soer3n/yaho/controllers/helm"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"

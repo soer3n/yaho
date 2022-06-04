@@ -12,7 +12,7 @@ import (
 
 	// "k8s.io/utils/pointer"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"github.com/soer3n/yaho/tests/mocks"
 	unstructuredmocks "github.com/soer3n/yaho/tests/mocks/unstructured"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"

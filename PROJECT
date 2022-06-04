@@ -54,9 +54,9 @@ resources:
     crdVersion: v1
     namespaced: true
   domain: soer3n.info
-  group: helm.soer3n.info
+  group: yaho.soer3n.dev
   kind: Config
-  path: github.com/soer3n/apps-operator/apis/helm.soer3n.info/v1alpha1
+  path: github.com/soer3n/apps-operator/apis/yaho.soer3n.dev/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1

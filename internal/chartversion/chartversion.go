@@ -14,7 +14,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"github.com/soer3n/yaho/internal/utils"
 	"github.com/soer3n/yaho/internal/values"
 	"helm.sh/helm/v3/pkg/action"
@@ -28,10 +28,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const configMapLabelKey = "helm.soer3n.info/chart"
-const configMapRepoLabelKey = "helm.soer3n.info/repo"
-const configMapLabelType = "helm.soer3n.info/type"
-const configMapLabelSubName = "helm.soer3n.info/subname"
+const configMapLabelKey = "yaho.soer3n.dev/chart"
+const configMapRepoLabelKey = "yaho.soer3n.dev/repo"
+const configMapLabelType = "yaho.soer3n.dev/type"
+const configMapLabelSubName = "yaho.soer3n.dev/subname"
 
 func New(version, namespace string, chartObj *helmv1alpha1.Chart, vals chartutil.Values, index repo.ChartVersions, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface) (*ChartVersion, error) {
 

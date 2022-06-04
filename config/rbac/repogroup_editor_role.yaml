@@ -5,7 +5,7 @@ metadata:
   name: repogroup-editor-role
 rules:
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - repogroups
   verbs:
@@ -17,7 +17,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - repogroups/status
   verbs:

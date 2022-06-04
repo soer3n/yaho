@@ -1,4 +1,4 @@
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Values
 metadata:
   name: values-nextcloud-ing
@@ -33,7 +33,7 @@ spec:
       - nextcloud.apps.domain.com
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Values
 metadata:
   name: values-nextcloud-cron

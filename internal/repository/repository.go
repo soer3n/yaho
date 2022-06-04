@@ -16,7 +16,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
@@ -30,9 +30,9 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const configMapLabelKey = "helm.soer3n.info/chart"
-const configMapRepoLabelKey = "helm.soer3n.info/repo"
-const configMapLabelType = "helm.soer3n.info/type"
+const configMapLabelKey = "yaho.soer3n.dev/chart"
+const configMapRepoLabelKey = "yaho.soer3n.dev/repo"
+const configMapLabelType = "yaho.soer3n.dev/type"
 
 // New represents initialization of internal repo struct
 func New(instance *helmv1alpha1.Repository, namespace string, ctx context.Context, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Repo {

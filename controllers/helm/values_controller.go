@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,11 +42,11 @@ type ValuesReconciler struct {
 	Recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=values,verbs=get;list;watch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releases,verbs=get;list;watch;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releases/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=values/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=values/finalizers,verbs=update
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=values,verbs=get;list;watch
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=releases,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=releases/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=values/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=values/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -115,7 +115,7 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 						current.ObjectMeta.Labels = make(map[string]string)
 					}
 
-					current.ObjectMeta.Labels["helm.soer3n.info/reconcile"] = "true"
+					current.ObjectMeta.Labels["yaho.soer3n.dev/reconcile"] = "true"
 
 					err := r.Update(ctx, current)
 					reqLogger.Info("Trigger release sync.")

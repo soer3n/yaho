@@ -5,9 +5,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
-  name: releases.helm.soer3n.info
+  name: releases.yaho.soer3n.dev
 spec:
-  group: helm.soer3n.info
+  group: yaho.soer3n.dev
   names:
     kind: Release
     listKind: ReleaseList

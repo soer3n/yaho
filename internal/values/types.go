@@ -2,7 +2,7 @@ package values
 
 import (
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

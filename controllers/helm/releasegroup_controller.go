@@ -21,7 +21,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"github.com/soer3n/yaho/internal/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,10 +42,10 @@ type ReleaseGroupReconciler struct {
 	Recorder       record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releasegroups,verbs=get;list;watch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releases,verbs=get;list;watch;update;patch;delete
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releasegroups/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=helm.soer3n.info,resources=releasegroups/finalizers,verbs=update
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=releasegroups,verbs=get;list;watch
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=releases,verbs=get;list;watch;update;patch;delete
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=releasegroups/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=yaho.soer3n.dev,resources=releasegroups/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -216,13 +216,13 @@ func (r *ReleaseGroupReconciler) handleFinalizer(instance *helmv1alpha1.ReleaseG
 				},
 				Spec: rel}, instance, ctx)
 		}
-		controllerutil.RemoveFinalizer(instance, "finalizer.releasegroups.helm.soer3n.info")
+		controllerutil.RemoveFinalizer(instance, "finalizer.releasegroups.yaho.soer3n.dev")
 		return true, nil
 	}
 
-	if !utils.Contains(instance.GetFinalizers(), "finalizer.releasegroups.helm.soer3n.info") {
+	if !utils.Contains(instance.GetFinalizers(), "finalizer.releasegroups.yaho.soer3n.dev") {
 		r.Log.Info("Adding Finalizer for the Release Group")
-		controllerutil.AddFinalizer(instance, "finalizer.releasegroups.helm.soer3n.info")
+		controllerutil.AddFinalizer(instance, "finalizer.releasegroups.yaho.soer3n.dev")
 		return true, nil
 	}
 

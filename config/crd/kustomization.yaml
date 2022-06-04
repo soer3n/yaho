@@ -2,16 +2,16 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/helm.soer3n.info_repositories.yaml
-- bases/helm.soer3n.info_repogroups.yaml
-- bases/helm.soer3n.info_releases.yaml
-- bases/helm.soer3n.info_releasegroups.yaml
-- bases/helm.soer3n.info_charts.yaml
-- bases/helm.soer3n.info_values.yaml
-- bases/helm.soer3n.info_configs.yaml
+- bases/yaho.soer3n.dev_repositories.yaml
+- bases/yaho.soer3n.dev_repogroups.yaml
+- bases/yaho.soer3n.dev_releases.yaml
+- bases/yaho.soer3n.dev_releasegroups.yaml
+- bases/yaho.soer3n.dev_charts.yaml
+- bases/yaho.soer3n.dev_values.yaml
+- bases/yaho.soer3n.dev_configs.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
-patchesStrategicMerge:
+#patchesStrategicMerge:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
 #- patches/webhook_in_repogroups.yaml

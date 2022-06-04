@@ -23,7 +23,7 @@ apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
   annotations:
-    olm.providedAPIs: Chart.v1alpha1.helm.soer3n.info,Config.v1alpha1.helm.soer3n.info,Release.v1alpha1.helm.soer3n.info,ReleaseGroup.v1alpha1.helm.soer3n.info,RepoGroup.v1alpha1.helm.soer3n.info,Repository.v1alpha1.helm.soer3n.info,Values.v1alpha1.helm.soer3n.info
+    olm.providedAPIs: Chart.v1alpha1.yaho.soer3n.dev,Config.v1alpha1.yaho.soer3n.dev,Release.v1alpha1.yaho.soer3n.dev,ReleaseGroup.v1alpha1.yaho.soer3n.dev,RepoGroup.v1alpha1.yaho.soer3n.dev,Repository.v1alpha1.yaho.soer3n.dev,Values.v1alpha1.yaho.soer3n.dev
   name: yaho-operatorgroup
   namespace: helm
 spec:

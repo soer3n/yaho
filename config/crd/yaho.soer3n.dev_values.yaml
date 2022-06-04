@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: values.helm.soer3n.info
+  name: values.yaho.soer3n.dev
 spec:
-  group: helm.soer3n.info
+  group: yaho.soer3n.dev
   names:
     kind: Values
     listKind: ValuesList

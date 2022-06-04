@@ -1,5 +1,5 @@
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Repository
 metadata:
   name: cilium
@@ -13,7 +13,7 @@ spec:
     - 1.11.0
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Config
 metadata:
   name: cilium-config

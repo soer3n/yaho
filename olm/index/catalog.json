@@ -22,7 +22,7 @@
         {
             "type": "olm.gvk",
             "value": {
-                "group": "helm.soer3n.info",
+                "group": "yaho.soer3n.dev",
                 "kind": "Chart",
                 "version": "v1alpha1"
             }
@@ -30,7 +30,7 @@
         {
             "type": "olm.gvk",
             "value": {
-                "group": "helm.soer3n.info",
+                "group": "yaho.soer3n.dev",
                 "kind": "Config",
                 "version": "v1alpha1"
             }
@@ -38,7 +38,7 @@
         {
             "type": "olm.gvk",
             "value": {
-                "group": "helm.soer3n.info",
+                "group": "yaho.soer3n.dev",
                 "kind": "Release",
                 "version": "v1alpha1"
             }
@@ -46,7 +46,7 @@
         {
             "type": "olm.gvk",
             "value": {
-                "group": "helm.soer3n.info",
+                "group": "yaho.soer3n.dev",
                 "kind": "ReleaseGroup",
                 "version": "v1alpha1"
             }
@@ -54,7 +54,7 @@
         {
             "type": "olm.gvk",
             "value": {
-                "group": "helm.soer3n.info",
+                "group": "yaho.soer3n.dev",
                 "kind": "RepoGroup",
                 "version": "v1alpha1"
             }
@@ -62,7 +62,7 @@
         {
             "type": "olm.gvk",
             "value": {
-                "group": "helm.soer3n.info",
+                "group": "yaho.soer3n.dev",
                 "kind": "Repository",
                 "version": "v1alpha1"
             }
@@ -70,7 +70,7 @@
         {
             "type": "olm.gvk",
             "value": {
-                "group": "helm.soer3n.info",
+                "group": "yaho.soer3n.dev",
                 "kind": "Values",
                 "version": "v1alpha1"
             }

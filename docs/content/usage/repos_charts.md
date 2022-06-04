@@ -17,7 +17,7 @@ Let's deploy a basic repository resource at first.
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Repository
 metadata:
   name: test-repo
@@ -34,11 +34,11 @@ Nothing except the resource and indices for all charts found in downloaded index
 
 ```bash
 
-$ kubectl get repositories.helm.soer3n.info 
+$ kubectl get repositories.yaho.soer3n.dev 
 NAME        GROUP   SYNCED   CHARTS   AGE
 test-repo           true     0        14s
 
-$ kubectl get charts.helm.soer3n.info 
+$ kubectl get charts.yaho.soer3n.dev 
 No resources found
 
 $ kubectl get cm -n helm 
@@ -54,7 +54,7 @@ Let's add a chart without specified versions.
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Repository
 metadata:
   name: test-repo
@@ -72,11 +72,11 @@ Adding just a chart without specified versions should install the chart resource
 
 ```bash
 
-$ kubectl get repositories.helm.soer3n.info 
+$ kubectl get repositories.yaho.soer3n.dev 
 NAME        GROUP   SYNCED   CHARTS   AGE
 test-repo           true     1        97s
 
-$ kubectl get charts.helm.soer3n.info
+$ kubectl get charts.yaho.soer3n.dev
 NAME                GROUP   REPO        VERSIONS   DEPS     AGE
 testing-test-repo           test-repo   synced     synced   4s
 
@@ -93,7 +93,7 @@ Let's add a version to the specified chart.
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Repository
 metadata:
   name: test-repo
@@ -113,11 +113,11 @@ Adding a version to specified chart should add configmaps with related informati
 
 ```bash
 
-$ kubectl get repositories.helm.soer3n.info 
+$ kubectl get repositories.yaho.soer3n.dev 
 NAME        GROUP   SYNCED   CHARTS   AGE
 test-repo           true     1        7m
 
-$ kubectl get charts.helm.soer3n.info
+$ kubectl get charts.yaho.soer3n.dev
 NAME                GROUP   REPO        VERSIONS   DEPS     AGE
 testing-test-repo           test-repo   synced     synced   5m
 
@@ -137,7 +137,7 @@ And add another version.
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Repository
 metadata:
   name: test-repo
@@ -158,11 +158,11 @@ This should create configmaps related to the second version of the chart.
 
 ```bash
 
-$ kubectl get repositories.helm.soer3n.info 
+$ kubectl get repositories.yaho.soer3n.dev 
 NAME        GROUP   SYNCED   CHARTS   AGE
 test-repo           true     1        2m
 
-$ kubectl get charts.helm.soer3n.info
+$ kubectl get charts.yaho.soer3n.dev
 NAME                    GROUP   REPO        VERSIONS   DEPS     AGE
 testing-test-repo               test-repo   synced     synced   1m40s
 
@@ -191,7 +191,7 @@ Again let's deploy a basic repository resource at first.
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Repository
 metadata:
   name: test-repo
@@ -208,11 +208,11 @@ Nothing except the resource and indices for all charts found in downloaded index
 
 ```bash
 
-$ kubectl get repositories.helm.soer3n.info 
+$ kubectl get repositories.yaho.soer3n.dev 
 NAME        GROUP   SYNCED   CHARTS   AGE
 test-repo           true     0        14s
 
-$ kubectl get charts.helm.soer3n.info 
+$ kubectl get charts.yaho.soer3n.dev 
 No resources found
 
 $ kubectl get cm -n helm 
@@ -228,7 +228,7 @@ Let's create a chart resource without specified versions.
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Chart
 metadata:
   name: test-chart
@@ -246,11 +246,11 @@ Creating just a chart resource without specified versions should install nothing
 
 ```bash
 
-$ kubectl get repositories.helm.soer3n.info 
+$ kubectl get repositories.yaho.soer3n.dev 
 NAME        GROUP   SYNCED   CHARTS   AGE
 test-repo           true     1        26s
 
-$ kubectl get charts.helm.soer3n.info 
+$ kubectl get charts.yaho.soer3n.dev 
 NAME         GROUP   REPO        VERSIONS   DEPS   AGE
 test-chart           test-repo                     26s
 
@@ -266,7 +266,7 @@ Let's add a version to the chart resource.
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Chart
 metadata:
   name: test-chart
@@ -288,7 +288,7 @@ Adding a version to chart resource should add configmaps with related informatio
 NAME        GROUP   SYNCED   CHARTS   AGE
 test-repo           true     1        5m53s
 
-$ kubectl get charts.helm.soer3n.info 
+$ kubectl get charts.yaho.soer3n.dev 
 NAME         GROUP   REPO        VERSIONS   DEPS        AGE
 test-chart           test-repo   synced     synced   7m57s
 
@@ -314,7 +314,7 @@ Again let's deploy a basic repository resource at first.
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Repository
 metadata:
   name: test-repo
@@ -331,11 +331,11 @@ Nothing except the resource and indices for all charts found in downloaded index
 
 ```bash
 
-$ kubectl get repositories.helm.soer3n.info 
+$ kubectl get repositories.yaho.soer3n.dev 
 NAME        GROUP   SYNCED   CHARTS   AGE
 test-repo           true     0        14s
 
-$ kubectl get charts.helm.soer3n.info 
+$ kubectl get charts.yaho.soer3n.dev 
 No resources found
 
 $ kubectl get cm -n helm 
@@ -352,7 +352,7 @@ Let's create a chart resource with a specified version and dependency installati
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Chart
 metadata:
   name: test-chart
@@ -374,7 +374,7 @@ Adding a chart resource with specified version should add configmaps with relate
 NAME        GROUP   SYNCED   CHARTS   AGE
 test-repo           true     1        8m
 
-$ kubectl get charts.helm.soer3n.info 
+$ kubectl get charts.yaho.soer3n.dev 
 NAME              GROUP   REPO        VERSIONS   DEPS        AGE
 test-chart                test-repo   synced     synced      7m
 
@@ -395,7 +395,7 @@ Let's enable dependency installation for the chart resource.
 ```
 
 ---
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: Chart
 metadata:
   name: test-chart
@@ -417,7 +417,7 @@ Enable dependency installation for the chart resource should add configmaps with
 NAME        GROUP   SYNCED   CHARTS   AGE
 test-repo           true     2        8m
 
-$ kubectl get charts.helm.soer3n.info 
+$ kubectl get charts.yaho.soer3n.dev 
 NAME              GROUP   REPO        VERSIONS   DEPS        AGE
 test-chart                test-repo   synced     synced      7m
 testing-test-repo         test-repo   synced     synced      1m
@@ -438,7 +438,7 @@ kube-root-ca.crt                          1      41m
 ```
 
 {{% notice note %}}
-Currently charts can only find dependency charts when they are in the same repository or both repositories are in the same repogroup which means that the repositories share the label value "helm.soer3n.info/repoGroup"
+Currently charts can only find dependency charts when they are in the same repository or both repositories are in the same repogroup which means that the repositories share the label value "yaho.soer3n.dev/repoGroup"
 {{% /notice %}}
 
 &nbsp;
@@ -453,7 +453,7 @@ Remember that the 'create dependencies' option is automatically set to true. The
 
 ```
 
-apiVersion: helm.soer3n.info/v1alpha1
+apiVersion: yaho.soer3n.dev/v1alpha1
 kind: RepoGroup
 metadata:
   name: repogroup-sample
@@ -477,16 +477,16 @@ After applying the repository group resource there are two charts with related c
 
 ```bash
 
-$ kubectl get repogroups.helm.soer3n.info
+$ kubectl get repogroups.yaho.soer3n.dev
 NAME             AGE
 repogroup-sample 8m
 
-$ kubectl get repositories.helm.soer3n.info
+$ kubectl get repositories.yaho.soer3n.dev
 NAME        GROUP   SYNCED   CHARTS   AGE
 test-repo-a foo     true     1        8m
 test-repo-b foo     true     1        8m
 
-$ kubectl get charts.helm.soer3n.info 
+$ kubectl get charts.yaho.soer3n.dev 
 NAME                    GROUP   REPO        VERSIONS   DEPS        AGE
 testing-test-repo-a     foo     test-repo-a synced     synced      8m
 testing-dep-test-repo-b foo     test-repo-b synced     synced      8m
@@ -515,8 +515,8 @@ The custom resources and related configmaps can be filtered by labels.
 
 | Label                      | Resource                       | Value                                   |
 |----------------------------|--------------------------------|-----------------------------------------|
-| helm.soer3n.info/chart     | configmaps, chart              | chart name                              |
-| helm.soer3n.info/repo      | configmaps, repository, chart  | repo name                               |
-| helm.soer3n.info/type      | configmaps                     | index,tmpl,default,crds                 |
-| helm.soer3n.info/repoGroup | repository, chart              | repo group name                         |
-| helm.soer3n.info/unmanaged | chart                          | if chart is managed by another resource |
+| yaho.soer3n.dev/chart     | configmaps, chart              | chart name                              |
+| yaho.soer3n.dev/repo      | configmaps, repository, chart  | repo name                               |
+| yaho.soer3n.dev/type      | configmaps                     | index,tmpl,default,crds                 |
+| yaho.soer3n.dev/repoGroup | repository, chart              | repo group name                         |
+| yaho.soer3n.dev/unmanaged | chart                          | if chart is managed by another resource |

@@ -40,7 +40,7 @@ func setChartVersion(clientMock *unstructuredmocks.K8SClientMock, httpMock *mock
 		c.Data = spec.Data
 		c.ObjectMeta.Name = "helm-default-" + repo.Name + "-" + chartVersionMock.Chart + "-" + chartVersionMock.Version
 		c.ObjectMeta.Namespace = chartVersionMock.Namespace
-		// c.ObjectMeta.Labels = map[string]string{"helm.soer3n.info/chart": chartVersionMock.Chart + "-" + chartVersionMock.Version, "helm.soer3n.info/repo": repo, "helm.soer3n.info/type": "default"}
+		// c.ObjectMeta.Labels = map[string]string{"yaho.soer3n.dev/chart": chartVersionMock.Chart + "-" + chartVersionMock.Version, "yaho.soer3n.dev/repo": repo, "yaho.soer3n.dev/type": "default"}
 	})
 
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-tmpl-" + repo.Name + "-" + chartVersionMock.Chart + "-" + chartVersionMock.Version, Namespace: chartVersionMock.Namespace}, &v1.ConfigMap{}).Return(e).Run(func(args mock.Arguments) {
@@ -49,7 +49,7 @@ func setChartVersion(clientMock *unstructuredmocks.K8SClientMock, httpMock *mock
 		c.BinaryData = spec.BinaryData
 		c.ObjectMeta.Name = "helm-tmpl-" + repo.Name + "-" + chartVersionMock.Chart + "-" + chartVersionMock.Version
 		c.ObjectMeta.Namespace = chartVersionMock.Namespace
-		// c.ObjectMeta.Labels = map[string]string{"helm.soer3n.info/chart": chartVersionMock.Chart + "-" + chartVersionMock.Version, "helm.soer3n.info/repo": repo, "helm.soer3n.info/type": "tmpl"}
+		// c.ObjectMeta.Labels = map[string]string{"yaho.soer3n.dev/chart": chartVersionMock.Chart + "-" + chartVersionMock.Version, "yaho.soer3n.dev/repo": repo, "yaho.soer3n.dev/type": "tmpl"}
 	})
 
 	clientMock.On("Get", context.Background(), types.NamespacedName{Name: "helm-crds-" + repo.Name + "-" + chartVersionMock.Chart + "-" + chartVersionMock.Version, Namespace: chartVersionMock.Namespace}, &v1.ConfigMap{}).Return(e).Run(func(args mock.Arguments) {
@@ -57,7 +57,7 @@ func setChartVersion(clientMock *unstructuredmocks.K8SClientMock, httpMock *mock
 		c.BinaryData = make(map[string][]byte)
 		c.ObjectMeta.Name = "helm-crds-" + repo.Name + "-" + chartVersionMock.Chart + "-" + chartVersionMock.Version
 		c.ObjectMeta.Namespace = chartVersionMock.Namespace
-		// c.ObjectMeta.Labels = map[string]string{"helm.soer3n.info/chart": chartVersionMock.Chart + "-" + chartVersionMock.Version, "helm.soer3n.info/repo": repo, "helm.soer3n.info/type": "tmpl"}
+		// c.ObjectMeta.Labels = map[string]string{"yaho.soer3n.dev/chart": chartVersionMock.Chart + "-" + chartVersionMock.Version, "yaho.soer3n.dev/repo": repo, "yaho.soer3n.dev/type": "tmpl"}
 	})
 
 	clientMock.On(op, context.Background(), mock.MatchedBy(func(cm *v1.ConfigMap) bool {
@@ -67,7 +67,7 @@ func setChartVersion(clientMock *unstructuredmocks.K8SClientMock, httpMock *mock
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "helm-default-" + chartVersionMock.Chart + "-" + chartVersionMock.Version,
 					Namespace: chartVersionMock.Namespace,
-					Labels:    map[string]string{"helm.soer3n.info/chart": chartVersionMock.Chart + "-" + chartVersionMock.Version, "helm.soer3n.info/repo": repo, "helm.soer3n.info/type": "default"},
+					Labels:    map[string]string{"yaho.soer3n.dev/chart": chartVersionMock.Chart + "-" + chartVersionMock.Version, "yaho.soer3n.dev/repo": repo, "yaho.soer3n.dev/type": "default"},
 				},
 				Data: testcases.GetTestReleaseDefaultValueConfigMap().Data,
 			}
@@ -81,10 +81,10 @@ func setChartVersion(clientMock *unstructuredmocks.K8SClientMock, httpMock *mock
 		opt := cList[0].(*client.ListOptions)
 
 		if opt.LabelSelector != nil {
-			res := opt.LabelSelector.String() == "helm.soer3n.info/chart="+chartVersionMock.Chart+"-"+chartVersionMock.Version+","+"helm.soer3n.info/type=tmpl"
+			res := opt.LabelSelector.String() == "yaho.soer3n.dev/chart="+chartVersionMock.Chart+"-"+chartVersionMock.Version+","+"yaho.soer3n.dev/type=tmpl"
 
 			if !res {
-				res = opt.LabelSelector.String() == "helm.soer3n.info/chart="+chartVersionMock.Chart+"-"+chartVersionMock.Version+","+"helm.soer3n.info/type=crds"
+				res = opt.LabelSelector.String() == "yaho.soer3n.dev/chart="+chartVersionMock.Chart+"-"+chartVersionMock.Version+","+"yaho.soer3n.dev/type=crds"
 			}
 			return res
 		}

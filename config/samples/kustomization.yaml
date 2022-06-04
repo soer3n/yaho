@@ -1,10 +1,10 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
-- helm.soer3n.info_v1alpha1_repo.yaml
-- helm.soer3n.info_v1alpha1_repogroup.yaml
-- helm.soer3n.info_v1alpha1_release.yaml
-- helm.soer3n.info_v1alpha1_releasegroup.yaml
-- helm.soer3n.info_v1alpha1_chart.yaml
-- helm.soer3n.info_v1alpha1_values.yaml
-- helm.soer3n.info_v1alpha1_config.yaml
+- yaho.soer3n.dev_v1alpha1_repo.yaml
+- yaho.soer3n.dev_v1alpha1_repogroup.yaml
+- yaho.soer3n.dev_v1alpha1_release.yaml
+- yaho.soer3n.dev_v1alpha1_releasegroup.yaml
+- yaho.soer3n.dev_v1alpha1_chart.yaml
+- yaho.soer3n.dev_v1alpha1_values.yaml
+- yaho.soer3n.dev_v1alpha1_config.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

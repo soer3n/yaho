@@ -5,9 +5,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
-  name: repogroups.helm.soer3n.info
+  name: repogroups.yaho.soer3n.dev
 spec:
-  group: helm.soer3n.info
+  group: yaho.soer3n.dev
   names:
     kind: RepoGroup
     listKind: RepoGroupList

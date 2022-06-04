@@ -5,7 +5,7 @@ metadata:
   name: values-viewer-role
 rules:
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - values
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - helm.soer3n.info
+  - yaho.soer3n.dev
   resources:
   - values/status
   verbs:

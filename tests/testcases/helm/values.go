@@ -1,7 +1,7 @@
 package helm
 
 import (
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

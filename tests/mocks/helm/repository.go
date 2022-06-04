@@ -10,7 +10,7 @@ import (
 
 	"k8s.io/utils/pointer"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/helm/v1alpha1"
+	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"github.com/soer3n/yaho/tests/mocks"
 	unstructuredmocks "github.com/soer3n/yaho/tests/mocks/unstructured"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
@@ -100,13 +100,13 @@ func setRepository(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.
 			Name:      "helm-" + cmock.Repository + "-" + cmock.Name + "-index",
 			Namespace: cmock.Namespace,
 			Labels: map[string]string{
-				"helm.soer3n.info/chart": cmock.Name,
-				"helm.soer3n.info/repo":  repositoryMock.Name,
-				"helm.soer3n.info/type":  "index",
+				"yaho.soer3n.dev/chart": cmock.Name,
+				"yaho.soer3n.dev/repo":  repositoryMock.Name,
+				"yaho.soer3n.dev/type":  "index",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion:         "helm.soer3n.info/v1alpha1",
+					APIVersion:         "yaho.soer3n.dev/v1alpha1",
 					Kind:               "Repository",
 					Name:               repositoryMock.Name,
 					Controller:         pointer.BoolPtr(true),
