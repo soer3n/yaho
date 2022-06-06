@@ -25,7 +25,7 @@ func TestGetLabelsByInstance(t *testing.T) {
 		Name:      "foo",
 		Namespace: "bar",
 		Labels: map[string]string{
-			"repo": "repo",
+			"yaho.soer3n.dev/repo": "repo",
 		},
 	}
 
@@ -40,7 +40,7 @@ func TestGetLabelsByInstance(t *testing.T) {
 	assert.NotNil(config)
 	assert.NotNil(cache)
 
-	metaObj.Labels["repoGroup"] = "group"
+	metaObj.Labels["yaho.soer3n.dev/repoGroup"] = "group"
 	config, cache = utils.GetLabelsByInstance(metaObj, envMap)
 	assert.NotNil(config)
 	assert.NotNil(cache)

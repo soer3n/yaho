@@ -20,8 +20,8 @@ func (hc *Release) getChart(chartName, watchNamespace string, index repo.ChartVe
 
 	hc.logger.Info("fetching chart related to release resource")
 	charts := &helmv1alpha1.ChartList{}
-	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap("repo=" + hc.Repo)
-	labelSetChart, _ := labels.ConvertSelectorToLabelsMap("chart=" + chartName)
+	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap(configMapRepoLabelKey + "=" + hc.Repo)
+	labelSetChart, _ := labels.ConvertSelectorToLabelsMap(configMapLabelKey + "=" + chartName)
 	ls := labels.Merge(labelSetRepo, labelSetChart)
 
 	hc.logger.Info("selector", "labelset", ls)

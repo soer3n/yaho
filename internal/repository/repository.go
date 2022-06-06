@@ -32,7 +32,9 @@ import (
 
 const configMapLabelKey = "yaho.soer3n.dev/chart"
 const configMapRepoLabelKey = "yaho.soer3n.dev/repo"
+const configMapRepoGroupLabelKey = "yaho.soer3n.dev/repoGroup"
 const configMapLabelType = "yaho.soer3n.dev/type"
+const configMapLabelUnmanaged = "yaho.soer3n.dev/unmanaged"
 
 // New represents initialization of internal repo struct
 func New(instance *helmv1alpha1.Repository, namespace string, ctx context.Context, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Repo {
@@ -101,18 +103,18 @@ func (hr *Repo) Update(instance *helmv1alpha1.Repository, scheme *runtime.Scheme
 		return err
 	}
 
-	label, repoGroupLabelOk := instance.ObjectMeta.Labels["repoGroup"]
-	selector := map[string]string{"repo": hr.Name}
+	label, repoGroupLabelOk := instance.ObjectMeta.Labels[configMapRepoGroupLabelKey]
+	selector := map[string]string{configMapRepoLabelKey: hr.Name}
 
 	if repoGroupLabelOk && label != "" {
-		selector["repoGroup"] = instance.ObjectMeta.Labels["repoGroup"]
+		selector[configMapRepoGroupLabelKey] = instance.ObjectMeta.Labels[configMapRepoGroupLabelKey]
 	}
 
 	repo := instance.DeepCopy()
 
 	// fetch installed charts related to repository resource
 	installedCharts := &helmv1alpha1.ChartList{}
-	requirement, _ := labels.ParseToRequirements("repo=" + hr.Name)
+	requirement, _ := labels.ParseToRequirements(configMapRepoLabelKey + "=" + hr.Name)
 	opts := &client.ListOptions{
 		LabelSelector: labels.NewSelector().Add(requirement[0]),
 	}
@@ -124,7 +126,7 @@ func (hr *Repo) Update(instance *helmv1alpha1.Repository, scheme *runtime.Scheme
 	for _, item := range installedCharts.Items {
 
 		// skip if chart resource is created manually
-		if _, ok := item.ObjectMeta.Labels["unmanaged"]; ok {
+		if _, ok := item.ObjectMeta.Labels[configMapLabelUnmanaged]; ok {
 			continue
 		}
 
@@ -149,7 +151,7 @@ func (hr *Repo) Update(instance *helmv1alpha1.Repository, scheme *runtime.Scheme
 	}
 
 	for _, chart := range instance.Spec.Charts {
-		if err := hr.deployChart(repo, chart, selector, scheme); err != nil {
+		if err := hr.deployChart(repo, chart, scheme); err != nil {
 			return err
 		}
 	}

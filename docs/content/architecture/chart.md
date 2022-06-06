@@ -6,7 +6,7 @@ weight = 20
 
 #### Chart
 
-> The chart resource represents the specification for an helm chart. For every specified and valid version the controller will create or update  3 configmaps for chart templates, crds and default values. If enabled dependency chart resources will be also created or updated. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/helm/v1alpha1/chart_types.go) for detailed information about the spec structure.
+> The chart resource represents the specification for an helm chart. For every specified and valid version the controller will create or update  3 configmaps for chart templates, crds and default values. If enabled dependency chart resources will be also created or updated. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/yaho/v1alpha1/chart_types.go) for detailed information about the spec structure.
 
 {{< mermaid >}}
 %%{init:{"theme":"forest", "mirrorActors":"true", "sequence": {"showSequenceNumbers":false, "wrap": false,"useMaxWidth": true}}}%%
@@ -20,12 +20,12 @@ sequenceDiagram
     participant H AS helm repository
     C->>K: create/update chart resource
     R->>M: init model
-    M-->M: set metadata
+    M-->>M: set metadata
     M->>K: load index configmap
     rect rgb(191, 223, 255)
     loop iterate over specified versions
         M->>VM: init chartversion model
-        VM-->VM: parse version
+        VM-->>VM: parse version
         VM->>K: get respository resource
         rect rgb(255, 255, 204)
         alt error != nil
@@ -91,7 +91,7 @@ sequenceDiagram
         M-->>VM: manage subresources
         rect rgb(191, 223, 255)
         loop iterate over object version dependencies
-            VM-->K: create/update chart resource
+            VM->>K: create/update chart resource
              rect rgb(255, 255, 204)
             alt error != nil
                 K-->>M: return error

@@ -28,15 +28,15 @@ func (chartVersion *ChartVersion) addDependencies() error {
 	var group *string
 
 	chartVersion.logger.Info("set selector")
-	if _, ok := chartVersion.owner.ObjectMeta.Labels["repoGroup"]; ok {
-		if len(chartVersion.owner.ObjectMeta.Labels["repoGroup"]) > 1 {
-			repoSelector["repoGroup"] = chartVersion.owner.ObjectMeta.Labels["repoGroup"]
-			v := chartVersion.owner.ObjectMeta.Labels["repoGroup"]
+	if _, ok := chartVersion.owner.ObjectMeta.Labels[configMapRepoGroupLabelKey]; ok {
+		if len(chartVersion.owner.ObjectMeta.Labels[configMapRepoGroupLabelKey]) > 1 {
+			repoSelector[configMapRepoGroupLabelKey] = chartVersion.owner.ObjectMeta.Labels[configMapRepoGroupLabelKey]
+			v := chartVersion.owner.ObjectMeta.Labels[configMapRepoGroupLabelKey]
 			group = &v
 		}
 	}
 
-	repoSelector["repo"] = chartVersion.repo.Name
+	repoSelector[configMapRepoLabelKey] = chartVersion.repo.Name
 
 	chartVersion.logger.Info("create dependencies")
 	chartVersion.deps = chartVersion.createDependenciesList(group)

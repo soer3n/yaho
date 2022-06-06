@@ -76,7 +76,7 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// fetch owned repos
 	repos := &helmv1alpha1.RepositoryList{}
-	requirement, _ := labels.ParseToRequirements("repoGroup=" + instance.Spec.LabelSelector)
+	requirement, _ := labels.ParseToRequirements(LabelPrefix + "repoGroup=" + instance.Spec.LabelSelector)
 	opts := &client.ListOptions{
 		LabelSelector: labels.NewSelector().Add(requirement[0]),
 	}
@@ -114,10 +114,9 @@ func (r *RepoGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			create <- helmv1alpha1.Repository{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: repository.Name,
-					// Namespace: instance.ObjectMeta.Namespace,
 					Labels: map[string]string{
-						"repo":      repository.Name,
-						"repoGroup": instance.Spec.LabelSelector,
+						LabelPrefix + "repo":      repository.Name,
+						LabelPrefix + "repoGroup": instance.Spec.LabelSelector,
 					},
 				},
 				Spec: repository,

@@ -21,8 +21,8 @@ func (chartVersion *ChartVersion) getChart(chartName string, chartPathOptions *a
 
 	chartVersion.logger.Info("fetching chart related to release resource")
 	charts := &helmv1alpha1.ChartList{}
-	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap("repo=" + chartVersion.repo.GetName())
-	labelSetChart, _ := labels.ConvertSelectorToLabelsMap("chart=" + chartName)
+	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap(configMapRepoLabelKey + "=" + chartVersion.repo.GetName())
+	labelSetChart, _ := labels.ConvertSelectorToLabelsMap(configMapLabelKey + "=" + chartName)
 	ls := labels.Merge(labelSetRepo, labelSetChart)
 
 	chartVersion.logger.Info("selector", "labelset", ls)

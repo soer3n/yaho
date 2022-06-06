@@ -6,7 +6,7 @@ weight = 30
 
 #### Release
 
-> The release resource represents a helm release and is comparable to helm cli command "helm upgrade --install ...". It maps a release installation and/or upgrade process. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/helm/v1alpha1/release_types.go) for detailed information about the spec structure. You cannot define values directly in the release resource. This is solved by an own values resource which is explained [here](/architecture/value).
+> The release resource represents a helm release and is comparable to helm cli command "helm upgrade --install ...". It maps a release installation and/or upgrade process. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/yaho/v1alpha1/release_types.go) for detailed information about the spec structure. You cannot define values directly in the release resource. This is solved by an own values resource which is explained [here](/architecture/value).
 
 {{< mermaid >}}
 %%{init:{"theme":"forest", "mirrorActors":"true", "sequence": {"showSequenceNumbers":false, "wrap": false,"useMaxWidth": true}}}%%
@@ -143,7 +143,7 @@ sequenceDiagram
 \
 #### ReleaseGroups
 
-> The releasegroup resource represents a collection of helm releases. The idea behind is to control releases which have dependencies to each other. At the moment it's just a collection without logic for managing them together. In general it deploys a collection of release resources. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/helm/v1alpha1/releasegroup_types.go) for detailed information about the spec structure.
+> The releasegroup resource represents a collection of helm releases. The idea behind is to control releases which have dependencies to each other. At the moment it's just a collection without logic for managing them together. In general it deploys a collection of release resources. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/yaho/v1alpha1/releasegroup_types.go) for detailed information about the spec structure.
 
 {{< mermaid >}}
 %%{init:{"theme":"forest", "mirrorActors":"true", "useMaxWidth":"true", "sequence": {"showSequenceNumbers":false, "wrap": true, "width":350}, "sequenceConfig": {

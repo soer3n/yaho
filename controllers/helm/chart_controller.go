@@ -92,22 +92,22 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		instance.ObjectMeta.Labels = map[string]string{}
 	}
 
-	_, repoLabelIsSet := instance.ObjectMeta.Labels["repo"]
-	_, chartLabelIsSet := instance.ObjectMeta.Labels["chart"]
+	_, repoLabelIsSet := instance.ObjectMeta.Labels[LabelPrefix+"repo"]
+	_, chartLabelIsSet := instance.ObjectMeta.Labels[LabelPrefix+"chart"]
 
 	if !chartLabelIsSet {
 		reqLogger.Info("update chart label")
 		// set chart as label
-		instance.ObjectMeta.Labels["chart"] = instance.Spec.Name
+		instance.ObjectMeta.Labels[LabelPrefix+"chart"] = instance.Spec.Name
 		_ = r.WithWatch.Update(ctx, instance)
 	}
 
 	if !repoLabelIsSet {
 		reqLogger.Info("update repo label and add unmanaged label")
 		// set repository as label
-		instance.ObjectMeta.Labels["repo"] = instance.Spec.Repository
+		instance.ObjectMeta.Labels[LabelPrefix+"repo"] = instance.Spec.Repository
 		// set unmanaged label
-		instance.ObjectMeta.Labels["unmanaged"] = "true"
+		instance.ObjectMeta.Labels[LabelPrefix+"unmanaged"] = "true"
 		// update resource after modifying labels and exit current reconcile loop
 		_ = r.WithWatch.Update(ctx, instance)
 		// return ctrl.Result{}, nil

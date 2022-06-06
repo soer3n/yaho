@@ -42,6 +42,8 @@ import (
 
 var nopLogger = func(_ string, _ ...interface{}) {}
 
+const LabelPrefix = "yaho.soer3n.dev/"
+
 // RepoReconciler reconciles a Repo object
 type RepoReconciler struct {
 	client.Client
@@ -150,8 +152,8 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.
 	// fetch umanaged charts related to current repository
 	r.Log.Info("fetching unmanaged charts related to repository resource")
 	unmanagedCharts := &helmv1alpha1.ChartList{}
-	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap("repo=" + instance.Spec.Name)
-	labelSetUnmanaged, _ := labels.ConvertSelectorToLabelsMap("unmanaged=true")
+	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap(LabelPrefix + "repo=" + instance.Spec.Name)
+	labelSetUnmanaged, _ := labels.ConvertSelectorToLabelsMap(LabelPrefix + "unmanaged=true")
 	ls := labels.Merge(labelSetRepo, labelSetUnmanaged)
 
 	r.Log.Info("selector", "labelset", ls)

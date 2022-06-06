@@ -30,8 +30,10 @@ import (
 
 const configMapLabelKey = "yaho.soer3n.dev/chart"
 const configMapRepoLabelKey = "yaho.soer3n.dev/repo"
+const configMapRepoGroupLabelKey = "yaho.soer3n.dev/repoGroup"
 const configMapLabelType = "yaho.soer3n.dev/type"
 const configMapLabelSubName = "yaho.soer3n.dev/subname"
+const configMapLabelUnmanaged = "yaho.soer3n.dev/unmanaged"
 
 func New(version, namespace string, chartObj *helmv1alpha1.Chart, vals chartutil.Values, index repo.ChartVersions, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface) (*ChartVersion, error) {
 
@@ -255,8 +257,8 @@ func (chartVersion *ChartVersion) createOrUpdateSubChart(dep *helmv1alpha1.Chart
 	chartVersion.logger.Info("fetching chart related to release resource")
 
 	charts := &helmv1alpha1.ChartList{}
-	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap("repo=" + dep.Repo)
-	labelSetChart, _ := labels.ConvertSelectorToLabelsMap("chart=" + dep.Name)
+	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap(configMapRepoLabelKey + "=" + dep.Repo)
+	labelSetChart, _ := labels.ConvertSelectorToLabelsMap(configMapLabelKey + "=" + dep.Name)
 	ls := labels.Merge(labelSetRepo, labelSetChart)
 
 	chartVersion.logger.Info("selector", "labelset", ls)
@@ -290,16 +292,16 @@ func (chartVersion *ChartVersion) createOrUpdateSubChart(dep *helmv1alpha1.Chart
 			obj.ObjectMeta.Labels = map[string]string{}
 		}
 
-		if v, ok := chartVersion.owner.ObjectMeta.Labels["repoGroup"]; ok {
+		if v, ok := chartVersion.owner.ObjectMeta.Labels[configMapRepoGroupLabelKey]; ok {
 			group = &v
 		}
 
 		if group != nil {
-			obj.ObjectMeta.Labels["repoGroup"] = *group
+			obj.ObjectMeta.Labels[configMapRepoGroupLabelKey] = *group
 		}
 
-		obj.ObjectMeta.Labels["repo"] = dep.Repo
-		obj.ObjectMeta.Labels["unmanaged"] = "true"
+		obj.ObjectMeta.Labels[configMapRepoLabelKey] = dep.Repo
+		obj.ObjectMeta.Labels[configMapLabelUnmanaged] = "true"
 
 		if err := controllerutil.SetControllerReference(chartVersion.repo, obj, chartVersion.scheme); err != nil {
 			return err

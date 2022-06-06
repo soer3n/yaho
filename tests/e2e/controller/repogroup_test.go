@@ -15,7 +15,6 @@ import (
 
 var (
 	repoGroupKind *helmv1alpha1.RepoGroup
-	// repoGroup     *helmv1alpha1.RepoGroup
 )
 
 var _ = Context("Install and configure a repository group", func() {

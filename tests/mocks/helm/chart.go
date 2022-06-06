@@ -10,8 +10,6 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	// "k8s.io/utils/pointer"
-
 	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"github.com/soer3n/yaho/tests/mocks"
 	unstructuredmocks "github.com/soer3n/yaho/tests/mocks/unstructured"
@@ -53,7 +51,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 		opt := cList[0].(*client.ListOptions)
 
 		if opt.LabelSelector != nil {
-			return opt.LabelSelector.String() == "chart="+chartMock.Name+",repo="+chartMock.Repository
+			return opt.LabelSelector.String() == "yaho.soer3n.dev/chart="+chartMock.Name+",yaho.soer3n.dev/repo="+chartMock.Repository
 		}
 
 		return false
@@ -164,7 +162,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 				opt := cList[0].(*client.ListOptions)
 
 				if opt.LabelSelector != nil {
-					return opt.LabelSelector.String() == "chart="+d.Chart+",repo="+chartMock.Repository
+					return opt.LabelSelector.String() == "yaho.soer3n.dev/chart="+d.Chart+",yaho.soer3n.dev/repo="+chartMock.Repository
 				}
 
 				return false
@@ -237,10 +235,10 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 
 		if opt.LabelSelector != nil {
 			if chartMock.Group != nil {
-				return opt.LabelSelector.String() == "repoGroup="+*chartMock.Group
+				return opt.LabelSelector.String() == "yaho.soer3n.dev/repoGroup="+*chartMock.Group
 			}
 
-			return opt.LabelSelector.String() == "repo="+chartMock.Repository
+			return opt.LabelSelector.String() == "yaho.soer3n.dev/repo="+chartMock.Repository
 		}
 
 		return false
@@ -255,7 +253,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 
 		if opt.LabelSelector != nil {
 			if chartMock.Group != nil {
-				return opt.LabelSelector.String() == "repoGroup="+*chartMock.Group
+				return opt.LabelSelector.String() == "yaho.soer3n.dev/repoGroup="+*chartMock.Group
 			}
 		}
 		return true

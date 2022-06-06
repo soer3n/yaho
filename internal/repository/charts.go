@@ -11,14 +11,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (hr *Repo) deployChart(instance *helmv1alpha1.Repository, chart helmv1alpha1.Entry, selectors map[string]string, scheme *runtime.Scheme) error {
+func (hr *Repo) deployChart(instance *helmv1alpha1.Repository, chart helmv1alpha1.Entry, scheme *runtime.Scheme) error {
 
 	hr.logger.Info("fetching chart related to release resource")
 
 	c := &helmv1alpha1.Chart{}
 	charts := &helmv1alpha1.ChartList{}
-	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap("repo=" + hr.Name)
-	labelSetChart, _ := labels.ConvertSelectorToLabelsMap("chart=" + chart.Name)
+	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap(configMapRepoLabelKey + "=" + hr.Name)
+	labelSetChart, _ := labels.ConvertSelectorToLabelsMap(configMapLabelKey + "=" + chart.Name)
 	ls := labels.Merge(labelSetRepo, labelSetChart)
 
 	hr.logger.Info("selector", "labelset", ls)
@@ -35,7 +35,7 @@ func (hr *Repo) deployChart(instance *helmv1alpha1.Repository, chart helmv1alpha
 		hr.logger.Info("chart resource not present", "chart", chart.Name)
 		c.ObjectMeta = metav1.ObjectMeta{
 			Name:   chart.Name + "-" + hr.Name,
-			Labels: selectors,
+			Labels: ls,
 		}
 
 		c.Spec = helmv1alpha1.ChartSpec{

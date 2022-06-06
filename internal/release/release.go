@@ -17,9 +17,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// const configMapLabelKey = "yaho.soer3n.dev/chart"
+const configMapLabelKey = "yaho.soer3n.dev/chart"
+const configMapRepoLabelKey = "yaho.soer3n.dev/repo"
 
-// const configMapRepoLabelKey = "yaho.soer3n.dev/repo"
 // const configMapLabelSubName = "yaho.soer3n.dev/subname"
 
 // New represents initialization of internal release struct

@@ -6,7 +6,7 @@ weight = 10
 
 #### Repository
 
-> The repo resource represents an initialization of an helm repository. It is similar to helm cli commands "helm repo add ..." and "helm repo update ..."  and downloads the repository index file for a given url to parse the content and create a configmap with chart index information for each specified chart. Or if no chart specified for each. It is also parsing the chart resources if they are specified in the chart list in the spec. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/helm/v1alpha1/repo_types.go) for detailed information about the spec structure.
+> The repo resource represents an initialization of an helm repository. It is similar to helm cli commands "helm repo add ..." and "helm repo update ..."  and downloads the repository index file for a given url to parse the content and create a configmap with chart index information for each specified chart. Or if no chart specified for each. It is also parsing the chart resources if they are specified in the chart list in the spec. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/yaho/v1alpha1/repo_types.go) for detailed information about the spec structure.
 
 {{< mermaid align="left" >}}
 %%{init:{"theme":"forest", "mirrorActors":"true", "sequence": {"showSequenceNumbers":false, "wrap": false,"useMaxWidth": true}}}%%
@@ -46,7 +46,7 @@ sequenceDiagram
 
 #### RepoGroups
 
-> The repogroup resource represents a collection of helm repositories. This is needed if you want to deploy an helm release which has dependency charts which are part of different repositories. If dependencies are part of the same repository you don't need this. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/helm/v1alpha1/repogroup_types.go) for detailed information about the spec structure.
+> The repogroup resource represents a collection of helm repositories. This is needed if you want to deploy an helm release which has dependency charts which are part of different repositories. If dependencies are part of the same repository you don't need this. See [here](https://github.com/soer3n/apps-operator/blob/master/apis/yaho/v1alpha1/repogroup_types.go) for detailed information about the spec structure.
 
 {{< mermaid >}}
 %%{init:{"theme":"forest", "mirrorActors":"true", "useMaxWidth":"true", "sequence": {"showSequenceNumbers":false, "wrap": true, "width":350}, "sequenceConfig": {
