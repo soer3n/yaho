@@ -1,0 +1,134 @@
+<!doctype html><html lang=en class="js csstransforms3d"><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.100.1"><meta name=description content="Documentation for yaho"><meta name=author content="soer3n"><link rel=icon href=../../images/favicon.png type=image/png><title>Releases :: yaho</title><link href=../../css/nucleus.css?1654581012 rel=stylesheet><link href=../../css/fontawesome-all.min.css?1654581012 rel=stylesheet><link href=../../css/hybrid.css?1654581012 rel=stylesheet><link href=../../css/featherlight.min.css?1654581012 rel=stylesheet><link href=../../css/perfect-scrollbar.min.css?1654581012 rel=stylesheet><link href=../../css/auto-complete.css?1654581012 rel=stylesheet><link href=../../css/atom-one-dark-reasonable.css?1654581012 rel=stylesheet><link href=../../css/theme.css?1654581012 rel=stylesheet><link href=../../css/tabs.css?1654581012 rel=stylesheet><link href=../../css/hugo-theme.css?1654581012 rel=stylesheet><link href=../../css/theme-blue.css?1654581012 rel=stylesheet><script src=../../js/jquery-3.3.1.min.js?1654581012></script><style>:root #header+#content>#left>#rlblock_left{display:none!important}</style></head><body data-url=../../usage/releases/><nav id=sidebar><div id=header-wrapper><div id=header><a id=logo href=../../><b>y</b>et <b>a</b>nother <b>h</b>elm <b>o</b>perator</a></div><div class=searchbox><label for=search-by><i class="fas fa-search"></i></label>
+<input data-search-input id=search-by type=search placeholder=Search...>
+<span data-search-clear><i class="fas fa-times"></i></span></div><script type=text/javascript src=../../js/lunr.min.js?1654581012></script>
+<script type=text/javascript src=../../js/auto-complete.js?1654581012></script>
+<script type=text/javascript>var baseurl="https://soer3n.github.io/yaho"</script><script type=text/javascript src=../../js/search.js?1654581012></script></div><section id=homelinks><ul><li><a class=padding href=../../><i class='fas fa-home'></i> Home</a></li></ul></section><div class=highlightable><ul class=topics><li data-nav-id=/installation/ title=Installation class=dd-item><a href=../../installation/>Installation</a></li><li data-nav-id=/architecture/ title=Architecture class=dd-item><a href=../../architecture/>Architecture</a><ul><li data-nav-id=/architecture/repository/ title=Repositories class=dd-item><a href=../../architecture/repository/>Repositories</a></li><li data-nav-id=/architecture/chart/ title=Charts class=dd-item><a href=../../architecture/chart/>Charts</a></li><li data-nav-id=/architecture/release/ title=Releases class=dd-item><a href=../../architecture/release/>Releases</a></li><li data-nav-id=/architecture/value/ title=Values class=dd-item><a href=../../architecture/value/>Values</a></li></ul></li><li data-nav-id=/configuration/ title=Configuration class=dd-item><a href=../../configuration/>Configuration</a><ul><li data-nav-id=/configuration/release/ title=Releases class=dd-item><a href=../../configuration/release/>Releases</a></li></ul></li><li data-nav-id=/development/ title=Development class=dd-item><a href=../../development/>Development</a></li><li data-nav-id=/usage/ title=Usage class="dd-item
+parent"><a href=../../usage/>Usage</a><ul><li data-nav-id=/usage/repos_charts/ title="Respositories & Charts" class=dd-item><a href=../../usage/repos_charts/>Respositories & Charts</a></li><li data-nav-id=/usage/releases/ title=Releases class="dd-item active"><a href=../../usage/releases/>Releases</a></li></ul></li><li data-nav-id=/plans/ title="Plans & ToDos" class=dd-item><a href=../../plans/>Plans & ToDos</a></li><li data-nav-id=/contributing/ title=Contributing class=dd-item><a href=../../contributing/>Contributing</a></li></ul><section id=footer><center><a class=github-button href=https://github.com/soer3n/yaho data-icon=octicon-cloud-download aria-label="Download matcornic/hugo-theme-learn on GitHub">GitHub</a>
+<a class=github-button href=https://github.com/soer3n/yaho/stargazers data-icon=octicon-star data-show-count=true aria-label="Star matcornic/hugo-theme-learn on GitHub">Star</a>
+<a class=github-button href=https://github.com/soer3n/yaho/fork data-icon=octicon-repo-forked data-show-count=true aria-label="Fork matcornic/hugo-theme-learn on GitHub">Fork</a><p>Built with <a href=https://github.com/matcornic/hugo-theme-learn><i class="fas fa-heart"></i></a> from <a href=https://getgrav.org>Grav</a> and <a href=https://gohugo.io/>Hugo</a></p></center><script async defer src=https://buttons.github.io/buttons.js></script></section></div></nav><section id=body><div id=overlay></div><div class="padding highlightable"><div><div id=top-bar><div id=breadcrumbs itemscope itemtype=http://data-vocabulary.org/Breadcrumb><span id=sidebar-toggle-span><a href=# id=sidebar-toggle data-sidebar-toggle><i class="fas fa-bars"></i></a></span>
+<span id=toc-menu><i class="fas fa-list-alt"></i></span>
+<span class=links>Releases</span></div><div class=progress><div class=wrapper><nav id=TableOfContents></nav></div></div></div></div><div id=head-tags></div><div id=body-inner><h1>Releases</h1><p>After installing needed repository and chart resources you can create a helm release.</p><div class="notices info"><p>Needed chart resources have to be present before creating a release resource.</p></div><pre tabindex=0><code>
+---
+apiVersion: yaho.soer3n.dev/v1alpha1
+kind: Release
+metadata:
+  name: test-release
+  namespace: helm
+spec:
+  name: test-release
+  namespace: share
+  config: helm-release-config
+  repo: test-repo
+  chart: testing
+  version: 0.1.1
+</code></pre><div class="notices info"><p>The release will be installed either into spec.namespace or if this field is not set into object.metadata.namespace.</p></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>
+</span></span><span style=display:flex><span>$ kubectl get releases.yaho.soer3n.dev -n helm 
+</span></span><span style=display:flex><span>NAME           GROUP   REPO        CHART     VERSION   SYNCED   STATUS    REVISION   AGE
+</span></span><span style=display:flex><span>test-release           test-repo   testing   0.1.1     true     success   <span style=color:#ae81ff>1</span>          4m4s
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>$ helm list -A
+</span></span><span style=display:flex><span>NAME            NAMESPACE       REVISION        UPDATED                                         STATUS          CHART           APP VERSION
+</span></span><span style=display:flex><span>test-release    share           <span style=color:#ae81ff>1</span>               2022-05-31 22:45:08.893512498 +0200 CEST        deployed        testing-0.1.1   1.16.0
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>$ kubectl get all -n share 
+</span></span><span style=display:flex><span>NAME                                        READY   STATUS    RESTARTS   AGE
+</span></span><span style=display:flex><span>pod/test-release-testing-859779cc95-9q8wp   1/1     Running   <span style=color:#ae81ff>0</span>          4m4s
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>NAME                           TYPE        CLUSTER-IP      EXTERNAL-IP   PORT<span style=color:#f92672>(</span>S<span style=color:#f92672>)</span>   AGE
+</span></span><span style=display:flex><span>service/test-release-testing   ClusterIP   10.102.215.45   &lt;none&gt;        80/TCP    4m4s
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
+</span></span><span style=display:flex><span>deployment.apps/test-release-testing   1/1     <span style=color:#ae81ff>1</span>            <span style=color:#ae81ff>1</span>           4m4s
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>NAME                                              DESIRED   CURRENT   READY   AGE
+</span></span><span style=display:flex><span>replicaset.apps/test-release-testing-859779cc95   <span style=color:#ae81ff>1</span>         <span style=color:#ae81ff>1</span>         <span style=color:#ae81ff>1</span>       4m4s
+</span></span></code></pre></div><div class="notices info"><p>The spec will install a release only with charts default values configured.</p></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>
+</span></span><span style=display:flex><span>$ helm get values -n share test-release 
+</span></span><span style=display:flex><span>USER-SUPPLIED VALUES:
+</span></span><span style=display:flex><span>null
+</span></span></code></pre></div><p>If we want to configure chart values for a release we need to create a value resource and reference it in the release resource.</p><pre tabindex=0><code>
+---
+apiVersion: yaho.soer3n.dev/v1alpha1
+kind: Values
+metadata:
+  name: test-values
+  namespace: helm
+spec:
+  json:
+    foo: bar
+
+---
+apiVersion: yaho.soer3n.dev/v1alpha1
+kind: Release
+metadata:
+  name: test-release
+  namespace: helm
+spec:
+  name: test-release
+  namespace: share
+  config: helm-release-config
+  repo: test-repo
+  chart: testing
+  version: 0.1.1
+  values:
+  - test-values
+</code></pre><div class="notices info"><p>The reference of values resource in release spec should configure release values.</p></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>
+</span></span><span style=display:flex><span>$ kubectl get releases.yaho.soer3n.dev -n helm 
+</span></span><span style=display:flex><span>NAME           GROUP   REPO        CHART     VERSION   SYNCED   STATUS    REVISION   AGE
+</span></span><span style=display:flex><span>test-release           test-repo   testing   0.1.1     true     success   <span style=color:#ae81ff>2</span>          5m58s
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>$ helm list -A
+</span></span><span style=display:flex><span>NAME            NAMESPACE       REVISION        UPDATED                                         STATUS          CHART           APP VERSION
+</span></span><span style=display:flex><span>test-release    share           <span style=color:#ae81ff>2</span>               2022-05-31 22:50:33.366392593 +0200 CEST        deployed        testing-0.1.1   1.16.0
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>$ helm get values -n share test-release 
+</span></span><span style=display:flex><span>USER-SUPPLIED VALUES:
+</span></span><span style=display:flex><span>foo: bar
+</span></span></code></pre></div><div class="notices info"><p>Values resources can be chained. Equal to the reference in a release spec you can do it in a values resource except that the key has to be specified for sub values.</p></div><p>Let&rsquo;s add another values resource and reference it in the first value resource.</p><pre tabindex=0><code>
+---
+apiVersion: yaho.soer3n.dev/v1alpha1
+kind: Values
+metadata:
+  name: test-values-2
+  namespace: helm
+spec:
+  json:
+    test: it
+
+---
+apiVersion: yaho.soer3n.dev/v1alpha1
+kind: Values
+metadata:
+  name: test-values
+  namespace: helm
+spec:
+  json:
+    foo: bar
+  refs:
+    ref: test-values-2
+</code></pre><div class="notices info"><p>Release revision and values should be modified after applying new values resource and updating existing resource with added reference.</p></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=display:flex><span>
+</span></span><span style=display:flex><span>$ kubectl get releases.yaho.soer3n.dev -n helm 
+</span></span><span style=display:flex><span>NAME           GROUP   REPO        CHART     VERSION   SYNCED   STATUS    REVISION   AGE
+</span></span><span style=display:flex><span>test-release           test-repo   testing   0.1.1     true     success   <span style=color:#ae81ff>3</span>          13m
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>$ helm list -A
+</span></span><span style=display:flex><span>NAME            NAMESPACE       REVISION        UPDATED                                         STATUS          CHART           APP VERSION
+</span></span><span style=display:flex><span>test-release    share           <span style=color:#ae81ff>3</span>               2022-05-31 22:58:53.619041213 +0200 CEST        deployed        testing-0.1.1   1.16.0
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>$ helm get values -n share test-release 
+</span></span><span style=display:flex><span>USER-SUPPLIED VALUES:
+</span></span><span style=display:flex><span>foo: bar
+</span></span><span style=display:flex><span>ref:
+</span></span><span style=display:flex><span>  test: it
+</span></span></code></pre></div><footer class=footline></footer></div></div><div id=navigation><a class="nav nav-prev" href=../../usage/repos_charts/ title="Respositories & Charts"><i class="fa fa-chevron-left"></i></a>
+<a class="nav nav-next" href=../../plans/ title="Plans & ToDos" style=margin-right:0><i class="fa fa-chevron-right"></i></a></div></section><div style=left:-1000px;overflow:scroll;position:absolute;top:-1000px;border:none;box-sizing:content-box;height:200px;margin:0;padding:0;width:200px><div style=border:none;box-sizing:content-box;height:200px;margin:0;padding:0;width:200px></div></div><script src=../../js/clipboard.min.js?1654581012></script>
+<script src=../../js/perfect-scrollbar.min.js?1654581012></script>
+<script src=../../js/perfect-scrollbar.jquery.min.js?1654581012></script>
+<script src=../../js/jquery.sticky.js?1654581012></script>
+<script src=../../js/featherlight.min.js?1654581012></script>
+<script src=../../js/highlight.pack.js?1654581012></script>
+<script>hljs.initHighlightingOnLoad()</script><script src=../../js/modernizr.custom-3.6.0.js?1654581012></script>
+<script src=../../js/learn.js?1654581012></script>
+<script src=../../js/hugo-learn.js?1654581012></script>
+<script src=../../mermaid/mermaid.js?1654581012></script>
+<script>mermaid.initialize({startOnLoad:!0})</script></body></html>

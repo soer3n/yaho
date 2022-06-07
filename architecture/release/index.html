@@ -1,0 +1,175 @@
+<!doctype html><html lang=en class="js csstransforms3d"><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.100.1"><meta name=description content="Documentation for yaho"><meta name=author content="soer3n"><link rel=icon href=../../images/favicon.png type=image/png><title>Releases :: yaho</title><link href=../../css/nucleus.css?1654581012 rel=stylesheet><link href=../../css/fontawesome-all.min.css?1654581012 rel=stylesheet><link href=../../css/hybrid.css?1654581012 rel=stylesheet><link href=../../css/featherlight.min.css?1654581012 rel=stylesheet><link href=../../css/perfect-scrollbar.min.css?1654581012 rel=stylesheet><link href=../../css/auto-complete.css?1654581012 rel=stylesheet><link href=../../css/atom-one-dark-reasonable.css?1654581012 rel=stylesheet><link href=../../css/theme.css?1654581012 rel=stylesheet><link href=../../css/tabs.css?1654581012 rel=stylesheet><link href=../../css/hugo-theme.css?1654581012 rel=stylesheet><link href=../../css/theme-blue.css?1654581012 rel=stylesheet><script src=../../js/jquery-3.3.1.min.js?1654581012></script><style>:root #header+#content>#left>#rlblock_left{display:none!important}</style></head><body data-url=../../architecture/release/><nav id=sidebar><div id=header-wrapper><div id=header><a id=logo href=../../><b>y</b>et <b>a</b>nother <b>h</b>elm <b>o</b>perator</a></div><div class=searchbox><label for=search-by><i class="fas fa-search"></i></label>
+<input data-search-input id=search-by type=search placeholder=Search...>
+<span data-search-clear><i class="fas fa-times"></i></span></div><script type=text/javascript src=../../js/lunr.min.js?1654581012></script>
+<script type=text/javascript src=../../js/auto-complete.js?1654581012></script>
+<script type=text/javascript>var baseurl="https://soer3n.github.io/yaho"</script><script type=text/javascript src=../../js/search.js?1654581012></script></div><section id=homelinks><ul><li><a class=padding href=../../><i class='fas fa-home'></i> Home</a></li></ul></section><div class=highlightable><ul class=topics><li data-nav-id=/installation/ title=Installation class=dd-item><a href=../../installation/>Installation</a></li><li data-nav-id=/architecture/ title=Architecture class="dd-item
+parent"><a href=../../architecture/>Architecture</a><ul><li data-nav-id=/architecture/repository/ title=Repositories class=dd-item><a href=../../architecture/repository/>Repositories</a></li><li data-nav-id=/architecture/chart/ title=Charts class=dd-item><a href=../../architecture/chart/>Charts</a></li><li data-nav-id=/architecture/release/ title=Releases class="dd-item active"><a href=../../architecture/release/>Releases</a></li><li data-nav-id=/architecture/value/ title=Values class=dd-item><a href=../../architecture/value/>Values</a></li></ul></li><li data-nav-id=/configuration/ title=Configuration class=dd-item><a href=../../configuration/>Configuration</a><ul><li data-nav-id=/configuration/release/ title=Releases class=dd-item><a href=../../configuration/release/>Releases</a></li></ul></li><li data-nav-id=/development/ title=Development class=dd-item><a href=../../development/>Development</a></li><li data-nav-id=/usage/ title=Usage class=dd-item><a href=../../usage/>Usage</a><ul><li data-nav-id=/usage/repos_charts/ title="Respositories & Charts" class=dd-item><a href=../../usage/repos_charts/>Respositories & Charts</a></li><li data-nav-id=/usage/releases/ title=Releases class=dd-item><a href=../../usage/releases/>Releases</a></li></ul></li><li data-nav-id=/plans/ title="Plans & ToDos" class=dd-item><a href=../../plans/>Plans & ToDos</a></li><li data-nav-id=/contributing/ title=Contributing class=dd-item><a href=../../contributing/>Contributing</a></li></ul><section id=footer><center><a class=github-button href=https://github.com/soer3n/yaho data-icon=octicon-cloud-download aria-label="Download matcornic/hugo-theme-learn on GitHub">GitHub</a>
+<a class=github-button href=https://github.com/soer3n/yaho/stargazers data-icon=octicon-star data-show-count=true aria-label="Star matcornic/hugo-theme-learn on GitHub">Star</a>
+<a class=github-button href=https://github.com/soer3n/yaho/fork data-icon=octicon-repo-forked data-show-count=true aria-label="Fork matcornic/hugo-theme-learn on GitHub">Fork</a><p>Built with <a href=https://github.com/matcornic/hugo-theme-learn><i class="fas fa-heart"></i></a> from <a href=https://getgrav.org>Grav</a> and <a href=https://gohugo.io/>Hugo</a></p></center><script async defer src=https://buttons.github.io/buttons.js></script></section></div></nav><section id=body><div id=overlay></div><div class="padding highlightable"><div><div id=top-bar><div id=breadcrumbs itemscope itemtype=http://data-vocabulary.org/Breadcrumb><span id=sidebar-toggle-span><a href=# id=sidebar-toggle data-sidebar-toggle><i class="fas fa-bars"></i></a></span>
+<span id=toc-menu><i class="fas fa-list-alt"></i></span>
+<span class=links>Releases</span></div><div class=progress><div class=wrapper><nav id=TableOfContents><ul><li><ul><li></li></ul></li></ul></nav></div></div></div></div><div id=head-tags></div><div id=body-inner><h1>Releases</h1><h4 id=release>Release</h4><blockquote><p>The release resource represents a helm release and is comparable to helm cli command &ldquo;helm upgrade &ndash;install &mldr;&rdquo;. It maps a release installation and/or upgrade process. See <a href=https://github.com/soer3n/apps-operator/blob/master/apis/yaho/v1alpha1/release_types.go>here</a> for detailed information about the spec structure. You cannot define values directly in the release resource. This is solved by an own values resource which is explained <a href=../../architecture/value>here</a>.</p></blockquote><div class=mermaid align=center>%%{init:{"theme":"forest", "mirrorActors":"true", "sequence": {"showSequenceNumbers":false, "wrap": false,"useMaxWidth": true}}}%%
+sequenceDiagram
+participant C AS client
+participant R AS reconciler
+participant RM AS release model
+participant CVM AS chart version model
+participant VM AS value model
+participant PKG AS helm v3 go.pkg
+participant K AS kube-apiserver
+C->>K: create/update chart resource
+K-->>C: return error
+R->>RM: init model
+RM->>PKG: init action configuration
+rect rgb(255, 255, 204)
+alt spec.config != nil
+RM->>K: load config resource
+RM-->>RM: set options
+end
+end
+RM->>VM: init value model
+VM->>K: get list of related value resources
+VM-->>VM: transform values
+VM-->>RM: return value model
+RM->>K: get default value configmap
+rect rgb(255, 255, 204)
+alt err != nil
+K-->>R: return error
+end
+end
+RM->>K: get chart index configmap
+rect rgb(255, 255, 204)
+alt err != nil
+K-->>R: return error
+end
+end
+RM->>K: get chart custom resource
+rect rgb(255, 255, 204)
+alt err != nil
+K-->>R: return error
+end
+end
+RM->>CVM: init chart version model
+CVM-->>CVM: parse version
+CVM->>K: get respository resource
+rect rgb(255, 255, 204)
+alt err != nil
+K-->>R: return error
+end
+end
+CVM->>PKG: resolve reference url
+rect rgb(255, 255, 204)
+alt values == nil
+VM->>K: get default value configmap
+rect rgb(255, 255, 204)
+alt err != nil
+K-->>R: return error
+end
+end
+end
+end
+CVM-->>CVM: load dependencies
+Note right of CVM: load dependencies means to iterate over index deps<br><br>and init a chartversion model for each item
+rect rgb(191, 223, 255)
+loop iterate over chart and dependencies
+RM->>PKG: validate chart
+rect rgb(255, 255, 204)
+alt error != nil
+PKG-->>R: return error
+end
+end
+end
+end
+R-->>R: handle finalizer
+rect rgb(255, 255, 204)
+alt requeue
+rect rgb(255, 255, 204)
+alt markedToBeDeleted
+R->>RM: remove release
+RM->>PKG: init remove client
+RM->>PKG: remove release
+RM-->>R: return for reconciling
+end
+end
+R->>K: update release resource
+RM-->>R: return for reconciling
+end
+end
+R->>RM: update release
+RM->>PKG: init get client
+RM->>PKG: get existing release
+rect rgb(255, 255, 204)
+alt err != nil
+PKG-->>R: return error
+end
+end
+rect rgb(255, 255, 204)
+alt release != nil
+RM->>PKG: init get values client
+RM->>PKG: get installed values
+rect rgb(255, 255, 204)
+alt err != nil
+PKG-->>R: return error
+end
+end
+RM-->>RM: compare values
+rect rgb(255, 255, 204)
+alt valuesChanged
+RM->>PKG: init upgrade client
+RM-->>RM: set upgrade flags
+RM->>PKG: upgrade release
+rect rgb(255, 255, 204)
+alt err != nil
+PKG-->>R: return error
+end
+end
+end
+end
+RM-->>R: return
+end
+end
+RM->>PKG: init install client
+RM-->>RM: set install flags
+RM->>PKG: install release
+rect rgb(255, 255, 204)
+alt err != nil
+PKG-->>R: return error
+end
+end</div><p><br>\</p><h4 id=releasegroups>ReleaseGroups</h4><blockquote><p>The releasegroup resource represents a collection of helm releases. The idea behind is to control releases which have dependencies to each other. At the moment it&rsquo;s just a collection without logic for managing them together. In general it deploys a collection of release resources. See <a href=https://github.com/soer3n/apps-operator/blob/master/apis/yaho/v1alpha1/releasegroup_types.go>here</a> for detailed information about the spec structure.</p></blockquote><div class=mermaid align=center>%%{init:{"theme":"forest", "mirrorActors":"true", "useMaxWidth":"true", "sequence": {"showSequenceNumbers":false, "wrap": true, "width":350}, "sequenceConfig": {
+"diagramMarginX": 50,
+"diagramMarginY": 10,
+"boxTextMargin": 5,
+"noteMargin": 10,
+"messageMargin": 35,
+"mirrorActors": true
+}}}%%
+sequenceDiagram
+participant C AS client
+participant R AS reconciler
+participant K AS kube-apiserver
+C->>K: create/update release group object
+R->>K: get releases by labels
+rect rgb(191, 223, 255)
+loop returned release resources
+rect rgb(255, 255, 204)
+alt item is not in spec list
+R->>K: remove release resource
+end
+end
+end
+end
+rect rgb(191, 223, 255)
+loop specified release resources
+R->>K: create/update release resource
+end
+end</div><footer class=footline></footer></div></div><div id=navigation><a class="nav nav-prev" href=../../architecture/chart/ title=Charts><i class="fa fa-chevron-left"></i></a>
+<a class="nav nav-next" href=../../architecture/value/ title=Values style=margin-right:0><i class="fa fa-chevron-right"></i></a></div></section><div style=left:-1000px;overflow:scroll;position:absolute;top:-1000px;border:none;box-sizing:content-box;height:200px;margin:0;padding:0;width:200px><div style=border:none;box-sizing:content-box;height:200px;margin:0;padding:0;width:200px></div></div><script src=../../js/clipboard.min.js?1654581012></script>
+<script src=../../js/perfect-scrollbar.min.js?1654581012></script>
+<script src=../../js/perfect-scrollbar.jquery.min.js?1654581012></script>
+<script src=../../js/jquery.sticky.js?1654581012></script>
+<script src=../../js/featherlight.min.js?1654581012></script>
+<script src=../../js/highlight.pack.js?1654581012></script>
+<script>hljs.initHighlightingOnLoad()</script><script src=../../js/modernizr.custom-3.6.0.js?1654581012></script>
+<script src=../../js/learn.js?1654581012></script>
+<script src=../../js/hugo-learn.js?1654581012></script>
+<script src=../../mermaid/mermaid.js?1654581012></script>
+<script>mermaid.initialize({startOnLoad:!0})</script></body></html>
