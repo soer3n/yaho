@@ -116,7 +116,7 @@ func (c *HelmRESTClientGetter) ToRawKubeConfigLoader() clientcmd.ClientConfig {
 	}
 
 	if err := c.Client.Get(context.Background(), types.NamespacedName{Namespace: c.Namespace, Name: serviceAccountName}, serviceAccount); err != nil {
-		fmt.Printf("error on getting default values. msg: %v", err.Error())
+		fmt.Printf("error on getting service account. msg: %v", err.Error())
 		return nil
 	}
 
