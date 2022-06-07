@@ -1,4 +1,4 @@
-baseURL = "https://soer3n.github.io/"
+baseURL = "https://soer3n.github.io/yaho"
 languageCode = "en-us"
 title = "yaho"
 theme = "hugo-theme-learn"
