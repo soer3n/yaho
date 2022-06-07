@@ -8,8 +8,7 @@ chapter = true
 
 ```
 
-kubectl apply -f https://raw.githubusercontent.com/soer3n/yaho/master/deploy/rbac.yaml
-kubectl apply -f https://raw.githubusercontent.com/soer3n/yaho/master/deploy/operator.yaml
+kubectl apply -f https://github.com/soer3n/yaho/releases/download/0.0.1/yaho-v0.0.1-deployment.yaml
 
 
 ```
@@ -17,5 +16,7 @@ kubectl apply -f https://raw.githubusercontent.com/soer3n/yaho/master/deploy/ope
 #### Operator Lifecycle Manager
 
 ```
+
+kubectl apply -f https://github.com/soer3n/yaho/releases/download/0.0.1/yaho-v0.0.1-olm.yaml
 
 ```
