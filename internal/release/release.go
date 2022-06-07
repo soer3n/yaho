@@ -162,7 +162,7 @@ func (hc *Release) Update() error {
 	hc.setInstallFlags(client)
 
 	if release, err = client.Run(hc.Chart, hc.ValuesTemplate.Values); err != nil {
-		hc.logger.Error(err, "error on installing chart", "release", hc.Name, "chart", hc.Chart.Name(), "repo", hc.Repo)
+		hc.logger.Error(err, "error on installing release", "release", hc.Name, "chart", hc.Chart.Name(), "repo", hc.Repo)
 		return err
 	}
 

@@ -24,7 +24,7 @@ var _ = Context("Install a release with values", func() {
 		obj := setupNamespace()
 		namespace := obj.ObjectMeta.Name
 
-		It("should create a new Repository resource with the specified name and specified url", func() {
+		It("should create a new Release resource with the specified name and values", func() {
 			ctx := context.Background()
 
 			// wait on readiness of controllers

@@ -64,6 +64,7 @@ func newRootCmd() *cobra.Command {
 func newOperatorCmd() *cobra.Command {
 
 	var metricsAddr string
+	var isLocal bool
 	var enableLeaderElection bool
 	var probeAddr string
 	var configFile string
@@ -77,7 +78,8 @@ func newOperatorCmd() *cobra.Command {
 			metricsAddr, _ = cmd.Flags().GetString("metrics-bind-address")
 			probeAddr, _ = cmd.Flags().GetString("health-probe-bind-address")
 			enableLeaderElection, _ = cmd.Flags().GetBool("leader-elect")
-			run(configFile, metricsAddr, probeAddr, enableLeaderElection)
+			isLocal, _ = cmd.Flags().GetBool("is-local")
+			run(configFile, isLocal, metricsAddr, probeAddr, enableLeaderElection)
 		},
 	}
 
@@ -88,6 +90,7 @@ func newOperatorCmd() *cobra.Command {
 	cmd.PersistentFlags().String("health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	cmd.PersistentFlags().Bool("leader-elect", false, "Enable leader election for controller manager. "+
 		"Enabling this will ensure there is only one active controller manager.")
+	cmd.PersistentFlags().Bool("is-local", false, "if true sets the k8s api server url to 127.0.0.1:6443, else to cluster domain")
 
 	return cmd
 }
@@ -99,7 +102,7 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-func run(configFile, metricsAddr, probeAddr string, enableLeaderElection bool) {
+func run(configFile string, isLocal bool, metricsAddr, probeAddr string, enableLeaderElection bool) {
 
 	var err error
 
@@ -164,6 +167,7 @@ func run(configFile, metricsAddr, probeAddr string, enableLeaderElection bool) {
 	if err = (&helmcontrollers.ReleaseReconciler{
 		WithWatch:      rc,
 		WatchNamespace: ns,
+		IsLocal:        isLocal,
 		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("Release"),
 		Scheme:         mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {

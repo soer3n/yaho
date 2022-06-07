@@ -13,6 +13,7 @@ type HelmRESTClientGetter struct {
 	Namespace        string
 	ReleaseNamespace string
 	KubeConfig       string
+	IsLocal          bool
 	HelmConfig       *helmv1alpha1.Config
 	Client           client.Client
 	logger           logr.Logger

@@ -45,6 +45,7 @@ import (
 type ReleaseReconciler struct {
 	client.WithWatch
 	WatchNamespace string
+	IsLocal        bool
 	Log            logr.Logger
 	Scheme         *runtime.Scheme
 	Recorder       record.EventRecorder
@@ -111,7 +112,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	kubeconfig := ""
 
 	if err == nil {
-		releaseRestGetter, err = utils.NewRESTClientGetter(config, instance.ObjectMeta.Namespace, *releaseNamespace, r.WithWatch, r.Log)
+		releaseRestGetter, err = utils.NewRESTClientGetter(config, instance.ObjectMeta.Namespace, *releaseNamespace, r.IsLocal, r.WithWatch, r.Log)
 
 		if err != nil {
 			r.Log.Info(err.Error())

@@ -188,6 +188,7 @@ func setupNamespace() *v1.Namespace {
 		err = (&controllers.ReleaseReconciler{
 			WithWatch:      rc,
 			WatchNamespace: ns,
+			IsLocal:        true,
 			Log:            logf.Log,
 			Scheme:         mgr.GetScheme(),
 			Recorder:       mgr.GetEventRecorderFor("release-controller"),
@@ -690,12 +691,17 @@ func RemoveConfig(namespace string) {
 
 func CompareValues(name, namespace string, expected map[string]interface{}) error {
 
-	config := &helmv1alpha1.Config{}
+	config := &helmv1alpha1.Config{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "config",
+			Namespace: namespace,
+		},
+		Spec: helmv1alpha1.ConfigSpec{
+			ServiceAccountName: "account",
+		},
+	}
 
-	err = testClient.Get(context.Background(), apitypes.NamespacedName{Name: "config", Namespace: namespace}, config)
-	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
-
-	getter, _ := utils.NewRESTClientGetter(config, namespace, namespace, testClient, logf.Log)
+	getter, _ := utils.NewRESTClientGetter(config, namespace, namespace, true, testClient, logf.Log)
 	ac, err := utils.InitActionConfig(getter, []byte{}, logf.Log)
 
 	if err != nil {
