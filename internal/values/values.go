@@ -3,6 +3,7 @@ package values
 import (
 	"encoding/json"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -86,7 +87,9 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 
 		refValues := ref.Ref.DeepCopy()
 
-		go hv.parse(ref, refValues, c)
+		m := &sync.Mutex{}
+
+		go hv.parse(ref, refValues, c, m)
 	}
 
 	for {
@@ -98,33 +101,40 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 				return merged, nil
 			}
 
-		case <-time.After(1000 * time.Second):
+		case <-time.After(10 * time.Second):
 			close(d)
 			return map[string]interface{}{}, errors.New("timeout on value parsing")
 		}
 	}
 }
 
-func (hv *ValueTemplate) parse(ref *ValuesRef, refValues *helmv1alpha1.Values, c chan map[string]interface{}) {
+func (hv *ValueTemplate) parse(ref *ValuesRef, refValues *helmv1alpha1.Values, c chan map[string]interface{}, m *sync.Mutex) {
 
-	if err := hv.manageStruct(ref); err != nil {
+	m.Lock()
+	defer m.Unlock()
+
+	sv, err := hv.manageStruct(ref)
+	if err != nil {
 		hv.logger.Info("parsing values reference failed", "error", err.Error())
 		return
 	}
 
 	values, _ := hv.transformToMap(refValues, true)
+	values = utils.MergeMaps(values, sv)
 	c <- values
 }
 
-func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef, parents ...string) error {
+func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef, parents ...string) (map[string]interface{}, error) {
 
 	var merged map[string]interface{}
-	c := make(chan map[string]interface{}, 1)
 	counter := 0
+	vals := utils.CopyUntypedMap(hv.Values)
 
 	hv.logger.Info("manage struct", "ref", valueMap)
 
 	if valueMap.Ref.Spec.Refs != nil {
+		c := make(chan map[string]interface{}, 1)
+
 		temp := NewOptions(
 			map[string]string{
 				"parent": valueMap.Ref.ObjectMeta.Name,
@@ -135,24 +145,28 @@ func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef, parents ...string) er
 
 		if len(temp) == 0 {
 			hv.logger.Info("skip due to empty list", "filter", "parent:"+valueMap.Ref.ObjectMeta.Name)
-			return nil
+			return vals, nil
 		}
 
 		for _, v := range temp {
 			merged = make(map[string]interface{})
 			parents = append(parents, valueMap.Key)
 			if v.Ref.Spec.Refs != nil {
-				if err := hv.manageStruct(v, parents...); err != nil {
-					return err
+				sv, err := hv.manageStruct(v, parents...)
+				if err != nil {
+					return vals, err
 				}
+
+				vals = utils.MergeMaps(vals, sv)
 			}
 
 			refKey := hv.getRefKeyByValue(parents, v.Ref.Name, valueMap.Ref.Spec.Refs)
+			ref := v.Ref.DeepCopy()
 
-			go func(v *ValuesRef) {
-				merged, _ = hv.transformToMap(v.Ref, true, refKey...)
+			go func() {
+				merged, _ = hv.transformToMap(ref, true, refKey...)
 				c <- merged
-			}(v)
+			}()
 
 		}
 
@@ -160,20 +174,20 @@ func (hv *ValueTemplate) manageStruct(valueMap *ValuesRef, parents ...string) er
 			select {
 			case t := <-c:
 				// merge child map directly to struct field is better !!!
-				hv.Values = utils.MergeMaps(hv.Values, t)
+				vals = utils.MergeMaps(vals, t)
 				counter++
 				if counter == len(temp) {
-					return nil
+					return vals, nil
 				}
-				return nil
-			case <-time.After(1000 * time.Second):
+				return vals, nil
+			case <-time.After(10 * time.Second):
 				hv.logger.Info("timeout on managing struct reference", "struct", valueMap)
-				return errors.New("time out on value parsing")
+				return vals, errors.New("time out on value parsing")
 			}
 		}
 	}
 
-	return nil
+	return vals, nil
 }
 
 func (hv ValueTemplate) getRefKeyByValue(parents []string, value string, refMap map[string]string) []string {
@@ -206,6 +220,9 @@ func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, unstructed b
 
 	}
 
-	valMap = utils.MergeUntypedMaps(hv.Values, convertedMap, parents...)
+	vals := utils.CopyUntypedMap(hv.Values)
+	convertedVals := utils.CopyUntypedMap(convertedMap)
+	valMap = utils.MergeUntypedMaps(vals, convertedVals, parents...)
+
 	return valMap, nil
 }

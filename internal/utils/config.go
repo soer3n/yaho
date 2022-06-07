@@ -67,18 +67,36 @@ func MergeMaps(source, dest map[string]interface{}) map[string]interface{} {
 		return dest
 	}
 
+	copy := make(map[string]interface{})
+
+	for k, v := range dest {
+		copy[k] = v
+	}
+
 	for k, v := range source {
 		// when key already exists we have to compare also sub values
 		if temp, ok := v.(map[string]interface{}); ok {
-			merge, _ := dest[k].(map[string]interface{})
-			dest[k] = MergeMaps(merge, temp)
+			merge, _ := copy[k].(map[string]interface{})
+			copy[k] = MergeMaps(merge, temp)
 			continue
 		}
 
-		dest[k] = v
+		copy[k] = v
 	}
 
-	return dest
+	return copy
+}
+
+// CopyUntypedMap return a copy of a map with strings as keys and empty interface as value
+func CopyUntypedMap(source map[string]interface{}) map[string]interface{} {
+
+	vals := make(map[string]interface{})
+
+	for k, v := range source {
+		vals[k] = v
+	}
+
+	return vals
 }
 
 // MergeUntypedMaps returns distinct map of two as input
