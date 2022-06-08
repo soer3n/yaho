@@ -62,7 +62,7 @@ jobs:
         file: olm/catalog.Dockerfile
         context: olm/
         push: true
-        tags: soer3n/yaho-bundle:${{ steps.vars.outputs.tag }}
+        tags: soer3n/yaho:catalog
 
     - name: Build release artifacts
       run: make artifacts-build
