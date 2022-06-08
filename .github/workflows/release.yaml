@@ -59,7 +59,7 @@ jobs:
     - name: Rebuild catalog and update image
       uses: docker/build-push-action@v3
       with:
-        file: catalog.Dockerfile
+        file: olm/catalog.Dockerfile
         context: olm/
         push: true
         tags: soer3n/yaho-bundle:${{ steps.vars.outputs.tag }}
