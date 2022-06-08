@@ -168,4 +168,7 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 )
 
-replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.2
+replace (
+	github.com/containerd/containerd => github.com/containerd/containerd v1.6.6
+	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.2
+)

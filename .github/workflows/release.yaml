@@ -28,26 +28,20 @@ jobs:
     - name: Login to DockerHub
       uses: docker/login-action@v2
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.DOCKER_IO_TOKEN }}
 
     - name: set tag as output
       id: vars
       run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
 
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v1
+    - name: Build and push operator image
+      uses: docker/build-push-action@v3
       with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Build operator image
-      run: |
-        make docker-build
-        make docker-push
-      env:
-        IMG: ghcr.io/soer3n/yaho:${{ steps.vars.outputs.tag }}
+        file: Dockerfile
+        context: .
+        push: true
+        tags: soer3n/yaho:${{ steps.vars.outputs.tag }}
 
     - name: Build olm bundle
       run: make bundle
@@ -62,7 +56,7 @@ jobs:
         push: true
         tags: soer3n/yaho-bundle:${{ steps.vars.outputs.tag }}
 
-    - name: Add bundle to catalog and update image
+    - name: Rebuild catalog and update image
       uses: docker/build-push-action@v3
       with:
         file: catalog.Dockerfile
