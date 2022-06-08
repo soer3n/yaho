@@ -10,15 +10,20 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: Chart is the Schema for the charts API
-      displayName: Chart
-      kind: Chart
-      name: charts.yaho.soer3n.dev
-      version: v1alpha1
     - description: Config is the Schema for the configs API
       displayName: Config
       kind: Config
       name: configs.yaho.soer3n.dev
+      version: v1alpha1
+    - description: Values is the Schema for the values API
+      displayName: Values
+      kind: Values
+      name: values.yaho.soer3n.dev
+      version: v1alpha1
+    - description: Chart is the Schema for the charts API
+      displayName: Chart
+      kind: Chart
+      name: charts.yaho.soer3n.dev
       version: v1alpha1
     - description: ReleaseGroup is the Schema for the releasegroups API
       displayName: Release Group
@@ -34,11 +39,6 @@ spec:
       displayName: Repo Group
       kind: RepoGroup
       name: repogroups.yaho.soer3n.dev
-      version: v1alpha1
-    - description: Values is the Schema for the values API
-      displayName: Values
-      kind: Values
-      name: values.yaho.soer3n.dev
       version: v1alpha1
   description: helm operator
   displayName: yaho

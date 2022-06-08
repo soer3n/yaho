@@ -1,4 +1,4 @@
-domain: soer3n.info
+domain: soer3n.dev
 layout:
 - go.kubebuilder.io/v3
 multigroup: true
@@ -10,50 +10,50 @@ repo: github.com/soer3n/yaho
 resources:
 - api:
     crdVersion: v1
-  domain: soer3n.info
-  group: helm
+  domain: soer3n.dev
+  group: yaho
   kind: Repo
   path: github.com/soer3n/yaho/apis/helm/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
-  domain: soer3n.info
-  group: helm
+  domain: soer3n.dev
+  group: yaho
   kind: RepoGroup
   path: github.com/soer3n/yaho/apis/helm/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
-  domain: soer3n.info
-  group: helm
+  domain: soer3n.dev
+  group: yaho
   kind: Release
   path: github.com/soer3n/yaho/apis/helm/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
-  domain: soer3n.info
-  group: helm
+  domain: soer3n.dev
+  group: yaho
   kind: ReleaseGroup
   path: github.com/soer3n/yaho/apis/helm/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
-  domain: soer3n.info
-  group: helm
+  domain: soer3n.dev
+  group: yaho
   kind: Chart
   path: github.com/soer3n/yaho/apis/helm/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
-  domain: soer3n.info
-  group: helm
+  domain: soer3n.dev
+  group: yaho.soer3n.dev
   kind: Values
   path: github.com/soer3n/yaho/apis/helm/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
     namespaced: true
-  domain: soer3n.info
+  domain: soer3n.dev
   group: yaho.soer3n.dev
   kind: Config
   path: github.com/soer3n/apps-operator/apis/yaho.soer3n.dev/v1alpha1
@@ -61,8 +61,8 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  domain: soer3n.info
-  group: helm
+  domain: soer3n.dev
+  group: yaho.soer3n.dev
   kind: Config
   path: github.com/soer3n/apps-operator/apis/helm/v1alpha1
   version: v1alpha1

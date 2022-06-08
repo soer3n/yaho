@@ -120,7 +120,7 @@ func run(configFile string, isLocal bool, metricsAddr, probeAddr string, enableL
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "bb07b8f2.soer3n.info",
+		LeaderElectionID:       "bb07b8f2.soer3n.dev",
 	}
 
 	if configFile != "" {
