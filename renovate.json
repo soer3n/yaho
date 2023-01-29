@@ -1,13 +1,11 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "prCreation": "status-success",
-    "gitAuthor": "Renovate Bot <renovate-bot@git.soer3n.info>",
     "onboardingConfig": {
         "extends": ["config:base"]
       },
     "repositories": ["soer3n/yaho"],
     "constraints": {
-        "go": "1.17"
+        "go": "1.18"
     },
     "packageRules": [
         {

@@ -20,7 +20,7 @@ func (client *K8SClientMock) List(ctx context.Context, list client.ObjectList, o
 }
 
 // Get represents mock func for similar dynamic runtime client func
-func (client *K8SClientMock) Get(ctx context.Context, key types.NamespacedName, obj client.Object) error {
+func (client *K8SClientMock) Get(ctx context.Context, key types.NamespacedName, obj client.Object, opts ...client.GetOption) error {
 	args := client.Called(ctx, key, obj)
 	err := args.Error(0)
 	return err

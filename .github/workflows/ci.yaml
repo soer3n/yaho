@@ -38,11 +38,10 @@ jobs:
       fail-fast: false
       matrix:
         version:
-        - v1.24.1
-        - v1.23.6
-        - v1.22.9
-        - v1.21.12
-        - v1.20.15
+        - v1.26.0
+        - v1.25.3
+        - v1.24.7
+        - v1.23.13
     runs-on: ubuntu-latest
     name: test-e2e-k8s-${{ matrix.version }}
     needs:
@@ -59,6 +58,6 @@ jobs:
         node_image: kindest/node:${{ matrix.version }}
         cluster_name:  cluster-${{ matrix.version }}
         config: testutils/kind.yaml
-        version: v0.14.0
+        version: v0.17.0
     - name: test controllers
       run: go test -coverpkg ./controllers/... ./tests/e2e/controller/...
