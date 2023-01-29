@@ -17,7 +17,7 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v3
       with:
-        go-version: 1.17
+        go-version: 1.18
     - name: build
       run: go build -v ./...
 
@@ -29,7 +29,7 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v3
       with:
-        go-version: 1.17
+        go-version: 1.18
     - name: test packages
       run: go test -coverpkg ./internal/... ./tests/unit/...
 
@@ -51,7 +51,7 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v3
       with:
-        go-version: 1.17
+        go-version: 1.18
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.2.0
       with:
