@@ -19,8 +19,8 @@ jobs:
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.5.0
       with:
-        node_image: kindest/node:${{ matrix.version }}
-        cluster_name:  cluster-${{ matrix.version }}
+        node_image: kindest/node:v1.24.7
+        cluster_name:  cluster-coverage
         config: testutils/kind.yaml
         version: v0.17.0
     - name: set directories to cover
