@@ -2,8 +2,8 @@
 [![Go Report Card](https://goreportcard.com/badge/soer3n/yaho)](https://goreportcard.com/report/soer3n/yaho)
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/soer3n/yaho)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/soer3n/yaho)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/soer3n/yaho/CI?label=Tests&logo=Tests)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/soer3n/yaho/Release?label=Release)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/soer3n/yaho/ci.yaml?label=Tests&logo=Tests)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/soer3n/yaho/release.yaml?label=Release)
 ![GitHub](https://img.shields.io/github/license/soer3n/yaho)
 
 # Yet Another Helm Operator 

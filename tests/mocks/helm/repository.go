@@ -109,8 +109,8 @@ func setRepository(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.
 					APIVersion:         "yaho.soer3n.dev/v1alpha1",
 					Kind:               "Repository",
 					Name:               repositoryMock.Name,
-					Controller:         pointer.BoolPtr(true),
-					BlockOwnerDeletion: pointer.BoolPtr(true),
+					Controller:         pointer.Bool(true),
+					BlockOwnerDeletion: pointer.Bool(true),
 				},
 			},
 		}
