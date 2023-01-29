@@ -18,7 +18,7 @@ jobs:
       - name: set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version: 1.18
 
       - name: check out code
         uses: actions/checkout@v3
@@ -26,6 +26,6 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.29
+          version: latest
           args: --issues-exit-code=1 --timeout=5m0s
           only-new-issues: true

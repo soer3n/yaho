@@ -175,7 +175,7 @@ require (
 )
 
 replace (
-	github.com/containerd/containerd => github.com/containerd/containerd v1.6.6
+	github.com/containerd/containerd => github.com/containerd/containerd v1.6.12
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.2
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.10.3
 	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.13.9
