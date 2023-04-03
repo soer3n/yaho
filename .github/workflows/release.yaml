@@ -36,7 +36,7 @@ jobs:
       run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
 
     - name: Build and push operator image
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v4
       with:
         file: Dockerfile
         context: .
@@ -49,7 +49,7 @@ jobs:
         VERSION: ${{ steps.vars.outputs.tag }}
 
     - name: Build and push bundle image
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v4
       with:
         file: bundle.Dockerfile
         context: .
@@ -57,7 +57,7 @@ jobs:
         tags: soer3n/yaho-bundle:${{ steps.vars.outputs.tag }}
 
     - name: Rebuild catalog and update image
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v4
       with:
         file: olm/catalog.Dockerfile
         context: olm/
