@@ -45,7 +45,7 @@ jobs:
         - v1.24.7
         - v1.23.13
     runs-on: ubuntu-latest
-    if: ${{ (github.event.review.state == 'approved') || github.ref == 'refs/heads/master'
+    if: ${{ (github.event.review.state == 'approved') || github.ref == 'refs/heads/master' }}
     name: test-e2e-k8s-${{ matrix.version }}
     needs:
     - build
