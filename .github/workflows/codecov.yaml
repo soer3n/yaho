@@ -3,6 +3,9 @@ name: Coverage
 on:
   push:
     branches: [ master ]
+  pull_request:
+    branches:
+      - master
   pull_request_review:
     types: [submitted]
 
@@ -10,7 +13,7 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
-    if: ${{ (github.event.review.state == 'approved')
+    if: ${{ (github.event.review.state == 'approved') || github.ref == 'refs/heads/master'
     steps:
     - uses: actions/checkout@v3
     - name: set up Go
