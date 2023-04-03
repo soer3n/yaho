@@ -12,7 +12,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.2
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.11.1
+	helm.sh/helm/v3 v3.11.2
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.26.3
 	k8s.io/cli-runtime v0.26.3
@@ -112,8 +112,8 @@ require (
 	github.com/prometheus/common v0.39.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/rivo/uniseg v0.4.3 // indirect
-	github.com/rogpeppe/go-internal v1.8.1 // indirect
-	github.com/rubenv/sql-migrate v1.3.0 // indirect
+	github.com/rogpeppe/go-internal v1.9.0 // indirect
+	github.com/rubenv/sql-migrate v1.3.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
@@ -164,6 +164,6 @@ require (
 replace (
 	github.com/containerd/containerd => github.com/containerd/containerd v1.6.12
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.5
-	helm.sh/helm/v3 => helm.sh/helm/v3 v3.10.3
+	helm.sh/helm/v3 => helm.sh/helm/v3 v3.11.2
 	sigs.k8s.io/kustomize/kyaml => sigs.k8s.io/kustomize/kyaml v0.13.9
 )
