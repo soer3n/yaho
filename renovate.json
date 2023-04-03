@@ -5,7 +5,7 @@
       },
     "repositories": ["soer3n/yaho"],
     "constraints": {
-        "go": "1.18"
+        "go": "1.19"
     },
     "packageRules": [
         {
