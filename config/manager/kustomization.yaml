@@ -14,4 +14,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: soer3n/yaho
-  newTag: 0.0.1
+  newTag: v0.0.2
