@@ -20,7 +20,7 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v3
       with:
-        go-version: 1.18
+        go-version: 1.19
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.5.0
       with:
@@ -36,4 +36,5 @@ jobs:
       uses: codecov/codecov-action@v3
       with:
         file: ./coverage.txt
+        token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true

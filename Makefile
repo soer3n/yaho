@@ -1,7 +1,7 @@
 OS = $(shell go env GOOS)
 ARCH = $(shell go env GOARCH)
 # Current Operator version
-VERSION ?= 0.0.1
+VERSION ?= 0.0.2
 # Default bundle image tag
 BUNDLE_IMG ?= soer3n/yaho-bundle:$(VERSION)
 # Options for 'bundle-build'
@@ -186,7 +186,7 @@ endef
 .PHONY: bundle
 bundle: manifests kustomize operator-sdk
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+	cd config/manager && $(KUSTOMIZE) edit set image soer3n/yaho=$(IMG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(OPERATOR_SDK) bundle validate ./bundle
 
@@ -214,7 +214,7 @@ ifeq (,$(shell which opm 2>/dev/null))
 	@{ \
 	set -e ;\
 	mkdir -p $(dir $(OPM)) ;\
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.23.0/$(OS)-$(ARCH)-opm ;\
+	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.26.5/$(OS)-$(ARCH)-opm ;\
 	chmod +x $(OPM) ;\
 	}
 else 
@@ -251,3 +251,17 @@ artifacts-build: controller-gen bundle
 	echo "---" >> artifacts/yaho-v$(VERSION)-deployment.yaml
 	$(KUSTOMIZE) build config/default >> artifacts/yaho-v$(VERSION)-deployment.yaml
 	envsubst < olm/release.yaml.in >> artifacts/yaho-v$(VERSION)-olm.yaml
+
+release:
+	VERSION=0.0.3 make docker-build
+	docker push soer3n/yaho:0.0.3
+	cd config/manager && ../../bin/kustomize edit set image controller=soer3n/yaho:0.0.3 && cd ../..
+	IMG==soer3n/yaho:0.0.3 VERSION=0.0.3 CHANNEL=stable-v0 make bundle
+	VERSION=0.0.3 CHANNEL=stable-v0 make bundle-build
+	docker push soer3n/yaho-bundle:0.0.3
+	# make catalog-build CATALOG_IMG="docker.io/soer3n/yaho:catalog" BUNDLE_IMGS="docker.io/soer3n/yaho-bundle:0.0.1,docker.io/soer3n/yaho-bundle:0.0.2"
+	./bin/opm alpha render-template semver --output yaml < olm/operator-template.yaml > olm/olm/catalog.yaml
+	./bin/opm validate olm/olm 
+	docker build . -f olm/olm.Dockerfile -t soer3n/yaho:catalog 
+	docker push soer3n/yaho:catalog
+	VERSION=0.0.3 CHANNEL=stable-v0 make artifacts-build

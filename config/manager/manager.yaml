@@ -25,7 +25,7 @@ spec:
         - operator
         args:
         - --leader-elect
-        image: soer3n/yaho:0.0.1
+        image: soer3n/yaho:0.0.2
         name: manager
         securityContext:
           allowPrivilegeEscalation: false
