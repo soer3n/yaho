@@ -47,6 +47,7 @@ jobs:
       run: make bundle
       env:
         VERSION: ${{ steps.vars.outputs.tag }}
+        CHANNEL: stable-v0
 
     - name: Build and push bundle image
       uses: docker/build-push-action@v3
@@ -56,10 +57,16 @@ jobs:
         push: true
         tags: soer3n/yaho-bundle:${{ steps.vars.outputs.tag }}
 
+    - name: Rebuild catalog manifest
+      run: make catalog-build
+      env:
+        VERSION: ${{ steps.vars.outputs.tag }}
+        CHANNEL: stable-v0
+
     - name: Rebuild catalog and update image
       uses: docker/build-push-action@v3
       with:
-        file: olm/catalog.Dockerfile
+        file: olm/olm.Dockerfile
         context: olm/
         push: true
         tags: soer3n/yaho:catalog
@@ -68,7 +75,7 @@ jobs:
       run: make artifacts-build
       env:
         VERSION: ${{ steps.vars.outputs.tag }}
-        CHANNEL: alpha
+        CHANNEL: stable-v0
 
     - name: Release artifacts
       uses: softprops/action-gh-release@v1
