@@ -237,7 +237,8 @@ endif
 CATALOG_IMG ?= soer3n/yaho:catalog ifneq ($(origin CATALOG_BASE_IMG), undefined) FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG) endif 
 .PHONY: catalog-build
 catalog-build: opm
-	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT) --permissive
+	$(OPM) alpha render-template semver --output yaml < olm/operator-template.yaml > olm/olm/catalog.yaml
+	$(OPM) validate olm/olm/
 
 .PHONY: catalog-push
 catalog-push: ## Push the catalog image.
@@ -251,17 +252,3 @@ artifacts-build: controller-gen bundle
 	echo "---" >> artifacts/yaho-v$(VERSION)-deployment.yaml
 	$(KUSTOMIZE) build config/default >> artifacts/yaho-v$(VERSION)-deployment.yaml
 	envsubst < olm/release.yaml.in >> artifacts/yaho-v$(VERSION)-olm.yaml
-
-release:
-	VERSION=0.0.3 make docker-build
-	docker push soer3n/yaho:0.0.3
-	cd config/manager && ../../bin/kustomize edit set image controller=soer3n/yaho:0.0.3 && cd ../..
-	IMG==soer3n/yaho:0.0.3 VERSION=0.0.3 CHANNEL=stable-v0 make bundle
-	VERSION=0.0.3 CHANNEL=stable-v0 make bundle-build
-	docker push soer3n/yaho-bundle:0.0.3
-	# make catalog-build CATALOG_IMG="docker.io/soer3n/yaho:catalog" BUNDLE_IMGS="docker.io/soer3n/yaho-bundle:0.0.1,docker.io/soer3n/yaho-bundle:0.0.2"
-	./bin/opm alpha render-template semver --output yaml < olm/operator-template.yaml > olm/olm/catalog.yaml
-	./bin/opm validate olm/olm 
-	docker build . -f olm/olm.Dockerfile -t soer3n/yaho:catalog 
-	docker push soer3n/yaho:catalog
-	VERSION=0.0.3 CHANNEL=stable-v0 make artifacts-build
