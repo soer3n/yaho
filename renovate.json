@@ -5,12 +5,12 @@
       },
     "repositories": ["soer3n/yaho"],
     "constraints": {
-        "go": "1.19"
+        "go": "1.18"
     },
     "packageRules": [
         {
           "matchPackageNames": ["k8s.io/client-go"],
-          "allowedVersions": "!/1\\.(4\\.0|5\\.0|5\\.1|5\\.2)$/"
+          "allowedVersions": "/^0\\.[0-9]+\\.[0-9]+$/"
         }
     ]
 }
