@@ -19,7 +19,7 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: 1.19
+        go-version: 1.20
     - name: build
       run: go build -v ./...
 
@@ -31,7 +31,7 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: 1.19
+        go-version: 1.20
     - name: test packages
       run: go test -coverpkg ./internal/... ./tests/unit/...
 
@@ -40,10 +40,11 @@ jobs:
       fail-fast: false
       matrix:
         version:
-        - v1.26.0
-        - v1.25.3
-        - v1.24.7
-        - v1.23.13
+        - v1.27.1
+        - v1.26.3
+        - v1.25.8
+        - v1.24.12
+        - v1.23.17
     runs-on: ubuntu-latest
     if: ${{ (github.event.review.state == 'approved') || github.ref == 'refs/heads/master' }}
     name: test-e2e-k8s-${{ matrix.version }}
@@ -54,7 +55,7 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: 1.19
+        go-version: 1.20
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.5.0
       with:

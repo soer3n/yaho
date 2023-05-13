@@ -20,11 +20,11 @@ jobs:
     - name: set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: 1.19
+        go-version: 1.20
     - name: create k8s Kind cluster
       uses: helm/kind-action@v1.5.0
       with:
-        node_image: kindest/node:v1.24.7
+        node_image: kindest/node:v1.24.12
         cluster_name:  cluster-coverage
         config: testutils/kind.yaml
         version: v0.17.0
