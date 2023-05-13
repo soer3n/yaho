@@ -27,7 +27,7 @@ jobs:
         node_image: kindest/node:v1.24.12
         cluster_name:  cluster-coverage
         config: testutils/kind.yaml
-        version: v0.17.0
+        version: v0.18.0
     - name: set directories to cover
       run: echo "COVERPKG=$(go list ./... | grep -v apis | grep -v tests | tr '\n' ',')" >> $GITHUB_ENV
     - name: run coverage
