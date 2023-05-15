@@ -6,8 +6,6 @@ nodes:
 - role: worker
 - role: worker
 
-featureGates:
-  CSIMigration: true
 networking:
   # the default CNI will not be installed
   disableDefaultCNI: false
