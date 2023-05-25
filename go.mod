@@ -170,5 +170,5 @@ require (
 
 replace (
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.7
-	oras.land/oras-go => oras.land/oras-go v1.2.3
+	oras.land/oras-go/v2 => oras.land/oras-go v2.2.0
 )
