@@ -139,7 +139,7 @@ func setupNamespace() *v1.Namespace {
 
 		logf.Log.Info("namespace:", "namespace", ns)
 
-		mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
+		mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme, MetricsBindAddress: "0", HealthProbeBindAddress: "0"})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 		config := mgr.GetConfig()
