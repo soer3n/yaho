@@ -39,11 +39,11 @@ OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v3.8.7
-CONTROLLER_TOOLS_VERSION ?= v0.8.0
+KUSTOMIZE_VERSION ?= v4.5.7
+CONTROLLER_TOOLS_VERSION ?= v0.12.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
-OPERATOR_SDK_RELEASE ?= "https://github.com/operator-framework/operator-sdk/releases/download/v1.21.0"
+OPERATOR_SDK_RELEASE ?= "https://github.com/operator-framework/operator-sdk/releases/download/v1.26.1"
 # USE_IMAGE_DIGESTS defines if images are resolved via tags or digests
 # You can enable this value if you would like to use SHA Based Digests
 # To enable set flag to true
@@ -186,7 +186,7 @@ endef
 .PHONY: bundle
 bundle: manifests kustomize operator-sdk
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image soer3n/yaho=$(IMG)
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(OPERATOR_SDK) bundle validate ./bundle
 
@@ -198,13 +198,6 @@ bundle-build:
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
 	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
-
-# Generate package manifests.
-.PHONY: packagemanifests
-packagemanifests: manifests kustomize
-	$(OPERATOR_SDK) generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate packagemanifests -q --version $(VERSION) $(PKG_MAN_OPTS)
 
 .PHONY: opm
 OPM = ./bin/opm

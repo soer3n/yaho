@@ -3,8 +3,8 @@ GenerateMajorChannels: true
 GenerateMinorChannels: false
 Stable:
   Bundles:
-  - Image: docker.io/soer3n/yaho-bundle:0.0.1
-  - Image: docker.io/soer3n/yaho-bundle:0.0.2
+    - Image: docker.io/soer3n/yaho-bundle:0.0.1
+    - Image: docker.io/soer3n/yaho-bundle:0.0.2
 Candidate:
   Bundles:
-  - Image: docker.io/soer3n/yaho-bundle:0.0.2
+    - Image: docker.io/soer3n/yaho-bundle:0.0.2
