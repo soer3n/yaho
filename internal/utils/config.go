@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	actionlog "log"
+	"os"
 
 	"github.com/go-logr/logr"
+	"gopkg.in/yaml.v2"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
@@ -13,7 +15,40 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
+
+func ManagerOptions(config string) (*manager.Options, error) {
+
+	c, err := parseOperatorConfig(config)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &manager.Options{
+		HealthProbeBindAddress: c.HealthProbeBindAddress,
+		LeaderElection:         c.LeaderElection.Enabled,
+		LeaderElectionID:       c.LeaderElection.ResourceID,
+		MetricsBindAddress:     c.MetricsBindAddress,
+	}, nil
+}
+
+func parseOperatorConfig(path string) (*Config, error) {
+	fd, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not open the configuration file: %v", err)
+	}
+	defer fd.Close()
+
+	cfg := Config{}
+
+	if err = yaml.NewDecoder(fd).Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("could not decode configuration file: %v", err)
+	}
+
+	return &cfg, nil
+}
 
 // InitActionConfig represents the initialization of an helm configuration
 func InitActionConfig(getter genericclioptions.RESTClientGetter, kubeconfig []byte, logger logr.Logger) (*action.Configuration, error) {

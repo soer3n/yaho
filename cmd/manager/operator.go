@@ -24,6 +24,7 @@ import (
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	helmcontrollers "github.com/soer3n/yaho/controllers/helm"
+	"github.com/soer3n/yaho/internal/utils"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -114,26 +115,17 @@ func run(configFile string, isLocal bool, metricsAddr, probeAddr string, enableL
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	// set default options
-	options := ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "bb07b8f2.soer3n.dev",
-	}
+	options, err := utils.ManagerOptions(configFile)
+	options.Scheme = scheme
 
-	if configFile != "" {
-		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFile))
-		if err != nil {
-			setupLog.Error(err, "unable to load the config file")
-			os.Exit(1)
-		}
+	if err != nil {
+		setupLog.Error(err, "unable to load the config file")
+		os.Exit(1)
 	}
 
 	ns := getWatchNamespace()
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), *options)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)

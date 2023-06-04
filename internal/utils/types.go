@@ -9,6 +9,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type LeaderElection struct {
+	Enabled    bool   `yaml:"enabled"`
+	ResourceID string `yaml:"resourceName"`
+}
+
+type Config struct {
+	HealthProbeBindAddress string         `yaml:"healthProbeBindAddress"`
+	MetricsBindAddress     string         `yaml:"metricsBindAddress"`
+	LeaderElection         LeaderElection `yaml:"leaderElection"`
+	WebhookPort            int            `yaml:"webhookPort"`
+}
+
 type HelmRESTClientGetter struct {
 	Namespace        string
 	ReleaseNamespace string
