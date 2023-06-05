@@ -5,6 +5,7 @@ import (
 	"fmt"
 	actionlog "log"
 	"os"
+	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"gopkg.in/yaml.v2"
@@ -35,7 +36,7 @@ func ManagerOptions(config string) (*manager.Options, error) {
 }
 
 func parseOperatorConfig(path string) (*Config, error) {
-	fd, err := os.Open(path)
+	fd, err := os.Open(filepath.Clean(filepath.Join(path)))
 	if err != nil {
 		return nil, fmt.Errorf("could not open the configuration file: %v", err)
 	}
