@@ -4,7 +4,7 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -267,7 +267,7 @@ func (hr *Repo) getIndexByURL() (*repo.IndexFile, error) {
 		return obj, err
 	}
 
-	if raw, err = ioutil.ReadAll(res.Body); err != nil {
+	if raw, err = io.ReadAll(res.Body); err != nil {
 		return obj, err
 	}
 

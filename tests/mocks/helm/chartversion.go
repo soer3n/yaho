@@ -3,7 +3,7 @@ package helm
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -122,9 +122,9 @@ func setChartVersion(clientMock *unstructuredmocks.K8SClientMock, httpMock *mock
 		}
 	}()
 
-	payload, _ = ioutil.ReadAll(raw)
+	payload, _ = io.ReadAll(raw)
 	httpResponse := &http.Response{
-		Body: ioutil.NopCloser(bytes.NewReader(payload)),
+		Body: io.NopCloser(bytes.NewReader(payload)),
 	}
 
 	httpMock.On("Get",

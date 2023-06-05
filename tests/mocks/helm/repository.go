@@ -5,7 +5,7 @@ import (
 	"context"
 	b64 "encoding/base64"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"k8s.io/utils/pointer"
@@ -132,7 +132,7 @@ func setRepository(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.
 		setChart(clientMock, httpMock, cmock, repositoryMock, ab)
 
 		httpResponse := &http.Response{
-			Body: ioutil.NopCloser(bytes.NewReader(rawIndexFile)),
+			Body: io.NopCloser(bytes.NewReader(rawIndexFile)),
 		}
 
 		req, _ := http.NewRequest(http.MethodGet, repositoryMock.URL+"/index.yaml", nil)
