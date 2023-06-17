@@ -1,0 +1,27 @@
+---
+apiVersion: yaho.soer3n.dev/v1alpha2
+kind: Config
+metadata:
+  name: helm-release-config
+  namespace: helm
+spec:
+  serviceAccountName: helm-releases
+  namespace:
+    install: false
+    allowed:
+    - share
+    - helm
+  flags:
+    atomic: false
+    skipCRDs: false
+    subNotes: true
+    disableOpenAPIValidation: false
+    dryRun: false
+    disableHooks: false
+    wait: false
+    cleanupOnFail: false
+    recreate: false
+    timeout: 3600
+    force: false
+    description: "test description"
+  

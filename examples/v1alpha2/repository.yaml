@@ -1,0 +1,14 @@
+---
+apiVersion: yaho.soer3n.dev/v1alpha2
+kind: Repository
+metadata:
+  name: cilium
+spec:
+  name: cilium
+  source: helm # enum: helm, git, s3
+  url: https://helm.cilium.io/
+  charts:
+  - name: cilium
+    versions:
+    - 1.10.0
+    - 1.11.0

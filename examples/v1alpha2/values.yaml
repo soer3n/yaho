@@ -1,0 +1,21 @@
+---
+apiVersion: yaho.soer3n.dev/v1alpha2
+kind: Values
+metadata:
+  name: test-values
+  namespace: helm
+spec:
+  yaml:
+    test: it
+  refs:
+    foo: nested-test-values 
+
+---
+apiVersion: yaho.soer3n.dev/v1alpha2
+kind: Values
+metadata:
+  name: nested-test-values
+  namespace: helm
+spec:
+  yaml:
+    test: it

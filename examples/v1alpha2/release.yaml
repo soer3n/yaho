@@ -1,0 +1,18 @@
+---
+apiVersion: yaho.soer3n.dev/v1alpha2
+kind: Release
+metadata:
+  name: test-release
+  namespace: helm
+spec:
+  name: test-release
+  config: helm-release-config
+  cluster: local
+  namespace: share
+  repo: cilium
+  chart: cilium
+  version: 1.11.0
+  values:
+  - test-values
+  plugins:
+  - helm-plugin

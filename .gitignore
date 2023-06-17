@@ -43,3 +43,4 @@ okteto.yml
 dashboard.yml
 .stignore
 */.stignore
+olm/olm/catalog.yaml
