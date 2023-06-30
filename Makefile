@@ -122,8 +122,11 @@ undeploy:
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
 manifests: controller-gen
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-
+	$(CONTROLLER_GEN) crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=manager-role paths="./controllers/manager/..." output:stdout > examples/manager-rbac.yaml
+	$(CONTROLLER_GEN) rbac:roleName=agent-role paths="./controllers/agent/..." output:stdout > examples/agent-rbac.yaml
+	$(CONTROLLER_GEN) rbac:roleName=manager-role paths="./controllers/manager/..." output:stdout > config/rbac/manager-role.yaml
+	$(CONTROLLER_GEN) rbac:roleName=agent-role paths="./controllers/agent/..." output:stdout > config/rbac/agent-role.yaml
 # Run go fmt against code
 .PHONY: fmt
 fmt:
@@ -186,7 +189,8 @@ endef
 .PHONY: bundle
 bundle: manifests kustomize operator-sdk
 	$(OPERATOR_SDK) generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+	cd config/manager && $(KUSTOMIZE) edit set image soer3n/yaho=$(IMG)
+	cd config/agent && $(KUSTOMIZE) edit set image soer3n/yaho=$(IMG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(OPERATOR_SDK) bundle validate ./bundle
 

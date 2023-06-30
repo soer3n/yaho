@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-agent
+  labels:
+    control-plane: controller-agent
+spec:
+  selector:
+    matchLabels:
+      "operators.soeren.dev": yaho
+  template:
+    spec:
+      containers:
+      - name: agent
+        args:
+        - "--config=controller_manager_config.yaml"
+        - "--health-probe-bind-address=:8081"
+        - "--metrics-bind-address=127.0.0.1:8080"
+        - "--leader-elect"
+        volumeMounts:
+        - name: agent-config
+          mountPath: /controller_manager_config.yaml
+          subPath: controller_manager_config.yaml
+      volumes:
+      - name: agent-config
+        configMap:
+          name: agent-config

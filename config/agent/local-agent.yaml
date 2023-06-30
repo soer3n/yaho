@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
+  name: controller-agent
   labels:
     "operators.soeren.dev": yaho
 spec:
@@ -13,7 +13,7 @@ spec:
   template:
     metadata:
       annotations:
-        kubectl.kubernetes.io/default-container: manager
+        kubectl.kubernetes.io/default-container: agent
       labels:
         "operators.soeren.dev": yaho
     spec:
@@ -22,12 +22,12 @@ spec:
       containers:
       - command:
         - /manager
-        - operator
+        - agent
         - run
         args:
         - --leader-elect
         image: soer3n/yaho:0.0.2
-        name: manager
+        name: agent
         securityContext:
           allowPrivilegeEscalation: false
         livenessProbe:
@@ -49,5 +49,5 @@ spec:
           requests:
             cpu: 10m
             memory: 256Mi
-      serviceAccountName: controller-manager
+      serviceAccountName: controller-agent
       terminationGracePeriodSeconds: 10

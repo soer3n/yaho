@@ -1,0 +1,90 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - charts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - charts/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - charts/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - repogroups
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - repogroups/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - repogroups/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - repositories
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - repositories/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - repositories/status
+  verbs:
+  - get
+  - patch
+  - update

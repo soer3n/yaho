@@ -35,7 +35,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
-	controllers "github.com/soer3n/yaho/controllers/helm"
+	agentcontrollers "github.com/soer3n/yaho/controllers/agent"
+	managercontrollers "github.com/soer3n/yaho/controllers/manager"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/action"
 	v1 "k8s.io/api/core/v1"
@@ -150,7 +151,7 @@ func setupNamespace() *v1.Namespace {
 			os.Exit(1)
 		}
 
-		err = (&controllers.RepoReconciler{
+		err = (&managercontrollers.RepoReconciler{
 			Client:         mgr.GetClient(),
 			WatchNamespace: ns,
 			Log:            logf.Log,
@@ -159,7 +160,7 @@ func setupNamespace() *v1.Namespace {
 		}).SetupWithManager(mgr)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
-		err = (&controllers.RepoGroupReconciler{
+		err = (&managercontrollers.RepoGroupReconciler{
 			Client:   mgr.GetClient(),
 			Log:      logf.Log,
 			Recorder: mgr.GetEventRecorderFor("repogroup-controller"),
@@ -167,7 +168,7 @@ func setupNamespace() *v1.Namespace {
 		}).SetupWithManager(mgr)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
 
-		err = (&controllers.ChartReconciler{
+		err = (&managercontrollers.ChartReconciler{
 			WithWatch:      rc,
 			WatchNamespace: ns,
 			Log:            logf.Log,
@@ -176,7 +177,7 @@ func setupNamespace() *v1.Namespace {
 		}).SetupWithManager(mgr)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
 
-		err = (&controllers.ReleaseGroupReconciler{
+		err = (&agentcontrollers.ReleaseGroupReconciler{
 			Client:         mgr.GetClient(),
 			WatchNamespace: ns,
 			Log:            logf.Log,
@@ -185,7 +186,7 @@ func setupNamespace() *v1.Namespace {
 		}).SetupWithManager(mgr)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup release group controller")
 
-		err = (&controllers.ReleaseReconciler{
+		err = (&agentcontrollers.ReleaseReconciler{
 			WithWatch:      rc,
 			WatchNamespace: ns,
 			IsLocal:        true,
@@ -195,7 +196,7 @@ func setupNamespace() *v1.Namespace {
 		}).SetupWithManager(mgr)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup release controller")
 
-		err = (&controllers.ValuesReconciler{
+		err = (&agentcontrollers.ValuesReconciler{
 			Client:   mgr.GetClient(),
 			Log:      logf.Log,
 			Scheme:   mgr.GetScheme(),

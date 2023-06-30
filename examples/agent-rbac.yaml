@@ -1,0 +1,92 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: agent-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releasegroups
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releasegroups/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releasegroups/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releases
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releases/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releases/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - values
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - values/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - values/status
+  verbs:
+  - get
+  - patch
+  - update
