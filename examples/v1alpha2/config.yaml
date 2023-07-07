@@ -1,0 +1,25 @@
+---
+apiVersion: yaho.soer3n.dev/v1alpha2
+kind: Config
+metadata:
+  name: nextcloud-config
+  namespace: helm
+spec:
+  namespace:
+    install: false
+    allowed:
+    - share
+    - nextcloud
+  flags:
+    atomic: false
+    skipCRDs: false
+    subNotes: true
+    disableOpenAPIValidation: false
+    dryRun: false
+    disableHooks: false
+    wait: false
+    cleanupOnFail: false
+    recreate: false
+    timeout: 3600
+    force: false
+    description: "test description"

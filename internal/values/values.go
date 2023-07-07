@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/utils"
 	helmchart "helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -15,9 +15,9 @@ import (
 )
 
 // New represents initialization of internal struct for managing helm values
-func New(instance *helmv1alpha1.Release, logger logr.Logger, k8sClient client.Client) *ValueTemplate {
+func New(instance *yahov1alpha2.Release, logger logr.Logger, k8sClient client.Client) *ValueTemplate {
 
-	valuesList := []*helmv1alpha1.Values{}
+	valuesList := []*yahov1alpha2.Values{}
 
 	hv := &ValueTemplate{
 		// ValuesRef: valuesList,
@@ -108,7 +108,7 @@ func (hv *ValueTemplate) ManageValues() (map[string]interface{}, error) {
 	}
 }
 
-func (hv *ValueTemplate) parse(ref *ValuesRef, refValues *helmv1alpha1.Values, c chan map[string]interface{}, m *sync.Mutex) {
+func (hv *ValueTemplate) parse(ref *ValuesRef, refValues *yahov1alpha2.Values, c chan map[string]interface{}, m *sync.Mutex) {
 
 	m.Lock()
 	defer m.Unlock()
@@ -200,7 +200,7 @@ func (hv ValueTemplate) getRefKeyByValue(parents []string, value string, refMap 
 	return parents
 }
 
-func (hv ValueTemplate) transformToMap(values *helmv1alpha1.Values, unstructed bool, parents ...string) (map[string]interface{}, error) {
+func (hv ValueTemplate) transformToMap(values *yahov1alpha2.Values, unstructed bool, parents ...string) (map[string]interface{}, error) {
 	valMap := make(map[string]interface{})
 	var parentKey string
 

@@ -3,7 +3,6 @@ module github.com/soer3n/yaho
 go 1.19
 
 require (
-	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/go-logr/logr v1.2.4
 	github.com/google/go-cmp v0.5.9
 	github.com/onsi/ginkgo v1.16.5
@@ -30,6 +29,7 @@ require (
 	github.com/BurntSushi/toml v1.3.0 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect

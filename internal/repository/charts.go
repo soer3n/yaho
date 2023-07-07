@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -11,12 +11,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (hr *Repo) deployChart(instance *helmv1alpha1.Repository, chart helmv1alpha1.Entry, scheme *runtime.Scheme) error {
+func (hr *Repo) deployChart(instance *yahov1alpha2.Repository, chart yahov1alpha2.Entry, scheme *runtime.Scheme) error {
 
 	hr.logger.Info("fetching chart related to release resource")
 
-	c := &helmv1alpha1.Chart{}
-	charts := &helmv1alpha1.ChartList{}
+	c := &yahov1alpha2.Chart{}
+	charts := &yahov1alpha2.ChartList{}
 	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap(configMapRepoLabelKey + "=" + hr.Name)
 	labelSetChart, _ := labels.ConvertSelectorToLabelsMap(configMapLabelKey + "=" + chart.Name)
 	ls := labels.Merge(labelSetRepo, labelSetChart)
@@ -38,7 +38,7 @@ func (hr *Repo) deployChart(instance *helmv1alpha1.Repository, chart helmv1alpha
 			Labels: ls,
 		}
 
-		c.Spec = helmv1alpha1.ChartSpec{
+		c.Spec = yahov1alpha2.ChartSpec{
 			Name:       chart.Name,
 			Versions:   chart.Versions,
 			Repository: instance.ObjectMeta.Name,
@@ -58,7 +58,7 @@ func (hr *Repo) deployChart(instance *helmv1alpha1.Repository, chart helmv1alpha
 	}
 
 	c = &charts.Items[0]
-	c.Spec = helmv1alpha1.ChartSpec{
+	c.Spec = yahov1alpha2.ChartSpec{
 		Name:       chart.Name,
 		Versions:   chart.Versions,
 		Repository: instance.ObjectMeta.Name,

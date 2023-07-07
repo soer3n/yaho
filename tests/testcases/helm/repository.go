@@ -1,7 +1,7 @@
 package helm
 
 import (
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/repo"
@@ -9,14 +9,14 @@ import (
 )
 
 // GetTestRepoRepoListSpec returns expected chartlist spec for testing
-func GetTestRepoRepoListSpec() helmv1alpha1.RepositoryList {
-	repoSpec := helmv1alpha1.RepositorySpec{
+func GetTestRepoRepoListSpec() yahov1alpha2.RepositoryList {
+	repoSpec := yahov1alpha2.RepositorySpec{
 		Name: "chart.Name",
 		URL:  "https://dep.bar/charts",
 	}
 
-	return helmv1alpha1.RepositoryList{
-		Items: []helmv1alpha1.Repository{
+	return yahov1alpha2.RepositoryList{
+		Items: []yahov1alpha2.Repository{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
@@ -33,7 +33,7 @@ func GetTestRepoSpecs() []inttypes.TestCase {
 	return []inttypes.TestCase{
 
 		{
-			Input: helmv1alpha1.Repository{
+			Input: yahov1alpha2.Repository{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "one",
 					Namespace: "one",
@@ -41,11 +41,11 @@ func GetTestRepoSpecs() []inttypes.TestCase {
 						"repo": "one",
 					},
 				},
-				Spec: helmv1alpha1.RepositorySpec{
+				Spec: yahov1alpha2.RepositorySpec{
 					Name:       "one",
 					URL:        "https://foo.bar/charts",
 					AuthSecret: "secret",
-					Charts: []helmv1alpha1.Entry{
+					Charts: []yahov1alpha2.Entry{
 						{
 							Name:     "foo",
 							Versions: []string{"0.0.1"},
@@ -60,7 +60,7 @@ func GetTestRepoSpecs() []inttypes.TestCase {
 			},
 		},
 		{
-			Input: helmv1alpha1.Repository{
+			Input: yahov1alpha2.Repository{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "two",
 					Namespace: "two",
@@ -68,10 +68,10 @@ func GetTestRepoSpecs() []inttypes.TestCase {
 						"repo": "two",
 					},
 				},
-				Spec: helmv1alpha1.RepositorySpec{
+				Spec: yahov1alpha2.RepositorySpec{
 					Name: "two",
 					URL:  "https://bar.foo/charts",
-					Charts: []helmv1alpha1.Entry{
+					Charts: []yahov1alpha2.Entry{
 						{
 							Name: "bar",
 						},

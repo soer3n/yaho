@@ -5,7 +5,8 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
+	"github.com/soer3n/yaho/internal/chart"
 	"github.com/soer3n/yaho/internal/utils"
 	"github.com/soer3n/yaho/internal/values"
 	"helm.sh/helm/v3/pkg/action"
@@ -23,7 +24,7 @@ const configMapRepoLabelKey = "yaho.soer3n.dev/repo"
 // const configMapLabelSubName = "yaho.soer3n.dev/subname"
 
 // New represents initialization of internal release struct
-func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.Scheme, reqLogger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface, getter genericclioptions.RESTClientGetter, kubeconfig []byte) (*Release, error) {
+func New(instance *yahov1alpha2.Release, watchNamespace string, scheme *runtime.Scheme, reqLogger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface, getter genericclioptions.RESTClientGetter, kubeconfig []byte) (*Release, error) {
 	var helmRelease *Release
 	var specValues map[string]interface{}
 	var err error
@@ -83,17 +84,20 @@ func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.
 	}
 
 	helmRelease.ValuesTemplate.Values = specValues
-	indexMap, err := helmRelease.getChartIndexConfigMap(instance.Spec.Chart)
+	// TODO: rework getting index configmap
+	cm, err := chart.GetChartIndexConfigMap(helmRelease.Name, helmRelease.Repo, watchNamespace, helmRelease.K8sClient)
 
 	if err != nil {
 		return helmRelease, err
 	}
 
-	index, err := helmRelease.getChartIndex(indexMap)
+	cv, err := chart.GetChartVersionFromIndexConfigmap(helmRelease.Version, cm)
 
 	if err != nil {
 		return helmRelease, err
 	}
+
+	var hc *helmchart.Chart
 
 	options := &action.ChartPathOptions{
 		Version:               instance.Spec.Version,
@@ -101,14 +105,13 @@ func New(instance *helmv1alpha1.Release, watchNamespace string, scheme *runtime.
 		Verify:                false,
 	}
 
-	chart, err := helmRelease.getChart(instance.Spec.Chart, watchNamespace, index, options, specValues)
-
-	if err != nil {
+	if err := chart.LoadChartByResources(helmRelease.K8sClient, helmRelease.logger, hc, cv, instance.Spec.Chart, instance.Spec.Repo, watchNamespace, options, helmRelease.Chart.Values); err != nil {
 		return helmRelease, err
 	}
 
-	helmRelease.Chart = chart
+	helmRelease.Chart = hc
 
+	// func should be with pointer struct as input
 	if err := helmRelease.validateChartSpecs(); err != nil {
 		return helmRelease, err
 	}

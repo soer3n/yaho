@@ -3,37 +3,47 @@ package chartversion
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"sync"
 
+	"github.com/go-logr/logr"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const configMapLabelKey = "yaho.soer3n.dev/chart"
+const configMapRepoLabelKey = "yaho.soer3n.dev/repo"
+const configMapLabelType = "yaho.soer3n.dev/type"
+
 // CreateConfigMaps represents func for parsing configmaps and sending them to receive method
-func (chartVersion *ChartVersion) createConfigMaps(cm chan v1.ConfigMap, deps []*chart.Chart) error {
+func createConfigMaps(cm chan v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, logger logr.Logger) error {
 
 	wg := &sync.WaitGroup{}
 
 	wg.Add(3)
 
 	go func() {
-		chartVersion.createTemplateConfigMap(cm, "tmpl")
+		createTemplateConfigMap(cm, "tmpl", namespace, repository, hc, v, logger)
 		wg.Done()
 	}()
 
 	go func() {
-		chartVersion.createTemplateConfigMap(cm, "crds")
+		createTemplateConfigMap(cm, "crds", namespace, repository, hc, v, logger)
 		wg.Done()
 	}()
 
 	go func() {
-		chartVersion.createDefaultValueConfigMap(cm, chartVersion.DefaultValues)
+		createDefaultValueConfigMap(cm, namespace, repository, v, hc.Values)
 		wg.Done()
 	}()
 
@@ -41,15 +51,15 @@ func (chartVersion *ChartVersion) createConfigMaps(cm chan v1.ConfigMap, deps []
 	return nil
 }
 
-func (chartVersion *ChartVersion) getDefaultValuesFromConfigMap(name, version string) map[string]interface{} {
+func GetDefaultValuesFromConfigMap(name, repository, version, namespace string, c client.WithWatch, logger logr.Logger) map[string]interface{} {
 	var err error
 	values := make(map[string]interface{})
 	configmap := &v1.ConfigMap{}
 
-	configMapName := "helm-default-" + chartVersion.repo.Spec.Name + "-" + name + "-" + version
+	configMapName := "helm-default-" + repository + "-" + name + "-" + version
 
-	if err = chartVersion.k8sClient.Get(context.Background(), types.NamespacedName{Namespace: chartVersion.namespace, Name: configMapName}, configmap); err != nil {
-		chartVersion.logger.Info("error on getting default values", "msg", err.Error())
+	if err = c.Get(context.Background(), types.NamespacedName{Namespace: namespace, Name: configMapName}, configmap); err != nil {
+		logger.Info("error on getting default values", "msg", err.Error())
 		return values
 	}
 
@@ -62,21 +72,15 @@ func (chartVersion *ChartVersion) getDefaultValuesFromConfigMap(name, version st
 	return jsonMap
 }
 
-func (chartVersion *ChartVersion) parseConfigMaps(cm chan v1.ConfigMap) error {
+func ParseConfigMaps(cm chan v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, logger logr.Logger) error {
 
-	if chartVersion.Obj == nil || chartVersion.Obj.Metadata == nil {
+	if hc == nil || hc.Metadata == nil {
 		return k8serrors.NewBadRequest("chart not loaded")
 	}
 
-	chartVersion.Templates = chartVersion.Obj.Templates
-	chartVersion.CRDs = chartVersion.Obj.CRDs()
-	chartVersion.DefaultValues = chartVersion.Obj.Values
-	// actually not needed
-	deps := chartVersion.Obj.Dependencies()
-
 	go func() {
-		if err := chartVersion.createConfigMaps(cm, deps); err != nil {
-			chartVersion.logger.Error(err, "error on creating or updating related resources")
+		if err := createConfigMaps(cm, hc, v, repository, namespace, logger); err != nil {
+			logger.Error(err, "error on creating or updating related resources")
 		}
 		close(cm)
 	}()
@@ -84,35 +88,53 @@ func (chartVersion *ChartVersion) parseConfigMaps(cm chan v1.ConfigMap) error {
 	return nil
 }
 
-func (chartVersion *ChartVersion) deployConfigMap(configmap v1.ConfigMap) error {
-	defer chartVersion.mu.Unlock()
-	chartVersion.mu.Lock()
-	if err := controllerutil.SetControllerReference(chartVersion.owner, &configmap, chartVersion.scheme); err != nil {
+// TODO: move this to chart model!
+func DeployConfigMap(configmap v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, c client.WithWatch, scheme *runtime.Scheme, logger logr.Logger) error {
+	//mu := &sync.Mutex{}
+	//defer mu.Unlock()
+	//mu.Lock()
+	chartList := &yahov1alpha2.ChartList{}
+	ls := labels.Set{}
+
+	// filter repositories by group selector if set
+	ls = labels.Merge(ls, labels.Set{configMapLabelKey: hc.Name()})
+
+	if err := c.List(context.Background(), chartList, &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(ls),
+	}); err != nil {
+		return err
+	}
+
+	if len(chartList.Items) != 1 {
+		return errors.New("multiple charts found...")
+	}
+	chartObj := chartList.Items[0]
+	if err := controllerutil.SetControllerReference(&chartObj, &configmap, scheme); err != nil {
 		return err
 	}
 
 	current := &v1.ConfigMap{}
-	err := chartVersion.k8sClient.Get(context.Background(), client.ObjectKey{
+	err := c.Get(context.Background(), client.ObjectKey{
 		Namespace: configmap.ObjectMeta.Namespace,
 		Name:      configmap.ObjectMeta.Name,
 	}, current)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			if err = chartVersion.k8sClient.Create(context.TODO(), &configmap); err != nil {
+			if err = c.Create(context.TODO(), &configmap); err != nil {
 				return err
 			}
 		}
 		return err
 	}
 
-	if err := chartVersion.k8sClient.Update(context.Background(), &configmap, &client.UpdateOptions{}); err != nil {
+	if err := c.Update(context.Background(), &configmap, &client.UpdateOptions{}); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (chartVersion *ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, name string) {
+func createTemplateConfigMap(cm chan v1.ConfigMap, name, namespace, repository string, hc *chart.Chart, v *repo.ChartVersion, logger logr.Logger) {
 	immutable := new(bool)
 	*immutable = true
 
@@ -120,17 +142,17 @@ func (chartVersion *ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, 
 
 	switch name {
 	case "crds":
-		list = chartVersion.Obj.CRDs()
+		list = hc.CRDs()
 	default:
-		list = chartVersion.Obj.Templates
+		list = hc.Templates
 	}
 
 	objectMeta := metav1.ObjectMeta{
-		Name:      "helm-" + name + "-" + chartVersion.repo.Spec.Name + "-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
-		Namespace: chartVersion.namespace,
+		Name:      "helm-" + name + "-" + repository + "-" + v.Metadata.Name + "-" + v.Metadata.Version,
+		Namespace: namespace,
 		Labels: map[string]string{
-			configMapLabelKey:     chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
-			configMapRepoLabelKey: chartVersion.owner.Spec.Repository,
+			configMapLabelKey:     v.Metadata.Name + "-" + v.Metadata.Version,
+			configMapRepoLabelKey: repository,
 			configMapLabelType:    name,
 		},
 	}
@@ -165,11 +187,11 @@ func (chartVersion *ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, 
 			configMapMap[key] = v1.ConfigMap{
 				Immutable: immutable,
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "helm-" + name + "-" + chartVersion.repo.Spec.Name + "-" + chartVersion.Version.Metadata.Name + "-" + key + "-" + chartVersion.Version.Metadata.Version,
-					Namespace: chartVersion.namespace,
+					Name:      "helm-" + name + "-" + repository + "-" + v.Metadata.Name + "-" + key + "-" + v.Metadata.Version,
+					Namespace: namespace,
 					Labels: map[string]string{
-						configMapLabelKey:     chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
-						configMapRepoLabelKey: chartVersion.owner.Spec.Repository,
+						configMapLabelKey:     v.Metadata.Name + "-" + v.Metadata.Version,
+						configMapRepoLabelKey: repository,
 						configMapLabelType:    name,
 					},
 				},
@@ -192,15 +214,15 @@ func (chartVersion *ChartVersion) createTemplateConfigMap(cm chan v1.ConfigMap, 
 
 }
 
-func (chartVersion *ChartVersion) createDefaultValueConfigMap(cm chan v1.ConfigMap, values map[string]interface{}) {
+func createDefaultValueConfigMap(cm chan v1.ConfigMap, repository, namespace string, v *repo.ChartVersion, values map[string]interface{}) {
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
-		Name:      "helm-default-" + chartVersion.repo.Spec.Name + "-" + chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
-		Namespace: chartVersion.namespace,
+		Name:      "helm-default-" + repository + "-" + v.Metadata.Name + "-" + v.Metadata.Version,
+		Namespace: namespace,
 		Labels: map[string]string{
-			configMapLabelKey:     chartVersion.Version.Metadata.Name + "-" + chartVersion.Version.Metadata.Version,
-			configMapRepoLabelKey: chartVersion.owner.Spec.Repository,
+			configMapLabelKey:     v.Metadata.Name + "-" + v.Metadata.Version,
+			configMapRepoLabelKey: repository,
 			configMapLabelType:    "default",
 		},
 	}

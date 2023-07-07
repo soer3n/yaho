@@ -10,7 +10,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/tests/mocks"
 	unstructuredmocks "github.com/soer3n/yaho/tests/mocks/unstructured"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
@@ -38,15 +38,15 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 		}, "notfound")
 	}
 
-	clientMock.On("Create", context.Background(), mock.MatchedBy(func(c *helmv1alpha1.Chart) bool {
+	clientMock.On("Create", context.Background(), mock.MatchedBy(func(c *yahov1alpha2.Chart) bool {
 		return c.ObjectMeta.Name == chartMock.Name
 	})).Return(ce)
 
-	clientMock.On("Update", context.Background(), mock.MatchedBy(func(c *helmv1alpha1.Chart) bool {
+	clientMock.On("Update", context.Background(), mock.MatchedBy(func(c *yahov1alpha2.Chart) bool {
 		return c.ObjectMeta.Name == chartMock.Name
 	})).Return(e)
 
-	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, mock.MatchedBy(func(cList []client.ListOption) bool {
+	clientMock.On("List", context.Background(), &yahov1alpha2.ChartList{}, mock.MatchedBy(func(cList []client.ListOption) bool {
 
 		opt := cList[0].(*client.ListOptions)
 
@@ -56,17 +56,17 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 
 		return false
 	})).Return(nil).Run(func(args mock.Arguments) {
-		c := args.Get(1).(*helmv1alpha1.ChartList)
-		c.Items = []helmv1alpha1.Chart{}
+		c := args.Get(1).(*yahov1alpha2.ChartList)
+		c.Items = []yahov1alpha2.Chart{}
 
 		if e == nil {
-			c.Items = []helmv1alpha1.Chart{
+			c.Items = []yahov1alpha2.Chart{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   chartMock.Name,
 						Labels: chartMock.Labels,
 					},
-					Spec: helmv1alpha1.ChartSpec{
+					Spec: yahov1alpha2.ChartSpec{
 						Name:       chartMock.Name,
 						Repository: chartMock.Repository,
 						Versions:   []string{},
@@ -76,16 +76,16 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 		}
 	})
 
-	cl := &helmv1alpha1.ChartList{}
+	cl := &yahov1alpha2.ChartList{}
 
 	for _, v := range chartMock.Versions {
 		setChartVersion(clientMock, httpMock, v, repoMock)
 
-		cl.Items = append(cl.Items, helmv1alpha1.Chart{
+		cl.Items = append(cl.Items, yahov1alpha2.Chart{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: v.Chart,
 			},
-			Spec: helmv1alpha1.ChartSpec{
+			Spec: yahov1alpha2.ChartSpec{
 				Name:       v.Chart,
 				Repository: chartMock.Repository,
 				Versions: []string{
@@ -129,11 +129,11 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 
 			})
 
-			it := helmv1alpha1.Chart{
+			it := yahov1alpha2.Chart{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: d.Chart,
 				},
-				Spec: helmv1alpha1.ChartSpec{
+				Spec: yahov1alpha2.ChartSpec{
 					Name:       d.Chart,
 					Repository: chartMock.Repository,
 					Versions:   []string{},
@@ -157,7 +157,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 				op = "Create"
 			}
 
-			clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, mock.MatchedBy(func(cList []client.ListOption) bool {
+			clientMock.On("List", context.Background(), &yahov1alpha2.ChartList{}, mock.MatchedBy(func(cList []client.ListOption) bool {
 
 				opt := cList[0].(*client.ListOptions)
 
@@ -167,16 +167,16 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 
 				return false
 			})).Return(nil).Run(func(args mock.Arguments) {
-				c := args.Get(1).(*helmv1alpha1.ChartList)
-				c.Items = []helmv1alpha1.Chart{}
+				c := args.Get(1).(*yahov1alpha2.ChartList)
+				c.Items = []yahov1alpha2.Chart{}
 
 				if e == nil {
-					c.Items = []helmv1alpha1.Chart{
+					c.Items = []yahov1alpha2.Chart{
 						{
 							ObjectMeta: metav1.ObjectMeta{
 								Name: d.Chart,
 							},
-							Spec: helmv1alpha1.ChartSpec{
+							Spec: yahov1alpha2.ChartSpec{
 								Name:       d.Chart,
 								Repository: chartMock.Repository,
 								Versions:   []string{},
@@ -192,18 +192,18 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 
 			watchChan := watch.NewFake()
 			synced := "synced"
-			watchList := &helmv1alpha1.ChartList{
-				Items: []helmv1alpha1.Chart{
+			watchList := &yahov1alpha2.ChartList{
+				Items: []yahov1alpha2.Chart{
 					{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: d.Chart,
 						},
-						Spec: helmv1alpha1.ChartSpec{
+						Spec: yahov1alpha2.ChartSpec{
 							Name:       d.Chart,
 							Repository: chartMock.Repository,
 							Versions:   []string{},
 						},
-						Status: helmv1alpha1.ChartStatus{
+						Status: yahov1alpha2.ChartStatus{
 							Dependencies: &synced,
 							Versions:     &synced,
 						},
@@ -211,7 +211,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 				},
 			}
 
-			clientMock.On("Watch", context.Background(), mock.MatchedBy(func(c *helmv1alpha1.ChartList) bool {
+			clientMock.On("Watch", context.Background(), mock.MatchedBy(func(c *yahov1alpha2.ChartList) bool {
 				return d.Chart+"-"+chartMock.Repository == c.Items[0].GetName()
 			})).Return(
 				watchChan, nil,
@@ -221,7 +221,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 				}()
 			}).Once()
 
-			clientMock.On(op, context.Background(), mock.MatchedBy(func(c *helmv1alpha1.Chart) bool {
+			clientMock.On(op, context.Background(), mock.MatchedBy(func(c *yahov1alpha2.Chart) bool {
 				return d.Chart+"-"+chartMock.Repository == c.Name
 			})).Return(nil)
 
@@ -229,7 +229,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 		}
 	}
 
-	clientMock.On("List", context.Background(), &helmv1alpha1.ChartList{}, mock.MatchedBy(func(cList []client.ListOption) bool {
+	clientMock.On("List", context.Background(), &yahov1alpha2.ChartList{}, mock.MatchedBy(func(cList []client.ListOption) bool {
 
 		opt := cList[0].(*client.ListOptions)
 
@@ -243,11 +243,11 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 
 		return false
 	})).Return(nil).Run(func(args mock.Arguments) {
-		c := args.Get(1).(*helmv1alpha1.ChartList)
+		c := args.Get(1).(*yahov1alpha2.ChartList)
 		c.Items = cl.Items
 	})
 
-	clientMock.On("List", context.Background(), &helmv1alpha1.RepositoryList{}, mock.MatchedBy(func(cList []client.ListOption) bool {
+	clientMock.On("List", context.Background(), &yahov1alpha2.RepositoryList{}, mock.MatchedBy(func(cList []client.ListOption) bool {
 
 		opt := cList[0].(*client.ListOptions)
 
@@ -258,7 +258,7 @@ func setChart(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTPC
 		}
 		return true
 	})).Return(nil).Run(func(args mock.Arguments) {
-		c := args.Get(1).(*helmv1alpha1.RepositoryList)
+		c := args.Get(1).(*yahov1alpha2.RepositoryList)
 		spec := testcases.GetTestRepoRepoListSpec()
 		c.Items = spec.Items
 	})

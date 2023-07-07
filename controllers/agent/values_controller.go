@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package helm
+package agent
 
 import (
 	"context"
@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,7 +62,7 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	_ = r.Log.WithValues("valuesreq", req)
 
 	// fetch app instance
-	instance := &helmv1alpha1.Values{}
+	instance := &yahov1alpha2.Values{}
 
 	reqLogger.Info("start reconcile loop")
 	reqLogger.Info("meta", "value", instance.ObjectMeta)
@@ -89,7 +89,7 @@ func (r *ValuesReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		releaseList := strings.Split(annotations["releases"], ",")
 
 		for _, release := range releaseList {
-			current := &helmv1alpha1.Release{}
+			current := &yahov1alpha2.Release{}
 			err := r.Client.Get(ctx, client.ObjectKey{
 				Namespace: instance.ObjectMeta.Namespace,
 				Name:      release,
@@ -138,7 +138,7 @@ func (r *ValuesReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	pred := predicate.GenerationChangedPredicate{}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&helmv1alpha1.Values{}).
+		For(&yahov1alpha2.Values{}).
 		WithEventFilter(pred).
 		Complete(r)
 }

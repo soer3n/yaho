@@ -1,10 +1,10 @@
-package chartversion
+package chart
 
 import (
 	"context"
+	"sync"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	v1 "k8s.io/api/core/v1"
@@ -13,11 +13,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (chartVersion *ChartVersion) setFiles(helmChart *chart.Chart, apiObj *helmv1alpha1.Chart, chartPathOptions *action.ChartPathOptions) {
-	defer chartVersion.mu.Unlock()
-	chartVersion.mu.Lock()
+func setFiles(mu *sync.Mutex, helmChart *chart.Chart, chartName string, chartPathOptions *action.ChartPathOptions, logger logr.Logger, c client.WithWatch) {
+	defer mu.Unlock()
+	mu.Lock()
 
-	c := make(chan *chart.File)
+	d := make(chan *chart.File)
 	t := make(chan *chart.File)
 	quit := make(chan bool)
 	counter := 0
@@ -25,18 +25,18 @@ func (chartVersion *ChartVersion) setFiles(helmChart *chart.Chart, apiObj *helmv
 	files := []*chart.File{}
 	templates := []*chart.File{}
 
-	go getFiles(chartPathOptions.Version, apiObj, chartVersion.k8sClient, chartVersion.logger, quit, c, t)
+	go getFiles(chartPathOptions.Version, chartName, c, logger, quit, d, t)
 
 	for {
 		select {
-		case i := <-c:
+		case i := <-d:
 			files = append(files, i)
 		case j := <-t:
 			templates = append(templates, j)
 		case <-quit:
 			counter++
 			if counter == 3 {
-				close(c)
+				close(d)
 				close(t)
 				helmChart.Files = files
 				helmChart.Templates = templates
@@ -46,11 +46,11 @@ func (chartVersion *ChartVersion) setFiles(helmChart *chart.Chart, apiObj *helmv
 	}
 }
 
-func getFiles(chartVersion string, helmChart *helmv1alpha1.Chart, c client.Client, logger logr.Logger, quit chan bool, f chan *chart.File, t chan *chart.File) {
+func getFiles(chartVersion, chartName string, c client.Client, logger logr.Logger, quit chan bool, f chan *chart.File, t chan *chart.File) {
 
-	appendFilesFromConfigMap(helmChart.Spec.Name, chartVersion, "tmpl", c, logger, quit, f)
-	appendFilesFromConfigMap(helmChart.Spec.Name, chartVersion, "tmpl", c, logger, quit, t)
-	appendFilesFromConfigMap(helmChart.Spec.Name, chartVersion, "crds", c, logger, quit, f)
+	appendFilesFromConfigMap(chartName, chartVersion, "tmpl", c, logger, quit, f)
+	appendFilesFromConfigMap(chartName, chartVersion, "tmpl", c, logger, quit, t)
+	appendFilesFromConfigMap(chartName, chartVersion, "crds", c, logger, quit, f)
 }
 
 func appendFilesFromConfigMap(chartName, version, suffix string, c client.Client, logger logr.Logger, quit chan bool, channels ...chan *chart.File) {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/repository"
 	helmmocks "github.com/soer3n/yaho/tests/mocks/helm"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
@@ -23,11 +23,11 @@ func TestRepoUpdate(t *testing.T) {
 
 	assert := assert.New(t)
 
-	_ = helmv1alpha1.AddToScheme(scheme.Scheme)
+	_ = yahov1alpha2.AddToScheme(scheme.Scheme)
 
 	for _, apiObj := range apiObjList {
 
-		val := apiObj.Input.(helmv1alpha1.Repository)
+		val := apiObj.Input.(yahov1alpha2.Repository)
 		r := &val
 		testObj := repository.New(r, val.Namespace, context.TODO(), settings, logf.Log, clientMock, httpMock, kube.Client{})
 		// assert.Equal(err, apiObj.ReturnError["init"])

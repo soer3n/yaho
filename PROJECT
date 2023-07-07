@@ -66,4 +66,52 @@ resources:
   kind: Config
   path: github.com/soer3n/apps-operator/apis/helm/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: soer3n.dev
+  group: yaho
+  kind: Hub
+  path: github.com/soer3n/yaho/apis/yaho/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: soer3n.dev
+  group: yaho
+  kind: Config
+  path: github.com/soer3n/yaho/apis/yaho/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: soer3n.dev
+  group: yaho
+  kind: Repository
+  path: github.com/soer3n/yaho/apis/yaho/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: soer3n.dev
+  group: yaho
+  kind: Chart
+  path: github.com/soer3n/yaho/apis/yaho/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: soer3n.dev
+  group: yaho
+  kind: Release
+  path: github.com/soer3n/yaho/apis/yaho/v1alpha2
+  version: v1alpha2
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: soer3n.dev
+  group: yaho
+  kind: Values
+  path: github.com/soer3n/yaho/apis/yaho/v1alpha2
+  version: v1alpha2
 version: "3"

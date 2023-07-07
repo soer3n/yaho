@@ -3,7 +3,7 @@ package helm
 import (
 	"testing"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/chartversion"
 	"github.com/soer3n/yaho/internal/utils"
 	helmmocks "github.com/soer3n/yaho/tests/mocks/helm"
@@ -20,12 +20,12 @@ func TestChartVersion(t *testing.T) {
 
 	assert := assert.New(t)
 
-	_ = helmv1alpha1.AddToScheme(scheme.Scheme)
+	_ = yahov1alpha2.AddToScheme(scheme.Scheme)
 
 	for _, v := range cases {
-		ver := v.Input.(*helmv1alpha1.Chart)
+		ver := v.Input.(*yahov1alpha2.Chart)
 		cv := testcases.GetChartVersions(ver.Spec.Name)
-		testObj, err := chartversion.New(v.ChartVersion, ver.Namespace, ver, map[string]interface{}{}, cv, scheme.Scheme, logf.Log, clientMock, httpMock)
+		testObj, err := chartversion.New(v.ChartVersion, ver.Namespace, ver.Name, ver.Spec.Repository, map[string]interface{}{}, cv, scheme.Scheme, logf.Log, clientMock, httpMock)
 		assert.Equal(v.ReturnError["init"], err)
 		config, _ := utils.InitActionConfig(cli.New().RESTClientGetter(), []byte(""), logf.Log)
 		err = testObj.Prepare(config)

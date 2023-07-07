@@ -6,7 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -83,22 +83,22 @@ var _ = Context("Install and configure a repository", func() {
 				ManagedCharts:   []*ChartAssert{chartTwoAssert},
 			}
 
-			repoOneAssert.Obj = &helmv1alpha1.Repository{ObjectMeta: metav1.ObjectMeta{Name: testRepoName}}
-			repoTwoAssert.Obj = &helmv1alpha1.Repository{ObjectMeta: metav1.ObjectMeta{Name: testRepoNameSecond}}
+			repoOneAssert.Obj = &yahov1alpha2.Repository{ObjectMeta: metav1.ObjectMeta{Name: testRepoName}}
+			repoTwoAssert.Obj = &yahov1alpha2.Repository{ObjectMeta: metav1.ObjectMeta{Name: testRepoNameSecond}}
 
-			chartOneAssert.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartOneAssert.Name}}
-			chartTwoAssert.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartTwoAssert.Name}}
-			chartThreeAssert.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartThreeAssert.Name}}
+			chartOneAssert.Obj = &yahov1alpha2.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartOneAssert.Name}}
+			chartTwoAssert.Obj = &yahov1alpha2.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartTwoAssert.Name}}
+			chartThreeAssert.Obj = &yahov1alpha2.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartThreeAssert.Name}}
 
 			repoOneAssert.Do(namespace)
 			repoTwoAssert.Do(namespace)
 
 			By("creating a new repository resource with wrong url")
 
-			repoOneAssert.Obj.Spec = helmv1alpha1.RepositorySpec{
+			repoOneAssert.Obj.Spec = yahov1alpha2.RepositorySpec{
 				Name:   testRepoName,
 				URL:    testRepoURL + "foo",
-				Charts: []helmv1alpha1.Entry{},
+				Charts: []yahov1alpha2.Entry{},
 			}
 
 			err = testClient.Create(context.Background(), repoOneAssert.Obj)
@@ -127,7 +127,7 @@ var _ = Context("Install and configure a repository", func() {
 
 			By("updating the repository resource with charts should create index configmaps")
 
-			repoOneAssert.Obj.Spec.Charts = []helmv1alpha1.Entry{
+			repoOneAssert.Obj.Spec.Charts = []yahov1alpha2.Entry{
 				{
 					Name:     testRepoChartNameAssert,
 					Versions: []string{},
@@ -156,7 +156,7 @@ var _ = Context("Install and configure a repository", func() {
 
 			By("updating the repository resource with chart versions belonging to it should create configmaps for chart version")
 
-			repoOneAssert.Obj.Spec.Charts = []helmv1alpha1.Entry{
+			repoOneAssert.Obj.Spec.Charts = []yahov1alpha2.Entry{
 				{
 					Name:     testRepoChartNameAssert,
 					Versions: []string{testRepoChartNameAssertqVersion},
@@ -181,7 +181,7 @@ var _ = Context("Install and configure a repository", func() {
 
 			By("deleting the first chart of the repository resource")
 
-			repoOneAssert.Obj.Spec.Charts = []helmv1alpha1.Entry{
+			repoOneAssert.Obj.Spec.Charts = []yahov1alpha2.Entry{
 				{
 					Name:     testRepoChartThirdNameAssert,
 					Versions: []string{testRepoChartThirdNameAssertVersion},

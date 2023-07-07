@@ -4,19 +4,19 @@ import (
 	"context"
 	"strings"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (hv *ValueTemplate) getValuesByReference(refs []string, namespace string) []*helmv1alpha1.Values {
-	var list []*helmv1alpha1.Values
+func (hv *ValueTemplate) getValuesByReference(refs []string, namespace string) []*yahov1alpha2.Values {
+	var list []*yahov1alpha2.Values
 
 	for _, ref := range refs {
 
-		helmRef := &helmv1alpha1.Values{}
+		helmRef := &yahov1alpha2.Values{}
 
 		err := hv.k8sClient.Get(context.Background(), client.ObjectKey{
 			Namespace: namespace,
@@ -38,7 +38,7 @@ func (hv *ValueTemplate) getValuesByReference(refs []string, namespace string) [
 	return list
 }
 
-func (hv *ValueTemplate) getRefList(valuesList []*helmv1alpha1.Values, instance *helmv1alpha1.Release) ([]*ValuesRef, error) {
+func (hv *ValueTemplate) getRefList(valuesList []*yahov1alpha2.Values, instance *yahov1alpha2.Release) ([]*ValuesRef, error) {
 	var refList, subRefList []*ValuesRef
 	var err error
 	for _, valueObj := range valuesList {
@@ -57,7 +57,7 @@ func (hv *ValueTemplate) getRefList(valuesList []*helmv1alpha1.Values, instance 
 	return refList, nil
 }
 
-func (hv *ValueTemplate) collectValues(specValues *helmv1alpha1.Values, count int32, release *helmv1alpha1.Release) ([]*ValuesRef, error) {
+func (hv *ValueTemplate) collectValues(specValues *yahov1alpha2.Values, count int32, release *yahov1alpha2.Release) ([]*ValuesRef, error) {
 	var list []*ValuesRef
 
 	// secure against infinite loop
@@ -77,7 +77,7 @@ func (hv *ValueTemplate) collectValues(specValues *helmv1alpha1.Values, count in
 
 	for k, ref := range specValues.Spec.Refs {
 
-		helmRef := &helmv1alpha1.Values{}
+		helmRef := &yahov1alpha2.Values{}
 
 		if err := hv.k8sClient.Get(context.Background(), client.ObjectKey{
 			Namespace: specValues.ObjectMeta.Namespace,
@@ -113,7 +113,7 @@ func (hv *ValueTemplate) collectValues(specValues *helmv1alpha1.Values, count in
 	return list, nil
 }
 
-func (hv *ValueTemplate) updateValuesAnnotations(obj *helmv1alpha1.Values, release *helmv1alpha1.Release) error {
+func (hv *ValueTemplate) updateValuesAnnotations(obj *yahov1alpha2.Values, release *yahov1alpha2.Release) error {
 	var patch []byte
 	var value string
 	var ok bool

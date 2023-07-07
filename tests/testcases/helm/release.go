@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -36,12 +36,12 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 				"update": k8serrors.NewBadRequest("chart not loaded on action update"),
 				"remove": nil,
 			},
-			Input: &helmv1alpha1.Release{
+			Input: &yahov1alpha2.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "foo",
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
+				Spec: yahov1alpha2.ReleaseSpec{
 					Name:    "release",
 					Chart:   "chart",
 					Repo:    "repo",
@@ -57,12 +57,12 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 				"update": k8serrors.NewBadRequest("chart not loaded on action update"),
 				"remove": nil,
 			},
-			Input: &helmv1alpha1.Release{
+			Input: &yahov1alpha2.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "foo",
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
+				Spec: yahov1alpha2.ReleaseSpec{
 					Name:    "release",
 					Chart:   "chart",
 					Repo:    "repo",
@@ -79,12 +79,12 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 				"update": nil,
 				"remove": nil,
 			},
-			Input: &helmv1alpha1.Release{
+			Input: &yahov1alpha2.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "foo",
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
+				Spec: yahov1alpha2.ReleaseSpec{
 					Name:    "notfound",
 					Chart:   "chart",
 					Repo:    "repo",
@@ -100,12 +100,12 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 				"update": nil,
 				"remove": nil,
 			},
-			Input: &helmv1alpha1.Release{
+			Input: &yahov1alpha2.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "foo",
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
+				Spec: yahov1alpha2.ReleaseSpec{
 					Name:    "notfound",
 					Chart:   "chart",
 					Repo:    "repo",
@@ -122,7 +122,7 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 					"update": nil,
 					"remove": nil,
 				},
-				Input: &helmv1alpha1.Release{
+				Input: &yahov1alpha2.Release{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "release",
 						Namespace: "foo",
@@ -130,7 +130,7 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 							"label": "selector",
 						},
 					},
-					Spec: helmv1alpha1.ReleaseSpec{
+					Spec: yahov1alpha2.ReleaseSpec{
 						Name:    "release",
 						Chart:   "chart",
 						Repo:    "repo",
@@ -146,7 +146,7 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 					"update": k8serrors.NewBadRequest("chart not loaded on action update"),
 					"remove": nil,
 				},
-				Input: &helmv1alpha1.Release{
+				Input: &yahov1alpha2.Release{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test",
 						Namespace: "bar",
@@ -154,7 +154,7 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 							"label": "selector",
 						},
 					},
-					Spec: helmv1alpha1.ReleaseSpec{
+					Spec: yahov1alpha2.ReleaseSpec{
 						Name:    "test",
 						Chart:   "notfound",
 						Repo:    "repo",
@@ -170,7 +170,7 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 					"update": k8serrors.NewBadRequest("chart not loaded on action update"),
 					"remove": nil,
 				},
-				Input: &helmv1alpha1.Release{
+				Input: &yahov1alpha2.Release{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test",
 						Namespace: "baz",
@@ -178,7 +178,7 @@ func GetTestReleaseSpecs() []inttypes.TestCase {
 							"label": "selector",
 						},
 					},
-					Spec: helmv1alpha1.ReleaseSpec{
+					Spec: yahov1alpha2.ReleaseSpec{
 						Name:    "test",
 						Chart:   "notfound",
 						Repo:    "notfound",

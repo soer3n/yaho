@@ -6,12 +6,16 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+)
+
+var (
+	repoOne, repoTwo *yahov1alpha2.Repository
 )
 
 var _ = Context("Install and configure a chart", func() {
@@ -84,38 +88,43 @@ var _ = Context("Install and configure a chart", func() {
 				ManagedCharts:   []*ChartAssert{chartTwoAssert},
 			}
 
-			repoOneAssert.Obj = &helmv1alpha1.Repository{ObjectMeta: metav1.ObjectMeta{Name: testRepoName}}
-			repoTwoAssert.Obj = &helmv1alpha1.Repository{ObjectMeta: metav1.ObjectMeta{Name: testRepoNameSecond}}
+			repoOneAssert.Obj = &yahov1alpha2.Repository{ObjectMeta: metav1.ObjectMeta{Name: testRepoName}}
+			repoTwoAssert.Obj = &yahov1alpha2.Repository{ObjectMeta: metav1.ObjectMeta{Name: testRepoNameSecond}}
 
-			chartOneAssert.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartOneAssert.Name}}
-			chartTwoAssert.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartTwoAssert.Name}}
-			chartThreeAssert.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartThreeAssert.Name}}
+			chartOneAssert.Obj = &yahov1alpha2.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartOneAssert.Name}}
+			chartTwoAssert.Obj = &yahov1alpha2.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartTwoAssert.Name}}
+			chartThreeAssert.Obj = &yahov1alpha2.Chart{ObjectMeta: metav1.ObjectMeta{Name: chartThreeAssert.Name}}
 
 			repoOneAssert.Do(namespace)
 			repoTwoAssert.Do(namespace)
 
 			By("creating needed repository group resource")
-			repoGroupKind = &helmv1alpha1.RepoGroup{
+			repoOne = &yahov1alpha2.Repository{
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: testRepoName},
-				Spec: helmv1alpha1.RepoGroupSpec{
-					LabelSelector: "foo",
-					Repos: []helmv1alpha1.RepositorySpec{
-						{
-							Name:   testRepoName,
-							URL:    testRepoURL,
-							Charts: []helmv1alpha1.Entry{},
-						},
-						{
-							Name:   testRepoNameSecond,
-							URL:    testRepoURLSecond,
-							Charts: []helmv1alpha1.Entry{},
-						},
-					},
+				Spec: yahov1alpha2.RepositorySpec{
+
+					Name:   testRepoName,
+					URL:    testRepoURL,
+					Charts: []yahov1alpha2.Entry{},
 				},
 			}
 
-			err = testClient.Create(context.Background(), repoGroupKind)
+			err = testClient.Create(context.Background(), repoOne)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+			By("creating needed repository group resource")
+			repoTwo = &yahov1alpha2.Repository{
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{Name: testRepoNameSecond},
+				Spec: yahov1alpha2.RepositorySpec{
+					Name:   testRepoNameSecond,
+					URL:    testRepoURLSecond,
+					Charts: []yahov1alpha2.Entry{},
+				},
+			}
+
+			err = testClient.Create(context.Background(), repoTwo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
 			repoOneAssert.IsPresent = true
@@ -137,11 +146,11 @@ var _ = Context("Install and configure a chart", func() {
 
 			By("creating a chart to first repository without a dependency")
 
-			chartThreeAssert.Obj = &helmv1alpha1.Chart{
+			chartThreeAssert.Obj = &yahov1alpha2.Chart{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: testRepoChartThirdNameAssert + "-" + testRepoName,
 				},
-				Spec: helmv1alpha1.ChartSpec{
+				Spec: yahov1alpha2.ChartSpec{
 					Name:       testRepoChartThirdNameAssert,
 					Repository: testRepoName,
 					Versions:   []string{},
@@ -163,7 +172,7 @@ var _ = Context("Install and configure a chart", func() {
 
 			By("adding a not valid version to the first chart")
 
-			chartThreeAssert.Obj.Spec = helmv1alpha1.ChartSpec{
+			chartThreeAssert.Obj.Spec = yahov1alpha2.ChartSpec{
 				Name:       testRepoChartThirdNameAssert,
 				Repository: testRepoName,
 				Versions:   []string{testRepoChartNotValidVersion},
@@ -186,7 +195,7 @@ var _ = Context("Install and configure a chart", func() {
 			err = testClient.Get(context.Background(), types.NamespacedName{Name: testRepoChartThirdNameAssert + "-" + testRepoName}, chartThreeAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
-			chartThreeAssert.Obj.Spec = helmv1alpha1.ChartSpec{
+			chartThreeAssert.Obj.Spec = yahov1alpha2.ChartSpec{
 				Name:       testRepoChartThirdNameAssert,
 				Repository: testRepoName,
 				Versions:   []string{testRepoChartThirdNameAssertVersion},
@@ -207,11 +216,11 @@ var _ = Context("Install and configure a chart", func() {
 
 			By("creating a second chart and disabling dependency creation")
 
-			chartTwoAssert.Obj = &helmv1alpha1.Chart{
+			chartTwoAssert.Obj = &yahov1alpha2.Chart{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: testRepoChartSecondNameAssert + "-" + testRepoNameSecond,
 				},
-				Spec: helmv1alpha1.ChartSpec{
+				Spec: yahov1alpha2.ChartSpec{
 					Name:       testRepoChartSecondNameAssert,
 					Repository: testRepoNameSecond,
 					Versions:   []string{},
@@ -234,7 +243,7 @@ var _ = Context("Install and configure a chart", func() {
 
 			By("updating a second chart setting a valid version")
 
-			chartTwoAssert.Obj.Spec = helmv1alpha1.ChartSpec{
+			chartTwoAssert.Obj.Spec = yahov1alpha2.ChartSpec{
 				Name:       testRepoChartSecondNameAssert,
 				Repository: testRepoNameSecond,
 				Versions:   []string{testRepoChartSecondNameAssertVersion},
@@ -251,7 +260,7 @@ var _ = Context("Install and configure a chart", func() {
 
 			By("updating a second chart by enabling dependency creation")
 
-			chartTwoAssert.Obj.Spec = helmv1alpha1.ChartSpec{
+			chartTwoAssert.Obj.Spec = yahov1alpha2.ChartSpec{
 				Name:       testRepoChartSecondNameAssert,
 				Repository: testRepoNameSecond,
 				Versions:   []string{testRepoChartSecondNameAssertVersion},
@@ -320,7 +329,10 @@ var _ = Context("Install and configure a chart", func() {
 
 			By("deleting repogroup resource")
 
-			err = testClient.Delete(context.Background(), repoGroupKind)
+			err = testClient.Delete(context.Background(), repoOne)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+			err = testClient.Delete(context.Background(), repoTwo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
 			repoOneAssert.IsPresent = false

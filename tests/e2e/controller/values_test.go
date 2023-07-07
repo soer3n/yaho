@@ -7,7 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	values *helmv1alpha1.Values
+	values *yahov1alpha2.Values
 )
 
 var _ = Context("Install a release with values", func() {
@@ -82,41 +82,44 @@ var _ = Context("Install a release with values", func() {
 
 			By("creating needed repository group resource")
 
-			releaseRepoGroup = &helmv1alpha1.RepoGroup{
+			releaseRepoOne = &yahov1alpha2.Repository{
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: testRepoName},
-				Spec: helmv1alpha1.RepoGroupSpec{
-					LabelSelector: "foo",
-					Repos: []helmv1alpha1.RepositorySpec{
+				Spec: yahov1alpha2.RepositorySpec{
+					Name: testRepoName,
+					URL:  testRepoURL,
+					Charts: []yahov1alpha2.Entry{
 						{
-							Name: testRepoName,
-							URL:  testRepoURL,
-							Charts: []helmv1alpha1.Entry{
-								{
-									Name:     testReleaseChartName,
-									Versions: []string{testReleaseChartVersion},
-								},
-								{
-									Name:     testReleaseChartThirdNameAssert,
-									Versions: []string{testReleaseChartThirdNameAssertVersion},
-								},
-							},
+							Name:     testReleaseChartName,
+							Versions: []string{testReleaseChartVersion},
 						},
 						{
-							Name: testRepoNameSecond,
-							URL:  testRepoURLSecond,
-							Charts: []helmv1alpha1.Entry{
-								{
-									Name:     testReleaseChartNameSecond,
-									Versions: []string{testReleaseChartVersionSecond},
-								},
-							},
+							Name:     testReleaseChartThirdNameAssert,
+							Versions: []string{testReleaseChartThirdNameAssertVersion},
 						},
 					},
 				},
 			}
 
-			err = testClient.Create(ctx, releaseRepoGroup)
+			err = testClient.Create(ctx, releaseRepoOne)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+			releaseRepoTwo = &yahov1alpha2.Repository{
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{Name: testRepoNameSecond},
+				Spec: yahov1alpha2.RepositorySpec{
+					Name: testRepoNameSecond,
+					URL:  testRepoURLSecond,
+					Charts: []yahov1alpha2.Entry{
+						{
+							Name:     testReleaseChartNameSecond,
+							Versions: []string{testReleaseChartVersionSecond},
+						},
+					},
+				},
+			}
+
+			err = testClient.Create(ctx, releaseRepoTwo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
 			chartOneAssert.setEverythingInstalled()
@@ -135,7 +138,7 @@ var _ = Context("Install a release with values", func() {
 
 			releaseAssert := &ReleaseAssert{
 				Name: testReleaseName,
-				Obj: &helmv1alpha1.Release{
+				Obj: &yahov1alpha2.Release{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      testReleaseName,
 						Namespace: namespace,
@@ -144,12 +147,12 @@ var _ = Context("Install a release with values", func() {
 				IsPresent: true,
 			}
 
-			releaseAssert.Obj = &helmv1alpha1.Release{
+			releaseAssert.Obj = &yahov1alpha2.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testReleaseName,
 					Namespace: namespace,
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
+				Spec: yahov1alpha2.ReleaseSpec{
 					Name:      testReleaseName,
 					Namespace: &namespace,
 					Chart:     testReleaseChartName,
@@ -188,12 +191,12 @@ var _ = Context("Install a release with values", func() {
 			valuesSpecRaw, err := json.Marshal(valuesSpec)
 			Expect(err).NotTo(HaveOccurred(), "failed to convert values")
 
-			values = &helmv1alpha1.Values{
+			values = &yahov1alpha2.Values{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource",
 					Namespace: namespace,
 				},
-				Spec: helmv1alpha1.ValuesSpec{
+				Spec: yahov1alpha2.ValuesSpec{
 					ValuesMap: &runtime.RawExtension{
 						Raw: []byte(valuesSpecRaw),
 					},
@@ -211,12 +214,12 @@ var _ = Context("Install a release with values", func() {
 			valuesSpecRaw, err = json.Marshal(valuesSpec)
 			Expect(err).NotTo(HaveOccurred(), "failed to convert values")
 
-			values = &helmv1alpha1.Values{
+			values = &yahov1alpha2.Values{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource-nested",
 					Namespace: namespace,
 				},
-				Spec: helmv1alpha1.ValuesSpec{
+				Spec: yahov1alpha2.ValuesSpec{
 					ValuesMap: &runtime.RawExtension{
 						Raw: []byte(valuesSpecRaw),
 					},
@@ -243,12 +246,12 @@ var _ = Context("Install a release with values", func() {
 			refSpecRaw, err := json.Marshal(refSpec)
 			Expect(err).NotTo(HaveOccurred(), "failed to convert values")
 
-			values = &helmv1alpha1.Values{
+			values = &yahov1alpha2.Values{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testresource-embedded",
 					Namespace: namespace,
 				},
-				Spec: helmv1alpha1.ValuesSpec{
+				Spec: yahov1alpha2.ValuesSpec{
 					ValuesMap: &runtime.RawExtension{
 						Raw: []byte(refSpecRaw),
 					},
@@ -262,7 +265,7 @@ var _ = Context("Install a release with values", func() {
 
 			By("should create a new Release resource with specified")
 
-			releaseAssert.Obj.Spec = helmv1alpha1.ReleaseSpec{
+			releaseAssert.Obj.Spec = yahov1alpha2.ReleaseSpec{
 				Name:    testReleaseName,
 				Chart:   testReleaseChartName,
 				Repo:    testRepoName,
@@ -354,7 +357,10 @@ var _ = Context("Install a release with values", func() {
 
 			By("should remove this Repository resource with the specified name and specified url")
 
-			err = testClient.Delete(context.Background(), releaseRepoGroup)
+			err = testClient.Delete(context.Background(), releaseRepoOne)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+			err = testClient.Delete(context.Background(), releaseRepoTwo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
 			chartOneAssert.setDefault(testRepoName)

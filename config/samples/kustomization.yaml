@@ -7,4 +7,10 @@ resources:
 - yaho.soer3n.dev_v1alpha1_chart.yaml
 - yaho.soer3n.dev_v1alpha1_values.yaml
 - yaho.soer3n.dev_v1alpha1_config.yaml
+- yaho_v1alpha2_hub.yaml
+- yaho_v1alpha2_config.yaml
+- yaho_v1alpha2_repository.yaml
+- yaho_v1alpha2_chart.yaml
+- yaho_v1alpha2_release.yaml
+- yaho_v1alpha2_values.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

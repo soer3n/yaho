@@ -4,7 +4,7 @@ import (
 	"log"
 	"testing"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/release"
 	helmmocks "github.com/soer3n/yaho/tests/mocks/helm"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
@@ -19,11 +19,11 @@ func TestReleaseUpdate(t *testing.T) {
 	apiObjList := testcases.GetTestReleaseSpecs()
 	assert := assert.New(t)
 
-	_ = helmv1alpha1.AddToScheme(scheme.Scheme)
+	_ = yahov1alpha2.AddToScheme(scheme.Scheme)
 
 	for _, apiObj := range apiObjList {
 
-		current := apiObj.Input.(*helmv1alpha1.Release)
+		current := apiObj.Input.(*yahov1alpha2.Release)
 		testObj, err := release.New(current, current.Namespace, scheme.Scheme, logf.Log, clientMock, httpMock, cli.New().RESTClientGetter(), []byte(""))
 		assert.Equal(apiObj.ReturnError["init"], err)
 

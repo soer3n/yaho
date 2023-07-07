@@ -3,7 +3,7 @@ package helm
 import (
 	"testing"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/values"
 	helmmocks "github.com/soer3n/yaho/tests/mocks/helm"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
@@ -17,7 +17,7 @@ func TestValues(t *testing.T) {
 	clientMock, _ := helmmocks.GetValueMock()
 
 	for _, testcase := range testcases.GetTestValueSpecs() {
-		release := testcase.Input.(*helmv1alpha1.Release)
+		release := testcase.Input.(*yahov1alpha2.Release)
 		testObj := values.New(release, logf.Log, clientMock)
 		v, err := testObj.ManageValues()
 

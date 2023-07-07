@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/tests/mocks"
 	unstructuredmocks "github.com/soer3n/yaho/tests/mocks/unstructured"
 	"github.com/stretchr/testify/mock"
@@ -35,13 +35,13 @@ func setValues(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTP
 			Resource: "bar",
 		}, "notfound")
 
-		clientMock.On("Create", context.Background(), &helmv1alpha1.Values{
+		clientMock.On("Create", context.Background(), &yahov1alpha2.Values{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        valueMock.Name,
 				Namespace:   valueMock.Namespace,
 				Annotations: map[string]string{},
 			},
-			Spec: helmv1alpha1.ValuesSpec{
+			Spec: yahov1alpha2.ValuesSpec{
 				ValuesMap: &runtime.RawExtension{
 					Raw: valsRaw,
 				},
@@ -50,14 +50,14 @@ func setValues(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTP
 		}).Return(nil).Run(func(args mock.Arguments) {})
 	}
 
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: valueMock.Name, Namespace: valueMock.Namespace}, &helmv1alpha1.Values{}).Return(err).Run(func(args mock.Arguments) {
-		c := args.Get(2).(*helmv1alpha1.Values)
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: valueMock.Name, Namespace: valueMock.Namespace}, &yahov1alpha2.Values{}).Return(err).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*yahov1alpha2.Values)
 		c.ObjectMeta = metav1.ObjectMeta{
 			Name:        valueMock.Name,
 			Namespace:   valueMock.Namespace,
 			Annotations: map[string]string{},
 		}
-		c.Spec = helmv1alpha1.ValuesSpec{
+		c.Spec = yahov1alpha2.ValuesSpec{
 			ValuesMap: &runtime.RawExtension{
 				Raw: valsRaw,
 			},
@@ -69,13 +69,13 @@ func setValues(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTP
 		releases := []string{}
 		releases = append(releases, valueMock.Releases...)
 		patch := []byte(`{"metadata":{"annotations":{"releases": "` + strings.Join(releases, ",") + `"}}}`)
-		clientMock.On("Patch", context.Background(), &helmv1alpha1.Values{
+		clientMock.On("Patch", context.Background(), &yahov1alpha2.Values{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        valueMock.Name,
 				Namespace:   valueMock.Namespace,
 				Annotations: map[string]string{"releases": strings.Join(releases, ",")},
 			},
-			Spec: helmv1alpha1.ValuesSpec{
+			Spec: yahov1alpha2.ValuesSpec{
 				ValuesMap: &runtime.RawExtension{
 					Raw: valsRaw,
 				},

@@ -10,7 +10,7 @@ import (
 
 	"k8s.io/utils/pointer"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/tests/mocks"
 	unstructuredmocks "github.com/soer3n/yaho/tests/mocks/unstructured"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
@@ -40,8 +40,8 @@ func setRepository(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.
 		}, "notfound")
 	}
 
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: repositoryMock.Name}, &helmv1alpha1.Repository{}).Return(err).Run(func(args mock.Arguments) {
-		c := args.Get(2).(*helmv1alpha1.Repository)
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: repositoryMock.Name}, &yahov1alpha2.Repository{}).Return(err).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*yahov1alpha2.Repository)
 		c.ObjectMeta = metav1.ObjectMeta{
 			Name: repositoryMock.Name,
 		}
@@ -50,7 +50,7 @@ func setRepository(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.
 			c.ObjectMeta.Labels = repositoryMock.Labels
 		}
 
-		c.Spec = helmv1alpha1.RepositorySpec{
+		c.Spec = yahov1alpha2.RepositorySpec{
 			Name: repositoryMock.Name,
 			URL:  repositoryMock.URL,
 		}
@@ -106,7 +106,7 @@ func setRepository(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion:         "yaho.soer3n.dev/v1alpha1",
+					APIVersion:         "yaho.soer3n.dev/v1alpha2",
 					Kind:               "Repository",
 					Name:               repositoryMock.Name,
 					Controller:         pointer.Bool(true),

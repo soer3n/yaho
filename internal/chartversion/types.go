@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/repo"
@@ -14,12 +14,14 @@ import (
 
 // ChartVersion represents struct with needed data for returning needed data for managing a release
 type ChartVersion struct {
-	Version       *repo.ChartVersion
-	Obj           *chart.Chart
-	namespace     string
-	deps          []*helmv1alpha1.ChartDep
-	repo          *helmv1alpha1.Repository
-	owner         *helmv1alpha1.Chart
+	Version   *repo.ChartVersion
+	Obj       *chart.Chart
+	namespace string
+	deps      []*yahov1alpha2.ChartDep
+	// TODO: change to string!
+	repo string
+	// TODO: change to string!
+	owner         string
 	scheme        *runtime.Scheme
 	url           string
 	Templates     []*chart.File

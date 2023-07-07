@@ -3,7 +3,7 @@ package helm
 import (
 	"testing"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/chart"
 	helmmocks "github.com/soer3n/yaho/tests/mocks/helm"
 	testcases "github.com/soer3n/yaho/tests/testcases/helm"
@@ -19,12 +19,12 @@ func TestChartSubCharts(t *testing.T) {
 	cases := testcases.GetTestHelmChartMaps()
 	clientMock, httpMock := helmmocks.GetChartMock()
 
-	_ = helmv1alpha1.AddToScheme(scheme.Scheme)
+	_ = yahov1alpha2.AddToScheme(scheme.Scheme)
 
 	assert := assert.New(t)
 
 	for _, v := range cases {
-		ver := v.Input.(*helmv1alpha1.Chart)
+		ver := v.Input.(*yahov1alpha2.Chart)
 		testObj, err := chart.New(ver, ver.Namespace, settings, scheme.Scheme, logf.Log, clientMock, httpMock, cli.New().RESTClientGetter(), []byte(""))
 		assert.Equal(nil, err)
 		err = testObj.CreateOrUpdateSubCharts()
@@ -41,7 +41,7 @@ func TestChartUpdate(t *testing.T) {
 	assert := assert.New(t)
 
 	for _, v := range cases {
-		ver := v.Input.(*helmv1alpha1.Chart)
+		ver := v.Input.(*yahov1alpha2.Chart)
 		testObj, err := chart.New(ver, ver.Namespace, settings, &runtime.Scheme{}, logf.Log, clientMock, httpMock, cli.New().RESTClientGetter(), []byte(""))
 		assert.Equal(nil, err)
 		err = testObj.Update(ver)

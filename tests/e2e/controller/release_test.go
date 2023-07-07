@@ -5,13 +5,13 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	releaseRepoGroup *helmv1alpha1.RepoGroup
+	releaseRepoOne, releaseRepoTwo *yahov1alpha2.Repository
 )
 
 var _ = Context("Install a release", func() {
@@ -20,7 +20,7 @@ var _ = Context("Install a release", func() {
 		obj := setupNamespace()
 		namespace := obj.ObjectMeta.Name
 
-		It("should start with creating dependencies", func() {
+		FIt("should start with creating dependencies", func() {
 			ctx := context.Background()
 
 			By("install a new namespace")
@@ -75,41 +75,44 @@ var _ = Context("Install a release", func() {
 
 			By("creating needed repository group resource")
 
-			releaseRepoGroup = &helmv1alpha1.RepoGroup{
+			releaseRepoOne = &yahov1alpha2.Repository{
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: testRepoName},
-				Spec: helmv1alpha1.RepoGroupSpec{
-					LabelSelector: "foo",
-					Repos: []helmv1alpha1.RepositorySpec{
+				Spec: yahov1alpha2.RepositorySpec{
+					Name: testRepoName,
+					URL:  testRepoURL,
+					Charts: []yahov1alpha2.Entry{
 						{
-							Name: testRepoName,
-							URL:  testRepoURL,
-							Charts: []helmv1alpha1.Entry{
-								{
-									Name:     testReleaseChartName,
-									Versions: []string{testReleaseChartVersion},
-								},
-								{
-									Name:     testReleaseChartThirdNameAssert,
-									Versions: []string{testReleaseChartThirdNameAssertVersion},
-								},
-							},
+							Name:     testReleaseChartName,
+							Versions: []string{testReleaseChartVersion},
 						},
 						{
-							Name: testRepoNameSecond,
-							URL:  testRepoURLSecond,
-							Charts: []helmv1alpha1.Entry{
-								{
-									Name:     testReleaseChartNameSecond,
-									Versions: []string{testReleaseChartVersionSecond},
-								},
-							},
+							Name:     testReleaseChartThirdNameAssert,
+							Versions: []string{testReleaseChartThirdNameAssertVersion},
 						},
 					},
 				},
 			}
 
-			err = testClient.Create(ctx, releaseRepoGroup)
+			err = testClient.Create(ctx, releaseRepoOne)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+			releaseRepoTwo = &yahov1alpha2.Repository{
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{Name: testRepoNameSecond},
+				Spec: yahov1alpha2.RepositorySpec{
+					Name: testRepoNameSecond,
+					URL:  testRepoURLSecond,
+					Charts: []yahov1alpha2.Entry{
+						{
+							Name:     testReleaseChartNameSecond,
+							Versions: []string{testReleaseChartVersionSecond},
+						},
+					},
+				},
+			}
+
+			err = testClient.Create(ctx, releaseRepoTwo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
 			chartOneAssert.setEverythingInstalled()
@@ -126,7 +129,7 @@ var _ = Context("Install a release", func() {
 
 			releaseAssert := &ReleaseAssert{
 				Name: testReleaseName,
-				Obj: &helmv1alpha1.Release{
+				Obj: &yahov1alpha2.Release{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      testReleaseName,
 						Namespace: namespace,
@@ -138,7 +141,7 @@ var _ = Context("Install a release", func() {
 				Revision:  0,
 			}
 
-			releaseAssert.Obj.Spec = helmv1alpha1.ReleaseSpec{
+			releaseAssert.Obj.Spec = yahov1alpha2.ReleaseSpec{
 				Name:      "deployment-name",
 				Namespace: &namespace,
 				Chart:     testReleaseChartName,
@@ -153,7 +156,7 @@ var _ = Context("Install a release", func() {
 
 			By("updating the release resource with not valid chart name")
 
-			releaseAssert.Obj.Spec = helmv1alpha1.ReleaseSpec{
+			releaseAssert.Obj.Spec = yahov1alpha2.ReleaseSpec{
 				Name:      "deployment-name",
 				Namespace: &namespace,
 				Chart:     testReleaseChartName + "foo",
@@ -168,7 +171,7 @@ var _ = Context("Install a release", func() {
 
 			By("updating the release resource with not valid chart version")
 
-			releaseAssert.Obj.Spec = helmv1alpha1.ReleaseSpec{
+			releaseAssert.Obj.Spec = yahov1alpha2.ReleaseSpec{
 				Name:      "deployment-name",
 				Namespace: &namespace,
 				Chart:     testReleaseChartName,
@@ -185,7 +188,7 @@ var _ = Context("Install a release", func() {
 
 			s := "foo"
 
-			releaseAssert.Obj.Spec = helmv1alpha1.ReleaseSpec{
+			releaseAssert.Obj.Spec = yahov1alpha2.ReleaseSpec{
 				Name:      "deployment-name",
 				Namespace: &namespace,
 				Config:    &s,
@@ -204,7 +207,7 @@ var _ = Context("Install a release", func() {
 			s = "config"
 			n := "notallowed"
 
-			releaseAssert.Obj.Spec = helmv1alpha1.ReleaseSpec{
+			releaseAssert.Obj.Spec = yahov1alpha2.ReleaseSpec{
 				Name:      "deployment-name",
 				Namespace: &n,
 				Config:    &s,
@@ -220,7 +223,7 @@ var _ = Context("Install a release", func() {
 
 			By("updating release resource with valid data")
 
-			releaseAssert.Obj.Spec = helmv1alpha1.ReleaseSpec{
+			releaseAssert.Obj.Spec = yahov1alpha2.ReleaseSpec{
 				Name:      "deployment-name",
 				Namespace: &namespace,
 				Config:    &s,
@@ -241,7 +244,7 @@ var _ = Context("Install a release", func() {
 			/*
 				By("should update this Release resource with values reference")
 
-				existigRelease := &helmv1alpha1.Release{}
+				existigRelease := &yahov1alpha2.Release{}
 				err = testClient.Get(context.Background(), types.NamespacedName{
 					Name:      testReleaseName,
 					Namespace: namespace,
@@ -254,8 +257,8 @@ var _ = Context("Install a release", func() {
 
 				time.Sleep(3 * time.Second)
 
-				release = &helmv1alpha1.Release{}
-				releaseChart = &helmv1alpha1.Chart{}
+				release = &yahov1alpha2.Release{}
+				releaseChart = &yahov1alpha2.Chart{}
 				configmap = &v1.ConfigMap{}
 
 				Eventually(
@@ -304,7 +307,10 @@ var _ = Context("Install a release", func() {
 
 			By("should remove this Repository resource with the specified name and specified url")
 
-			err = testClient.Delete(context.Background(), releaseRepoGroup)
+			err = testClient.Delete(context.Background(), releaseRepoOne)
+			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+			err = testClient.Delete(context.Background(), releaseRepoTwo)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 
 			chartOneAssert.setDefault(testRepoName)

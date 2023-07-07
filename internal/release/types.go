@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/utils"
 	"github.com/soer3n/yaho/internal/values"
 	"helm.sh/helm/v3/pkg/action"
@@ -23,7 +23,7 @@ type Release struct {
 	ValuesTemplate   *values.ValueTemplate
 	Namespace        Namespace
 	releaseNamespace string
-	Flags            *helmv1alpha1.Flags
+	Flags            *yahov1alpha2.Flags
 	Config           *action.Configuration
 	Client           *action.Install
 	K8sClient        client.WithWatch
@@ -44,7 +44,7 @@ type spec struct {
 
 type helm struct {
 	client   *action.Install
-	flags    *helmv1alpha1.Flags
+	flags    *yahov1alpha2.Flags
 	config   *action.Configuration
 }
 

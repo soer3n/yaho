@@ -27,10 +27,10 @@ import (
 	conf "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 )
 
-func NewRESTClientGetter(config *helmv1alpha1.Config, namespace, releaseNamespace string, isLocal bool, c client.Client, logger logr.Logger) (*HelmRESTClientGetter, error) {
+func NewRESTClientGetter(config *yahov1alpha2.Config, namespace, releaseNamespace string, isLocal bool, c client.Client, logger logr.Logger) (*HelmRESTClientGetter, error) {
 
 	getter := &HelmRESTClientGetter{
 		Namespace:        namespace,

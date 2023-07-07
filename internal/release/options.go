@@ -3,13 +3,13 @@ package release
 import (
 	"context"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"helm.sh/helm/v3/pkg/action"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (hc *Release) setOptions(instance *helmv1alpha1.Config, namespace *string) error {
+func (hc *Release) setOptions(instance *yahov1alpha2.Config, namespace *string) error {
 
 	var rn string
 	hc.Flags = instance.Spec.Flags
@@ -29,8 +29,8 @@ func (hc *Release) setOptions(instance *helmv1alpha1.Config, namespace *string) 
 	return errors.NewBadRequest("namespace not in allowed list")
 }
 
-func (hc *Release) getConfig(name *string) (*helmv1alpha1.Config, error) {
-	instance := &helmv1alpha1.Config{}
+func (hc *Release) getConfig(name *string) (*yahov1alpha2.Config, error) {
+	instance := &yahov1alpha2.Config{}
 
 	hc.logger.Info(hc.Namespace.Name)
 

@@ -10,6 +10,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	manager "github.com/soer3n/yaho/internal/cmd"
 )
 
@@ -21,6 +22,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(helmv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(yahov1alpha2.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 

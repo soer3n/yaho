@@ -3,7 +3,7 @@ package helm
 import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/repo"
@@ -14,12 +14,12 @@ import (
 func GetTestRepoChartVersions() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		{
-			Input: &helmv1alpha1.Chart{
+			Input: &yahov1alpha2.Chart{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "foo",
 				},
-				Spec: helmv1alpha1.ChartSpec{
+				Spec: yahov1alpha2.ChartSpec{
 					Name:       "foo",
 					Repository: "repo",
 					Versions:   []string{"0.0.1"},
@@ -35,7 +35,7 @@ func GetTestRepoChartVersions() []inttypes.TestCase {
 func GetTestHelmChartMaps() []inttypes.TestCase {
 	return []inttypes.TestCase{
 		/*{
-			Input: &helmv1alpha1.Chart{
+			Input: &yahov1alpha2.Chart{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bar",
 					Namespace: "one",
@@ -43,7 +43,7 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 						"repo": "one",
 					},
 				},
-				Spec: helmv1alpha1.ChartSpec{
+				Spec: yahov1alpha2.ChartSpec{
 					Name:       "bar",
 					Repository: "one",
 					Versions: []string{
@@ -62,7 +62,7 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 			ReturnValue: 1,
 		},
 		{
-			Input: &helmv1alpha1.Chart{
+			Input: &yahov1alpha2.Chart{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: "two",
@@ -70,7 +70,7 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 						"repo": "two",
 					},
 				},
-				Spec: helmv1alpha1.ChartSpec{
+				Spec: yahov1alpha2.ChartSpec{
 					Name:       "baz",
 					Repository: "two",
 					Versions: []string{
@@ -89,7 +89,7 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 			ReturnValue: 2,
 		},
 		{
-			Input: &helmv1alpha1.Chart{
+			Input: &yahov1alpha2.Chart{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bar",
 					Namespace: "three",
@@ -97,7 +97,7 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 						"repo": "three",
 					},
 				},
-				Spec: helmv1alpha1.ChartSpec{
+				Spec: yahov1alpha2.ChartSpec{
 					Name:       "bar",
 					Repository: "three",
 					Versions: []string{
@@ -116,12 +116,12 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 			ReturnValue: 2,
 		},*/
 		{
-			Input: &helmv1alpha1.Chart{
+			Input: &yahov1alpha2.Chart{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "four",
 					Namespace: "four",
 				},
-				Spec: helmv1alpha1.ChartSpec{
+				Spec: yahov1alpha2.ChartSpec{
 					Name:       "four",
 					Repository: "four",
 					Versions:   []string{"0.0.4"},
@@ -139,12 +139,12 @@ func GetTestHelmChartMaps() []inttypes.TestCase {
 			},
 		},
 		{
-			Input: &helmv1alpha1.Chart{
+			Input: &yahov1alpha2.Chart{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "five",
 					Namespace: "five",
 				},
-				Spec: helmv1alpha1.ChartSpec{
+				Spec: yahov1alpha2.ChartSpec{
 					Name:       "five",
 					Repository: "five",
 					Versions:   []string{"0.0.5"},

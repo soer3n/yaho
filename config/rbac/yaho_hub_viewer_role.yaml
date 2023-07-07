@@ -1,0 +1,20 @@
+# permissions for end users to view hubs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hub-viewer-role
+rules:
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - hubs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - hubs/status
+  verbs:
+  - get

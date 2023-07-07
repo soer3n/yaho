@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package helm
+package manager
 
 import (
 	"context"
@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/repository"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/kube"
@@ -74,7 +74,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	reqLogger.Info("start reconcile loop")
 	// fetch app instance
-	instance := &helmv1alpha1.Repository{}
+	instance := &yahov1alpha2.Repository{}
 
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
@@ -144,14 +144,14 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	return r.syncStatus(ctx, instance, nil)
 }
 
-func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Repository, err error) (ctrl.Result, error) {
+func (r *RepoReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.Repository, err error) (ctrl.Result, error) {
 	stats := metav1.ConditionTrue
 	message := ""
 	reason := "install"
 
 	// fetch umanaged charts related to current repository
 	r.Log.Info("fetching unmanaged charts related to repository resource")
-	unmanagedCharts := &helmv1alpha1.ChartList{}
+	unmanagedCharts := &yahov1alpha2.ChartList{}
 	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap(LabelPrefix + "repo=" + instance.Spec.Name)
 	labelSetUnmanaged, _ := labels.ConvertSelectorToLabelsMap(LabelPrefix + "unmanaged=true")
 	ls := labels.Merge(labelSetRepo, labelSetUnmanaged)
@@ -200,7 +200,7 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.
 	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 }
 
-func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1alpha1.Repository) (bool, error) {
+func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *yahov1alpha2.Repository) (bool, error) {
 
 	isRepoMarkedToBeDeleted := instance.GetDeletionTimestamp() != nil
 	if isRepoMarkedToBeDeleted {
@@ -220,7 +220,7 @@ func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *helmv1al
 // SetupWithManager sets up the controller with the Manager.
 func (r *RepoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&helmv1alpha1.Repository{}).
+		For(&yahov1alpha2.Repository{}).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
 		Complete(r)
 }

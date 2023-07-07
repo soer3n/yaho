@@ -128,12 +128,11 @@ func runOperator(scheme *runtime.Scheme, configFile string, isLocal bool, metric
 		setupLog.Error(err, "unable to create controller", "controller", "Repo")
 		os.Exit(1)
 	}
-	if err = (&helmcontrollers.RepoGroupReconciler{
-		Client: rc,
-		Log:    ctrl.Log.WithName("controllers").WithName("helm").WithName("RepoGroup"),
+	if err = (&helmcontrollers.HubReconciler{
+		Log:    ctrl.Log.WithName("controllers").WithName("helm").WithName("Hub"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "RepoGroup")
+		setupLog.Error(err, "unable to create controller", "controller", "Hub")
 		os.Exit(1)
 	}
 	if err = (&helmcontrollers.ChartReconciler{

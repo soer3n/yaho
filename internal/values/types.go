@@ -2,7 +2,7 @@ package values
 
 import (
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -18,7 +18,7 @@ type ValueTemplate struct {
 
 // ValuesRef represents struct for filtering values kubernetes resources by json tag
 type ValuesRef struct {
-	Ref    *helmv1alpha1.Values `json:"Ref" filter:"ref"`
+	Ref    *yahov1alpha2.Values `json:"Ref" filter:"ref"`
 	Parent string               `json:"Parent" filter:"parent"`
 	Key    string               `json:"Key" filter:"key"`
 }

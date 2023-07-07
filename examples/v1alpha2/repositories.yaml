@@ -1,0 +1,17 @@
+---
+apiVersion: yaho.soer3n.dev/v1alpha2
+kind: Repository
+metadata:
+  name: nextcloud
+spec:
+  name: nextcloud
+  url: https://nextcloud.github.io/helm/
+
+---
+apiVersion: yaho.soer3n.dev/v1alpha2
+kind: Repository
+metadata:
+  name: bitnami
+spec:
+  name: bitnami
+  url: https://charts.bitnami.com/bitnami

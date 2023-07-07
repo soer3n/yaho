@@ -34,7 +34,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	agentcontrollers "github.com/soer3n/yaho/controllers/agent"
 	managercontrollers "github.com/soer3n/yaho/controllers/manager"
 	"github.com/soer3n/yaho/internal/utils"
@@ -95,7 +95,7 @@ const (
 
 type RepositoryAssert struct {
 	Name            string
-	Obj             *helmv1alpha1.Repository
+	Obj             *yahov1alpha2.Repository
 	IsPresent       bool
 	InstalledCharts int64
 	Status          types.GomegaMatcher
@@ -105,7 +105,7 @@ type RepositoryAssert struct {
 
 type ChartAssert struct {
 	Name               string
-	Obj                *helmv1alpha1.Chart
+	Obj                *yahov1alpha2.Chart
 	Version            string
 	IsPresent          types.GomegaMatcher
 	IndicesInstalled   types.GomegaMatcher
@@ -116,7 +116,7 @@ type ChartAssert struct {
 
 type ReleaseAssert struct {
 	Name      string
-	Obj       *helmv1alpha1.Release
+	Obj       *yahov1alpha2.Release
 	IsPresent bool
 	Revision  int
 	Synced    types.GomegaMatcher
@@ -160,13 +160,12 @@ func setupNamespace() *v1.Namespace {
 		}).SetupWithManager(mgr)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
-		err = (&managercontrollers.RepoGroupReconciler{
-			Client:   mgr.GetClient(),
+		err = (&managercontrollers.HubReconciler{
 			Log:      logf.Log,
-			Recorder: mgr.GetEventRecorderFor("repogroup-controller"),
+			Recorder: mgr.GetEventRecorderFor("hub-controller"),
 			Scheme:   mgr.GetScheme(),
 		}).SetupWithManager(mgr)
-		Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
+		Expect(err).NotTo(HaveOccurred(), "failed to setup hub controller")
 
 		err = (&managercontrollers.ChartReconciler{
 			WithWatch:      rc,
@@ -176,15 +175,6 @@ func setupNamespace() *v1.Namespace {
 			Recorder:       mgr.GetEventRecorderFor("charts-controller"),
 		}).SetupWithManager(mgr)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup repogroup controller")
-
-		err = (&agentcontrollers.ReleaseGroupReconciler{
-			Client:         mgr.GetClient(),
-			WatchNamespace: ns,
-			Log:            logf.Log,
-			Scheme:         mgr.GetScheme(),
-			Recorder:       mgr.GetEventRecorderFor("releasegroup-controller"),
-		}).SetupWithManager(mgr)
-		Expect(err).NotTo(HaveOccurred(), "failed to setup release group controller")
 
 		err = (&agentcontrollers.ReleaseReconciler{
 			WithWatch:      rc,
@@ -242,7 +232,7 @@ var _ = BeforeSuite(func() {
 
 	// +kubebuilder:scaffold:scheme
 
-	err = helmv1alpha1.AddToScheme(scheme.Scheme)
+	err = yahov1alpha2.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
@@ -277,7 +267,7 @@ func randStringRunes(n int) string {
 	return string(b)
 }
 
-func GetRepositoryFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repository) func() error {
+func GetRepositoryFunc(ctx context.Context, key client.ObjectKey, obj *yahov1alpha2.Repository) func() error {
 	return func() error {
 		if err := testClient.Get(ctx, key, obj); err != nil {
 			return err
@@ -287,7 +277,7 @@ func GetRepositoryFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alp
 	}
 }
 
-func GetRepositoryStatusFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repository) func() bool {
+func GetRepositoryStatusFunc(ctx context.Context, key client.ObjectKey, obj *yahov1alpha2.Repository) func() bool {
 	return func() bool {
 		if err := testClient.Get(ctx, key, obj); err != nil {
 			return false
@@ -305,7 +295,7 @@ func GetRepositoryStatusFunc(ctx context.Context, key client.ObjectKey, obj *hel
 	}
 }
 
-func GetRepositoryCountFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Repository) func() *int64 {
+func GetRepositoryCountFunc(ctx context.Context, key client.ObjectKey, obj *yahov1alpha2.Repository) func() *int64 {
 	return func() *int64 {
 		if err := testClient.Get(ctx, key, obj); err != nil {
 			l := int64(0)
@@ -316,13 +306,13 @@ func GetRepositoryCountFunc(ctx context.Context, key client.ObjectKey, obj *helm
 	}
 }
 
-func GetChartFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() error {
+func GetChartFunc(ctx context.Context, key client.ObjectKey, obj *yahov1alpha2.Chart) func() error {
 	return func() error {
 		return testClient.Get(ctx, key, obj)
 	}
 }
 
-func GetChartSyncedStatusFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() bool {
+func GetChartSyncedStatusFunc(ctx context.Context, key client.ObjectKey, obj *yahov1alpha2.Chart) func() bool {
 	return func() bool {
 		if err := testClient.Get(ctx, key, obj); err != nil {
 			return false
@@ -340,7 +330,7 @@ func GetChartSyncedStatusFunc(ctx context.Context, key client.ObjectKey, obj *he
 	}
 }
 
-func GetChartDependencyStatusFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Chart) func() bool {
+func GetChartDependencyStatusFunc(ctx context.Context, key client.ObjectKey, obj *yahov1alpha2.Chart) func() bool {
 	return func() bool {
 		if err := testClient.Get(ctx, key, obj); err != nil {
 			return false
@@ -359,14 +349,14 @@ func GetChartDependencyStatusFunc(ctx context.Context, key client.ObjectKey, obj
 }
 
 /*
-func getRepoGroupFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.RepoGroup) func() error {
+func getRepoGroupFunc(ctx context.Context, key client.ObjectKey, obj *yahov1alpha2.RepoGroup) func() error {
 	return func() error {
 		return testClient.Get(ctx, key, obj)
 	}
 }
 */
 
-func GetReleaseFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Release) func() error {
+func GetReleaseFunc(ctx context.Context, key client.ObjectKey, obj *yahov1alpha2.Release) func() error {
 	return func() error {
 		if err := testClient.Get(ctx, key, obj); err != nil {
 			return err
@@ -376,7 +366,7 @@ func GetReleaseFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1
 	}
 }
 
-func GetReleaseStatusFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Release, status string) func() bool {
+func GetReleaseStatusFunc(ctx context.Context, key client.ObjectKey, obj *yahov1alpha2.Release, status string) func() bool {
 	return func() bool {
 		if err := testClient.Get(ctx, key, obj); err != nil {
 			return false
@@ -394,7 +384,7 @@ func GetReleaseStatusFunc(ctx context.Context, key client.ObjectKey, obj *helmv1
 	}
 }
 
-func GetReleaseRevisionFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Release, revision int) func() bool {
+func GetReleaseRevisionFunc(ctx context.Context, key client.ObjectKey, obj *yahov1alpha2.Release, revision int) func() bool {
 	return func() bool {
 		if err := testClient.Get(ctx, key, obj); err != nil {
 			return false
@@ -412,7 +402,7 @@ func GetReleaseRevisionFunc(ctx context.Context, key client.ObjectKey, obj *helm
 	}
 }
 
-func GetReleaseSyncedFunc(ctx context.Context, key client.ObjectKey, obj *helmv1alpha1.Release) func() bool {
+func GetReleaseSyncedFunc(ctx context.Context, key client.ObjectKey, obj *yahov1alpha2.Release) func() bool {
 	return func() bool {
 		if err := testClient.Get(ctx, key, obj); err != nil {
 			return false
@@ -471,7 +461,7 @@ func (r *RepositoryAssert) setDefault() {
 	r.InstalledCharts = int64(0)
 
 	if r.Obj == nil {
-		r.Obj = &helmv1alpha1.Repository{ObjectMeta: metav1.ObjectMeta{Name: r.Name}}
+		r.Obj = &yahov1alpha2.Repository{ObjectMeta: metav1.ObjectMeta{Name: r.Name}}
 	}
 }
 
@@ -483,7 +473,7 @@ func (r *RepositoryAssert) setEverythingInstalled() {
 	r.InstalledCharts = int64(len(r.ManagedCharts))
 
 	if r.Obj == nil {
-		r.Obj = &helmv1alpha1.Repository{ObjectMeta: metav1.ObjectMeta{Name: r.Name}}
+		r.Obj = &yahov1alpha2.Repository{ObjectMeta: metav1.ObjectMeta{Name: r.Name}}
 	}
 
 }
@@ -537,7 +527,7 @@ func (c *ChartAssert) setDefault(repo string) {
 	c.Deps = BeFalse()
 
 	if c.Obj == nil {
-		c.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: c.Name}}
+		c.Obj = &yahov1alpha2.Chart{ObjectMeta: metav1.ObjectMeta{Name: c.Name}}
 	}
 
 }
@@ -551,7 +541,7 @@ func (c *ChartAssert) setEverythingInstalled() {
 	c.Deps = BeTrue()
 
 	if c.Obj == nil {
-		c.Obj = &helmv1alpha1.Chart{ObjectMeta: metav1.ObjectMeta{Name: c.Name}}
+		c.Obj = &yahov1alpha2.Chart{ObjectMeta: metav1.ObjectMeta{Name: c.Name}}
 	}
 }
 
@@ -662,14 +652,14 @@ func RemoveRBAC(namespace string) {
 
 func SetupConfig(namespace string) {
 
-	config := &helmv1alpha1.Config{
+	config := &yahov1alpha2.Config{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "config",
 			Namespace: namespace,
 		},
-		Spec: helmv1alpha1.ConfigSpec{
+		Spec: yahov1alpha2.ConfigSpec{
 			ServiceAccountName: "account",
-			Namespace: helmv1alpha1.Namespace{
+			Namespace: yahov1alpha2.Namespace{
 				Allowed: []string{namespace},
 			},
 		},
@@ -681,7 +671,7 @@ func SetupConfig(namespace string) {
 
 func RemoveConfig(namespace string) {
 
-	config := &helmv1alpha1.Config{}
+	config := &yahov1alpha2.Config{}
 
 	err = testClient.Get(context.Background(), apitypes.NamespacedName{Name: "config", Namespace: namespace}, config)
 	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
@@ -692,12 +682,12 @@ func RemoveConfig(namespace string) {
 
 func CompareValues(name, namespace string, expected map[string]interface{}) error {
 
-	config := &helmv1alpha1.Config{
+	config := &yahov1alpha2.Config{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "config",
 			Namespace: namespace,
 		},
-		Spec: helmv1alpha1.ConfigSpec{
+		Spec: yahov1alpha2.ConfigSpec{
 			ServiceAccountName: "account",
 		},
 	}

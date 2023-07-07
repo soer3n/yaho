@@ -129,15 +129,6 @@ func runAgent(scheme *runtime.Scheme, configFile string, isLocal bool, metricsAd
 		setupLog.Error(err, "unable to create controller", "controller", "Release")
 		os.Exit(1)
 	}
-	if err = (&helmcontrollers.ReleaseGroupReconciler{
-		Client:         rc,
-		WatchNamespace: ns,
-		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("ReleaseGroup"),
-		Scheme:         mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ReleaseGroup")
-		os.Exit(1)
-	}
 	if err = (&helmcontrollers.ValuesReconciler{
 		Client: rc,
 		Log:    ctrl.Log.WithName("controllers").WithName("helm").WithName("Values"),

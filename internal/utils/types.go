@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -26,7 +26,7 @@ type HelmRESTClientGetter struct {
 	ReleaseNamespace string
 	KubeConfig       string
 	IsLocal          bool
-	HelmConfig       *helmv1alpha1.Config
+	HelmConfig       *yahov1alpha2.Config
 	Client           client.Client
 	logger           logr.Logger
 }

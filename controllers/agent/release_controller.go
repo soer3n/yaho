@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package helm
+package agent
 
 import (
 	"context"
@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/release"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/cli"
@@ -72,7 +72,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	_ = r.Log.WithValues("releasereq", req)
 
 	// fetch app instance
-	instance := &helmv1alpha1.Release{}
+	instance := &yahov1alpha2.Release{}
 
 	reqLogger.Info("start reconcile loop")
 
@@ -212,7 +212,7 @@ func (r *ReleaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *ReleaseReconciler) handleFinalizer(helmRelease *release.Release, instance *helmv1alpha1.Release, isRepoMarkedToBeDeleted bool) (bool, error) {
+func (r *ReleaseReconciler) handleFinalizer(helmRelease *release.Release, instance *yahov1alpha2.Release, isRepoMarkedToBeDeleted bool) (bool, error) {
 
 	if isRepoMarkedToBeDeleted {
 		controllerutil.RemoveFinalizer(instance, "finalizer.releases.yaho.soer3n.dev")
@@ -228,7 +228,7 @@ func (r *ReleaseReconciler) handleFinalizer(helmRelease *release.Release, instan
 	return false, nil
 }
 
-func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Release, stats metav1.ConditionStatus, reason, message, status string, synced bool, revision int) error {
+func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.Release, stats metav1.ConditionStatus, reason, message, status string, synced bool, revision int) error {
 
 	r.Log.Info("sync status", "release", instance.GetName())
 	instanceLabels := instance.GetLabels()
@@ -276,13 +276,13 @@ func (r *ReleaseReconciler) syncStatus(ctx context.Context, instance *helmv1alph
 	return nil
 }
 
-func (r *ReleaseReconciler) getConfig(spec helmv1alpha1.ReleaseSpec, namespace string) (*helmv1alpha1.Config, error) {
+func (r *ReleaseReconciler) getConfig(spec yahov1alpha2.ReleaseSpec, namespace string) (*yahov1alpha2.Config, error) {
 
 	if spec.Config == nil {
 		return nil, nil
 	}
 
-	instance := &helmv1alpha1.Config{}
+	instance := &yahov1alpha2.Config{}
 
 	err := r.Get(context.Background(), types.NamespacedName{
 		Name:      *spec.Config,
@@ -309,7 +309,7 @@ func (r *ReleaseReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	pred := predicate.Or(predicate.GenerationChangedPredicate{}, lsPredicate)
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&helmv1alpha1.Release{}).
+		For(&yahov1alpha2.Release{}).
 		WithEventFilter(pred).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 2}).
 		Complete(r)

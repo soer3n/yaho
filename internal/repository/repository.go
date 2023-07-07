@@ -16,7 +16,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
@@ -34,10 +34,12 @@ const configMapLabelKey = "yaho.soer3n.dev/chart"
 const configMapRepoLabelKey = "yaho.soer3n.dev/repo"
 const configMapRepoGroupLabelKey = "yaho.soer3n.dev/repoGroup"
 const configMapLabelType = "yaho.soer3n.dev/type"
+
+// What does this mean?
 const configMapLabelUnmanaged = "yaho.soer3n.dev/unmanaged"
 
 // New represents initialization of internal repo struct
-func New(instance *helmv1alpha1.Repository, namespace string, ctx context.Context, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Repo {
+func New(instance *yahov1alpha2.Repository, namespace string, ctx context.Context, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Repo {
 	var helmRepo *Repo
 
 	reqLogger.Info("Trying HelmRepo", "repo", instance.Spec.Name)
@@ -86,6 +88,7 @@ func New(instance *helmv1alpha1.Repository, namespace string, ctx context.Contex
 		}
 	}
 
+	// TODO: get also remote charts file and parse it to a configmap or store it as a status field?
 	indexFile, err := helmRepo.getIndexByURL()
 
 	if err != nil {
@@ -97,7 +100,7 @@ func New(instance *helmv1alpha1.Repository, namespace string, ctx context.Contex
 	return helmRepo
 }
 
-func (hr *Repo) Update(instance *helmv1alpha1.Repository, scheme *runtime.Scheme) error {
+func (hr *Repo) Update(instance *yahov1alpha2.Repository, scheme *runtime.Scheme) error {
 
 	if err := hr.createIndexConfigmaps(instance, scheme); err != nil {
 		return err
@@ -113,7 +116,7 @@ func (hr *Repo) Update(instance *helmv1alpha1.Repository, scheme *runtime.Scheme
 	repo := instance.DeepCopy()
 
 	// fetch installed charts related to repository resource
-	installedCharts := &helmv1alpha1.ChartList{}
+	installedCharts := &yahov1alpha2.ChartList{}
 	requirement, _ := labels.ParseToRequirements(configMapRepoLabelKey + "=" + hr.Name)
 	opts := &client.ListOptions{
 		LabelSelector: labels.NewSelector().Add(requirement[0]),
@@ -161,10 +164,11 @@ func (hr *Repo) Update(instance *helmv1alpha1.Repository, scheme *runtime.Scheme
 	return nil
 }
 
-func (hr *Repo) createIndexConfigmaps(instance *helmv1alpha1.Repository, scheme *runtime.Scheme) error {
+func (hr *Repo) createIndexConfigmaps(instance *yahov1alpha2.Repository, scheme *runtime.Scheme) error {
 
 	for chart, versions := range hr.index.Entries {
 
+		// TODO: what is happening here? And why?
 		if len(instance.Spec.Charts) > 0 {
 			ok := false
 			for _, sc := range instance.Spec.Charts {

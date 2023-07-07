@@ -3,7 +3,7 @@ package helm
 import (
 	"context"
 
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/tests/mocks"
 	unstructuredmocks "github.com/soer3n/yaho/tests/mocks/unstructured"
 	"github.com/stretchr/testify/mock"
@@ -23,11 +23,11 @@ func setConfig(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.HTTP
 		}, "notfound")
 	}
 
-	clientMock.On("Get", context.Background(), types.NamespacedName{Name: name, Namespace: namespace}, &helmv1alpha1.Config{}).Return(e).Run(func(args mock.Arguments) {
-		c := args.Get(2).(*helmv1alpha1.Config)
+	clientMock.On("Get", context.Background(), types.NamespacedName{Name: name, Namespace: namespace}, &yahov1alpha2.Config{}).Return(e).Run(func(args mock.Arguments) {
+		c := args.Get(2).(*yahov1alpha2.Config)
 		c.ObjectMeta.Name = name
 		c.ObjectMeta.Namespace = namespace
-		c.Spec.Flags = &helmv1alpha1.Flags{
+		c.Spec.Flags = &yahov1alpha2.Flags{
 			DryRun:        false,
 			DisableHooks:  false,
 			CleanupOnFail: true,

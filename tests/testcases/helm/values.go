@@ -1,7 +1,7 @@
 package helm
 
 import (
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	inttypes "github.com/soer3n/yaho/tests/mocks/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -29,12 +29,12 @@ func GetTestValueSpecs() []inttypes.TestCase {
 
 	releaseSpec := []inttypes.TestCase{
 		{
-			Input: &helmv1alpha1.Release{
+			Input: &yahov1alpha2.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "release",
 					Namespace: "foo",
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
+				Spec: yahov1alpha2.ReleaseSpec{
 					Name:  "release",
 					Chart: "chart",
 					Repo:  "repo",
@@ -50,12 +50,12 @@ func GetTestValueSpecs() []inttypes.TestCase {
 			ReturnValue: vm,
 		},
 		{
-			Input: &helmv1alpha1.Release{
+			Input: &yahov1alpha2.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "release",
 					Namespace: "foo",
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
+				Spec: yahov1alpha2.ReleaseSpec{
 					Name:  "release",
 					Chart: "chart",
 					Repo:  "repo",
@@ -71,12 +71,12 @@ func GetTestValueSpecs() []inttypes.TestCase {
 			ReturnValue: embedded,
 		},
 		{
-			Input: &helmv1alpha1.Release{
+			Input: &yahov1alpha2.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "release",
 					Namespace: "foo",
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
+				Spec: yahov1alpha2.ReleaseSpec{
 					Name:  "release",
 					Chart: "chart",
 					Repo:  "repo",
@@ -92,12 +92,12 @@ func GetTestValueSpecs() []inttypes.TestCase {
 			ReturnValue: embedded,
 		},
 		{
-			Input: &helmv1alpha1.Release{
+			Input: &yahov1alpha2.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "release",
 					Namespace: "foo",
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
+				Spec: yahov1alpha2.ReleaseSpec{
 					Name:  "release",
 					Chart: "chart",
 					Repo:  "repo",
@@ -117,12 +117,12 @@ func GetTestValueSpecs() []inttypes.TestCase {
 			},
 		},
 		{
-			Input: &helmv1alpha1.Release{
+			Input: &yahov1alpha2.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "release",
 					Namespace: "foo",
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
+				Spec: yahov1alpha2.ReleaseSpec{
 					Name:  "release",
 					Chart: "chart",
 					Repo:  "repo",
@@ -138,12 +138,12 @@ func GetTestValueSpecs() []inttypes.TestCase {
 			ReturnValue: embedded2,
 		},
 		{
-			Input: &helmv1alpha1.Release{
+			Input: &yahov1alpha2.Release{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "release",
 					Namespace: "foo",
 				},
-				Spec: helmv1alpha1.ReleaseSpec{
+				Spec: yahov1alpha2.ReleaseSpec{
 					Name:  "release",
 					Chart: "chart",
 					Repo:  "repo",

@@ -1,0 +1,20 @@
+# permissions for end users to view releases.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: release-viewer-role
+rules:
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releases
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releases/status
+  verbs:
+  - get

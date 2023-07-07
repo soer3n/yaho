@@ -15,15 +15,16 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package helm
+package manager
 
 import (
 	"context"
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
-	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/chart"
 	"github.com/soer3n/yaho/internal/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -64,7 +65,7 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	_ = r.Log.WithValues("chartsreq", req)
 
 	// fetch app instance
-	instance := &helmv1alpha1.Chart{}
+	instance := &yahov1alpha2.Chart{}
 
 	reqLogger.Info("start reconcile loop")
 
@@ -82,12 +83,6 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	// set intial status
-	versions := "notSynced"
-	deps := "notSynced"
-	instance.Status.Versions = &versions
-	instance.Status.Dependencies = &deps
-
 	if instance.ObjectMeta.Labels == nil {
 		instance.ObjectMeta.Labels = map[string]string{}
 	}
@@ -99,7 +94,6 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		reqLogger.Info("update chart label")
 		// set chart as label
 		instance.ObjectMeta.Labels[LabelPrefix+"chart"] = instance.Spec.Name
-		_ = r.WithWatch.Update(ctx, instance)
 	}
 
 	if !repoLabelIsSet {
@@ -108,9 +102,11 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		instance.ObjectMeta.Labels[LabelPrefix+"repo"] = instance.Spec.Repository
 		// set unmanaged label
 		instance.ObjectMeta.Labels[LabelPrefix+"unmanaged"] = "true"
+	}
+
+	if !chartLabelIsSet || !repoLabelIsSet {
 		// update resource after modifying labels and exit current reconcile loop
 		_ = r.WithWatch.Update(ctx, instance)
-		// return ctrl.Result{}, nil
 	}
 
 	settings := utils.GetEnvSettings(map[string]string{})
@@ -123,45 +119,61 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		},
 	}
 
-	hc, err := chart.New(instance, r.WatchNamespace, settings, r.Scheme, reqLogger, r.WithWatch, &g, settings.RESTClientGetter(), []byte{})
+	hc, err := chart.New(instance.Spec.Name, instance.Spec.Repository, r.WatchNamespace, &instance.Status, settings, r.Scheme, reqLogger, r.WithWatch, &g, settings.RESTClientGetter(), []byte{})
 
 	if err != nil {
-		reqLogger.Info("failed to initialize chart resource struct", "name", instance.ObjectMeta.Name)
-		return r.syncStatus(ctx, instance, metav1.ConditionTrue, "initChartFailed", err.Error())
+		reqLogger.Error(err, "failed to initialize chart resource struct", "name", instance.ObjectMeta.Name)
+		return r.syncStatus(ctx, instance, hc.Status)
 	}
 
 	if err := hc.Update(instance); err != nil {
-		reqLogger.Info("failed to updatechart resource", "name", instance.ObjectMeta.Name)
-		return r.syncStatus(ctx, instance, metav1.ConditionTrue, "createConfigmapsFailed", err.Error())
+		reqLogger.Error(err, "failed to updatechart resource", "name", instance.ObjectMeta.Name)
+		return r.syncStatus(ctx, instance, hc.Status)
 	}
 
-	versions = "synced"
-	instance.Status.Versions = &versions
+	//versions = "synced"
+	//instance.Status.Versions = &versions
 
 	if instance.Spec.CreateDeps {
 		if err := hc.CreateOrUpdateSubCharts(); err != nil {
-			reqLogger.Info("error on managing subcharts. Reconciling.", "name", instance.ObjectMeta.Name, "error", err.Error())
-			return r.syncStatus(ctx, instance, metav1.ConditionTrue, "createDepsFailed", err.Error())
+			condition := metav1.Condition{
+				Type:               "dependenciesSync",
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             "chart update",
+				Message:            err.Error(),
+			}
+			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+			reqLogger.Error(err, "error on managing subcharts. Reconciling.", "name", instance.ObjectMeta.Name)
 
 		}
 
-		deps = "synced"
-		instance.Status.Dependencies = &deps
+		//deps = "synced"
+		//instance.Status.Dependencies = &deps
 	}
 
-	reqLogger.Info("chart up to date", "name", instance.ObjectMeta.Name)
+	reqLogger.Info("chart resource is up to date", "name", instance.ObjectMeta.Name)
 
-	return r.syncStatus(ctx, instance, metav1.ConditionTrue, "success", "all up to date")
+	return r.syncStatus(ctx, instance, hc.Status)
 }
 
-func (r *ChartReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1.Chart, stats metav1.ConditionStatus, reason, message string) (ctrl.Result, error) {
-	c := meta.FindStatusCondition(instance.Status.Conditions, "synced")
-	if c != nil && c.Message == message && c.Status == stats {
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+func (r *ChartReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.Chart, status *yahov1alpha2.ChartStatus) (ctrl.Result, error) {
+
+	changed := false
+	if !reflect.DeepEqual(instance.Status.ChartVersions, status.ChartVersions) {
+		changed = true
+		instance.Status.ChartVersions = status.ChartVersions
 	}
 
-	condition := metav1.Condition{Type: "synced", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
-	meta.SetStatusCondition(&instance.Status.Conditions, condition)
+	if r.setConditions(instance, status) {
+		changed = true
+		instance.Status.Conditions = status.Conditions
+	}
+
+	if !changed {
+		r.Log.Info("nothing to update on status", "chart", instance.ObjectMeta.Name)
+		return ctrl.Result{}, nil
+	}
 
 	if err := r.Status().Update(ctx, instance); err != nil {
 		r.Log.Info("could not update status. reconcile", "chart", instance.ObjectMeta.Name)
@@ -172,9 +184,41 @@ func (r *ChartReconciler) syncStatus(ctx context.Context, instance *helmv1alpha1
 	return ctrl.Result{}, nil
 }
 
+func (r *ChartReconciler) setConditions(instance *yahov1alpha2.Chart, auth *yahov1alpha2.ChartStatus) bool {
+	// TODO: use a map here
+	changed := false
+	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "indexLoaded", meta.FindStatusCondition(auth.Conditions, "indexLoaded").Status) {
+		changed = true
+		condition := metav1.Condition{Type: "indexLoaded", Status: meta.FindStatusCondition(auth.Conditions, "indexLoaded").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "indexLoaded").Reason, Message: meta.FindStatusCondition(auth.Conditions, "indexLoaded").Message}
+		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+	}
+	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "configmapCreate", meta.FindStatusCondition(auth.Conditions, "configmapCreate").Status) {
+		changed = true
+		condition := metav1.Condition{Type: "configmapCreate", Status: meta.FindStatusCondition(auth.Conditions, "configmapCreate").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "configmapCreate").Reason, Message: meta.FindStatusCondition(auth.Conditions, "configmapCreate").Message}
+		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+	}
+	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "remoteSync", meta.FindStatusCondition(auth.Conditions, "remoteSync").Status) {
+		changed = true
+		condition := metav1.Condition{Type: "remoteSync", Status: meta.FindStatusCondition(auth.Conditions, "remoteSync").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "remoteSync").Reason, Message: meta.FindStatusCondition(auth.Conditions, "remoteSync").Message}
+		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+	}
+	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "dependenciesSync", meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Status) {
+		changed = true
+		condition := metav1.Condition{Type: "dependenciesSync", Status: meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Reason, Message: meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Message}
+		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+	}
+	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "prepareChart", meta.FindStatusCondition(auth.Conditions, "prepareChart").Status) {
+		changed = true
+		condition := metav1.Condition{Type: "prepareChart", Status: meta.FindStatusCondition(auth.Conditions, "prepareChart").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "prepareChart").Reason, Message: meta.FindStatusCondition(auth.Conditions, "prepareChart").Message}
+		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+	}
+
+	return changed
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *ChartReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&helmv1alpha1.Chart{}).
+		For(&yahov1alpha2.Chart{}).
 		Complete(r)
 }
