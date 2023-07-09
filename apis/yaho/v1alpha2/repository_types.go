@@ -44,9 +44,16 @@ type Entry struct {
 type RepositoryStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Synced     *bool              `json:"synced,omitempty"`
-	Charts     *int64             `json:"charts,omitempty"`
+	Synced *bool            `json:"synced,omitempty"`
+	Charts RepositoryCharts `json:"charts,omitempty"`
+	// enum: indexLoaded, remoteSync
 	Conditions []metav1.Condition `json:"conditions"`
+}
+
+type RepositoryCharts struct {
+	Names  []string `json:"names,omitempty"`
+	Linked *int64   `json:"linked,omitempty"`
+	Loaded *int64   `json:"loaded,omitempty"`
 }
 
 // +kubebuilder:object:root=true

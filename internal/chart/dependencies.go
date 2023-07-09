@@ -102,13 +102,13 @@ func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettin
 				}
 			}
 
-			var dhc *chart.Chart
+			dhc := &chart.Chart{}
 
 			if err := LoadChartByResources(c, logger, dhc, cv, dep.Name, repoName, namespace, &action.ChartPathOptions{}, subVals); err != nil {
 				return err
 			}
 
-			if dhc == nil {
+			if dhc.Files == nil {
 				return errors.New("could not load subchart " + dep.Name)
 			}
 
@@ -130,7 +130,8 @@ func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettin
 
 func getRepositoryNameByUrl(url string, c client.WithWatch) (string, error) {
 	var name string
-	var r *yahov1alpha2.RepositoryList
+
+	r := &yahov1alpha2.RepositoryList{}
 	if err := c.List(context.TODO(), r, &client.ListOptions{}); err != nil {
 		return name, err
 	}
@@ -177,7 +178,7 @@ func (c *Chart) CreateOrUpdateSubCharts() error {
 					Type:               "dependenciesSync",
 					Status:             metav1.ConditionFalse,
 					LastTransitionTime: metav1.Time{Time: time.Now()},
-					Reason:             "chart update",
+					Reason:             "chartUpdate",
 					Message:            fmt.Sprintf("failed to get repository name for chart %s", dep.Name),
 				}
 				meta.SetStatusCondition(&c.Status.Conditions, condition)
@@ -190,7 +191,7 @@ func (c *Chart) CreateOrUpdateSubCharts() error {
 					Type:               "dependenciesSync",
 					Status:             metav1.ConditionFalse,
 					LastTransitionTime: metav1.Time{Time: time.Now()},
-					Reason:             "chart update",
+					Reason:             "chartUpdate",
 					Message:            fmt.Sprintf("failed to create chart resource for %s/%s", repoName, dep.Name),
 				}
 				meta.SetStatusCondition(&c.Status.Conditions, condition)
@@ -204,7 +205,7 @@ func (c *Chart) CreateOrUpdateSubCharts() error {
 		Type:               "dependenciesSync",
 		Status:             metav1.ConditionTrue,
 		LastTransitionTime: metav1.Time{Time: time.Now()},
-		Reason:             "chart update",
+		Reason:             "chartUpdate",
 		Message:            "successful synced",
 	}
 	meta.SetStatusCondition(&c.Status.Conditions, condition)

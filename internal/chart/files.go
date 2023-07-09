@@ -22,24 +22,22 @@ func setFiles(mu *sync.Mutex, helmChart *chart.Chart, chartName string, chartPat
 	quit := make(chan bool)
 	counter := 0
 
-	files := []*chart.File{}
-	templates := []*chart.File{}
+	helmChart.Files = []*chart.File{}
+	helmChart.Templates = []*chart.File{}
 
 	go getFiles(chartPathOptions.Version, chartName, c, logger, quit, d, t)
 
 	for {
 		select {
 		case i := <-d:
-			files = append(files, i)
+			helmChart.Files = append(helmChart.Files, i)
 		case j := <-t:
-			templates = append(templates, j)
+			helmChart.Templates = append(helmChart.Templates, j)
 		case <-quit:
 			counter++
 			if counter == 3 {
 				close(d)
 				close(t)
-				helmChart.Files = files
-				helmChart.Templates = templates
 				return
 			}
 		}

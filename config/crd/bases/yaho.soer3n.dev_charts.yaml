@@ -222,7 +222,7 @@ spec:
                 type: object
               conditions:
                 description: 'TODO: implement conditions in a new way: enum: indexLoaded,
-                  configmapCreate, remoteSync'
+                  configmapCreate, remoteSync, prepareChart, dependenciesSync'
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct

@@ -43,7 +43,7 @@ func createConfigMaps(cm chan v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersio
 	}()
 
 	go func() {
-		createDefaultValueConfigMap(cm, namespace, repository, v, hc.Values)
+		createDefaultValueConfigMap(cm, namespace, repository, v, hc.Values, logger)
 		wg.Done()
 	}()
 
@@ -106,7 +106,7 @@ func DeployConfigMap(configmap v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersi
 	}
 
 	if len(chartList.Items) != 1 {
-		return errors.New("multiple charts found...")
+		return errors.New("multiple charts found")
 	}
 	chartObj := chartList.Items[0]
 	if err := controllerutil.SetControllerReference(&chartObj, &configmap, scheme); err != nil {
@@ -214,7 +214,7 @@ func createTemplateConfigMap(cm chan v1.ConfigMap, name, namespace, repository s
 
 }
 
-func createDefaultValueConfigMap(cm chan v1.ConfigMap, repository, namespace string, v *repo.ChartVersion, values map[string]interface{}) {
+func createDefaultValueConfigMap(cm chan v1.ConfigMap, namespace, repository string, v *repo.ChartVersion, values map[string]interface{}, logger logr.Logger) {
 	immutable := new(bool)
 	*immutable = true
 	objectMeta := metav1.ObjectMeta{
@@ -234,6 +234,8 @@ func createDefaultValueConfigMap(cm chan v1.ConfigMap, repository, namespace str
 
 	castedValues, _ := json.Marshal(values)
 	configmap.Data["values"] = string(castedValues)
+
+	logger.Info("parsed default values configmap", "chart", v.Name, "repository", repository, "configmap", configmap)
 
 	cm <- configmap
 }

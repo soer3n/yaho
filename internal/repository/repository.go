@@ -164,6 +164,16 @@ func (hr *Repo) Update(instance *yahov1alpha2.Repository, scheme *runtime.Scheme
 	return nil
 }
 
+func (hr *Repo) GetChartCount() int64 {
+	var count int64
+
+	for _ = range hr.index.Entries {
+		count++
+	}
+
+	return count
+}
+
 func (hr *Repo) createIndexConfigmaps(instance *yahov1alpha2.Repository, scheme *runtime.Scheme) error {
 
 	for chart, versions := range hr.index.Entries {
@@ -222,8 +232,10 @@ func (hr *Repo) createIndexConfigmaps(instance *yahov1alpha2.Repository, scheme 
 				hr.logger.Info("chart configmap of repository index configmap updated", "chart", chart, "name", cm.ObjectMeta.Name)
 				return nil
 			}
-			hr.logger.Info("chart configmap of repository index configmap created", "chart", chart, "name", cm.ObjectMeta.Name)
+			hr.logger.Error(err, "not able to create index configmap", "chart", chart)
+			return err
 		}
+		hr.logger.Info("chart configmap of repository index configmap created", "chart", chart, "name", cm.ObjectMeta.Name)
 	}
 
 	return nil

@@ -3,6 +3,7 @@ package chart
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -67,7 +68,7 @@ func New(name, repository, namespace string, status *yahov1alpha2.ChartStatus, s
 			Type:               "indexLoaded",
 			Status:             metav1.ConditionFalse,
 			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "chart initialization",
+			Reason:             "chartInitialization",
 			Message:            err.Error(),
 		}
 		meta.SetStatusCondition(&chart.Status.Conditions, condition)
@@ -78,7 +79,7 @@ func New(name, repository, namespace string, status *yahov1alpha2.ChartStatus, s
 		Type:               "indexLoaded",
 		Status:             metav1.ConditionTrue,
 		LastTransitionTime: metav1.Time{Time: time.Now()},
-		Reason:             "chart initialization",
+		Reason:             "chartInitialization",
 		Message:            "successfully loaded",
 	}
 	meta.SetStatusCondition(&chart.Status.Conditions, condition)
@@ -92,13 +93,13 @@ func New(name, repository, namespace string, status *yahov1alpha2.ChartStatus, s
 func (c *Chart) Update(instance *yahov1alpha2.Chart) error {
 
 	c.logger.Info("set versions")
-	if err := c.setVersions(instance, c.Namespace, c.kubernetes.scheme); err != nil {
+	if err := c.setVersions(instance); err != nil {
 		c.logger.Info(err.Error())
 		return err
 	}
 	for name := range c.Status.ChartVersions {
 
-		var hc *chart.Chart
+		hc := &chart.Chart{}
 		var currentVersion *repo.ChartVersion
 
 		chartUrl, err := c.getChartURL(name, instance.Spec.Repository)
@@ -118,7 +119,7 @@ func (c *Chart) Update(instance *yahov1alpha2.Chart) error {
 				Type:               "prepareChart",
 				Status:             metav1.ConditionFalse,
 				LastTransitionTime: metav1.Time{Time: time.Now()},
-				Reason:             "chart update",
+				Reason:             "chartUpdate",
 				Message:            err.Error(),
 			}
 			meta.SetStatusCondition(&c.Status.Conditions, condition)
@@ -129,7 +130,7 @@ func (c *Chart) Update(instance *yahov1alpha2.Chart) error {
 			Type:               "prepareChart",
 			Status:             metav1.ConditionTrue,
 			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "chart update",
+			Reason:             "chartUpdate",
 			Message:            "successful update",
 		}
 		meta.SetStatusCondition(&c.Status.Conditions, condition)
@@ -141,7 +142,7 @@ func (c *Chart) Update(instance *yahov1alpha2.Chart) error {
 				Type:               "configmapCreate",
 				Status:             metav1.ConditionFalse,
 				LastTransitionTime: metav1.Time{Time: time.Now()},
-				Reason:             "chart update",
+				Reason:             "chartUpdate",
 				Message:            err.Error(),
 			}
 			meta.SetStatusCondition(&c.Status.Conditions, condition)
@@ -152,7 +153,7 @@ func (c *Chart) Update(instance *yahov1alpha2.Chart) error {
 			Type:               "configmapCreate",
 			Status:             metav1.ConditionTrue,
 			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "chart update",
+			Reason:             "chartUpdate",
 			Message:            "successful update",
 		}
 		meta.SetStatusCondition(&c.Status.Conditions, condition)
@@ -161,14 +162,33 @@ func (c *Chart) Update(instance *yahov1alpha2.Chart) error {
 	return nil
 }
 
-func (c *Chart) setVersions(instance *yahov1alpha2.Chart, namespace string, scheme *runtime.Scheme) error {
+func (c *Chart) setVersions(instance *yahov1alpha2.Chart) error {
 
 	// var chartVersions ChartVersions
 
+	if c.Status.ChartVersions == nil {
+		c.Status.ChartVersions = make(map[string]yahov1alpha2.ChartVersion)
+	}
+
 	for _, version := range instance.Spec.Versions {
 		c.logger.Info("init rendering version ...", "version", version, "chart", c.Name)
-		if _, ok := c.Status.ChartVersions[version]; !ok {
-			c.Status.ChartVersions[version] = yahov1alpha2.ChartVersion{
+
+		parsedVersion := version
+		var err error
+
+		if strings.Contains(version, "*") || strings.Contains(version, "x") {
+			c.logger.Info("rendering placeholder in version ...", "version", version, "chart", c.Name)
+			parsedVersion, err = c.getParsedVersion(version, c.helm.index)
+
+			if err != nil {
+				return err
+			}
+
+			c.logger.Info("successfully found version ...", "version", parsedVersion, "chart", c.Name)
+		}
+
+		if _, ok := c.Status.ChartVersions[parsedVersion]; !ok {
+			c.Status.ChartVersions[parsedVersion] = yahov1alpha2.ChartVersion{
 				Loaded:    false,
 				Specified: true,
 			}
@@ -208,11 +228,15 @@ func (c *Chart) prepareVersion(hc *chart.Chart, v *repo.ChartVersion, chartUrl s
 		Verify:                false,
 	}
 
+	if hc == nil {
+		hc = &chart.Chart{}
+	}
+
 	if err := LoadChartByResources(c.kubernetes.client, c.logger, hc, v, c.Name, c.Repo, c.Namespace, options, map[string]interface{}{}); err != nil {
 		return err
 	}
 
-	if hc == nil {
+	if len(hc.Files) < 1 {
 		if err := LoadChartByURL(c.Name, chartUrl, releaseClient, c.getter, hc); err != nil {
 			return err
 		}
@@ -220,20 +244,38 @@ func (c *Chart) prepareVersion(hc *chart.Chart, v *repo.ChartVersion, chartUrl s
 	}
 
 	for _, dep := range v.Dependencies {
-		var tempChart *chart.Chart
+		tempChart := &chart.Chart{}
 
 		repositoryName, err := getRepositoryNameByUrl(dep.Repository, c.kubernetes.client)
 
 		if err != nil {
-			c.logger.Error(err, "name %s", dep.Name)
+			c.logger.Error(err, "error getting repository name by url", "name", dep.Name)
 			continue
 		}
 
-		if err := LoadChartByResources(c.kubernetes.client, c.logger, tempChart, v, dep.Name, repositoryName, c.Namespace, options, map[string]interface{}{}); err != nil {
+		cvi, err := utils.LoadChartIndex(dep.Name, repositoryName, c.Namespace, c.kubernetes.client)
+
+		if err != nil {
+			c.logger.Error(err, "error getting repository chart version for dependency", "name", c.Name, "dependency", dep.Name)
+			continue
+		}
+
+		var cv *repo.ChartVersion
+
+		currentVersion, _ := c.getParsedVersion(dep.Version, *cvi)
+
+		for _, i := range *cvi {
+			if i.Version == currentVersion {
+				cv = i
+				break
+			}
+		}
+
+		if err := LoadChartByResources(c.kubernetes.client, c.logger, tempChart, cv, dep.Name, repositoryName, c.Namespace, options, map[string]interface{}{}); err != nil {
 			return err
 		}
 
-		if tempChart != nil {
+		if len(tempChart.Files) > 0 {
 			hc.AddDependency(tempChart)
 			continue
 		}
@@ -315,7 +357,9 @@ func LoadChartByURL(chartName, chartUrl string, releaseClient *action.Install, g
 		return err
 	}
 
-	hc = c
+	hc.Files = c.Files
+	hc.Templates = c.Templates
+	hc.Values = c.Values
 
 	return nil
 }
@@ -344,7 +388,7 @@ func LoadChartByResources(c client.WithWatch, logger logr.Logger, helmChart *cha
 	wg.Wait()
 
 	if len(helmChart.Files) < 1 {
-		return errors.New("no files detected for chart resource")
+		logger.Info("no files detected for chart resource")
 	}
 
 	// validate after channels are closed

@@ -22,15 +22,15 @@ import (
 	"net/http"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/go-logr/logr"
 	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/repository"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/kube"
-	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
@@ -133,7 +133,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	if err = hc.Update(instance, r.Scheme); err != nil {
-		return r.syncStatus(ctx, instance, err)
+		return r.syncStatus(ctx, instance, hc, err)
 	}
 
 	synced = true
@@ -141,34 +141,16 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	reqLogger.Info("Repo deployed", "name", instance.Spec.Name, "namespace", instance.ObjectMeta.Namespace)
 	reqLogger.Info("Don't reconcile repos.", "name", instance.Spec.Name)
-	return r.syncStatus(ctx, instance, nil)
+	return r.syncStatus(ctx, instance, hc, nil)
 }
 
-func (r *RepoReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.Repository, err error) (ctrl.Result, error) {
+func (r *RepoReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.Repository, hc *repository.Repo, err error) (ctrl.Result, error) {
 	stats := metav1.ConditionTrue
 	message := ""
 	reason := "install"
 
-	// fetch umanaged charts related to current repository
-	r.Log.Info("fetching unmanaged charts related to repository resource")
-	unmanagedCharts := &yahov1alpha2.ChartList{}
-	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap(LabelPrefix + "repo=" + instance.Spec.Name)
-	labelSetUnmanaged, _ := labels.ConvertSelectorToLabelsMap(LabelPrefix + "unmanaged=true")
-	ls := labels.Merge(labelSetRepo, labelSetUnmanaged)
+	newChartCount := hc.GetChartCount()
 
-	r.Log.Info("selector", "labelset", ls)
-
-	opts := &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(ls),
-	}
-
-	if err := r.List(context.Background(), unmanagedCharts, opts); err != nil {
-		r.Log.Info("Error on listing unmanaged charts for repository %v", instance.Spec.Name)
-	}
-
-	r.Log.Info("unmanaged charts", "charts", unmanagedCharts.Items)
-
-	newChartCount := int64(len(instance.Spec.Charts) + len(unmanagedCharts.Items))
 	r.Log.Info("chartlength", "value", newChartCount)
 
 	if err != nil {
@@ -176,20 +158,36 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.
 		message = err.Error()
 	}
 
-	condition := metav1.Condition{Type: "synced", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
+	condition := metav1.Condition{Type: "remoteSync", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
 
-	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "synced", stats) || instance.Status.Conditions[0].Message != message {
+	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "remoteSync", stats) || instance.Status.Conditions[0].Message != message {
 		meta.SetStatusCondition(&instance.Status.Conditions, condition)
-		instance.Status.Charts = &newChartCount
-		_ = r.Status().Update(ctx, instance)
-		return ctrl.Result{}, nil
+		instance.Status.Charts.Loaded = &newChartCount
+		// _ = r.Status().Update(ctx, instance)
+		// return ctrl.Result{}, nil
 	}
 
-	if *instance.Status.Charts != newChartCount {
-		instance.Status.Charts = &newChartCount
-		_ = r.Status().Update(ctx, instance)
-		return ctrl.Result{}, nil
+	if newChartCount == 0 {
+		stats = metav1.ConditionFalse
+		message = "no charts found"
 	}
+
+	condition = metav1.Condition{Type: "indexLoaded", Status: stats, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: reason, Message: message}
+
+	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "indexLoaded", stats) || instance.Status.Conditions[0].Message != message {
+		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+		instance.Status.Charts.Loaded = &newChartCount
+		// _ = r.Status().Update(ctx, instance)
+		// return ctrl.Result{}, nil
+	}
+
+	if *instance.Status.Charts.Loaded != newChartCount {
+		instance.Status.Charts.Loaded = &newChartCount
+		// _ = r.Status().Update(ctx, instance)
+		// return ctrl.Result{}, nil
+	}
+
+	_ = r.Status().Update(ctx, instance)
 
 	if *instance.Status.Synced {
 		r.Log.Info("Reconcile repo after status sync regular in 10 seconds.", "repo", instance.ObjectMeta.Name)

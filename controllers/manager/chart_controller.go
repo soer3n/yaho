@@ -140,7 +140,7 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				Type:               "dependenciesSync",
 				Status:             metav1.ConditionFalse,
 				LastTransitionTime: metav1.Time{Time: time.Now()},
-				Reason:             "chart update",
+				Reason:             "chartUpdate",
 				Message:            err.Error(),
 			}
 			meta.SetStatusCondition(&instance.Status.Conditions, condition)
@@ -192,24 +192,80 @@ func (r *ChartReconciler) setConditions(instance *yahov1alpha2.Chart, auth *yaho
 		condition := metav1.Condition{Type: "indexLoaded", Status: meta.FindStatusCondition(auth.Conditions, "indexLoaded").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "indexLoaded").Reason, Message: meta.FindStatusCondition(auth.Conditions, "indexLoaded").Message}
 		meta.SetStatusCondition(&instance.Status.Conditions, condition)
 	}
-	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "configmapCreate", meta.FindStatusCondition(auth.Conditions, "configmapCreate").Status) {
-		changed = true
-		condition := metav1.Condition{Type: "configmapCreate", Status: meta.FindStatusCondition(auth.Conditions, "configmapCreate").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "configmapCreate").Reason, Message: meta.FindStatusCondition(auth.Conditions, "configmapCreate").Message}
+
+	condition := meta.FindStatusCondition(auth.Conditions, "configmapCreate")
+
+	if condition != nil {
+		if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "configmapCreate", condition.Status) {
+			changed = true
+			condition := metav1.Condition{Type: "configmapCreate", Status: meta.FindStatusCondition(auth.Conditions, "configmapCreate").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "configmapCreate").Reason, Message: meta.FindStatusCondition(auth.Conditions, "configmapCreate").Message}
+			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+		}
+	} else {
+		condition := metav1.Condition{
+			Type:               "configmapCreate",
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: metav1.Time{Time: time.Now()},
+			Reason:             "statusSync",
+			Message:            "status not available",
+		}
 		meta.SetStatusCondition(&instance.Status.Conditions, condition)
 	}
-	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "remoteSync", meta.FindStatusCondition(auth.Conditions, "remoteSync").Status) {
-		changed = true
-		condition := metav1.Condition{Type: "remoteSync", Status: meta.FindStatusCondition(auth.Conditions, "remoteSync").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "remoteSync").Reason, Message: meta.FindStatusCondition(auth.Conditions, "remoteSync").Message}
+
+	condition = meta.FindStatusCondition(auth.Conditions, "remoteSync")
+
+	if condition != nil {
+		if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "remoteSync", meta.FindStatusCondition(auth.Conditions, "remoteSync").Status) {
+			changed = true
+			condition := metav1.Condition{Type: "remoteSync", Status: meta.FindStatusCondition(auth.Conditions, "remoteSync").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "remoteSync").Reason, Message: meta.FindStatusCondition(auth.Conditions, "remoteSync").Message}
+			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+		}
+	} else {
+		condition := metav1.Condition{
+			Type:               "remoteSync",
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: metav1.Time{Time: time.Now()},
+			Reason:             "statusSync",
+			Message:            "status not available",
+		}
 		meta.SetStatusCondition(&instance.Status.Conditions, condition)
 	}
-	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "dependenciesSync", meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Status) {
-		changed = true
-		condition := metav1.Condition{Type: "dependenciesSync", Status: meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Reason, Message: meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Message}
+
+	condition = meta.FindStatusCondition(auth.Conditions, "dependenciesSync")
+
+	if condition != nil {
+		if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "dependenciesSync", meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Status) {
+			changed = true
+			condition := metav1.Condition{Type: "dependenciesSync", Status: meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Reason, Message: meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Message}
+			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+		}
+	} else {
+		condition := metav1.Condition{
+			Type:               "dependenciesSync",
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: metav1.Time{Time: time.Now()},
+			Reason:             "statusSync",
+			Message:            "status not available",
+		}
 		meta.SetStatusCondition(&instance.Status.Conditions, condition)
 	}
-	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "prepareChart", meta.FindStatusCondition(auth.Conditions, "prepareChart").Status) {
-		changed = true
-		condition := metav1.Condition{Type: "prepareChart", Status: meta.FindStatusCondition(auth.Conditions, "prepareChart").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "prepareChart").Reason, Message: meta.FindStatusCondition(auth.Conditions, "prepareChart").Message}
+
+	condition = meta.FindStatusCondition(auth.Conditions, "prepareChart")
+
+	if condition != nil {
+		if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "prepareChart", meta.FindStatusCondition(auth.Conditions, "prepareChart").Status) {
+			changed = true
+			condition := metav1.Condition{Type: "prepareChart", Status: meta.FindStatusCondition(auth.Conditions, "prepareChart").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "prepareChart").Reason, Message: meta.FindStatusCondition(auth.Conditions, "prepareChart").Message}
+			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+		}
+	} else {
+		condition := metav1.Condition{
+			Type:               "prepareChart",
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: metav1.Time{Time: time.Now()},
+			Reason:             "statusSync",
+			Message:            "status not available",
+		}
 		meta.SetStatusCondition(&instance.Status.Conditions, condition)
 	}
 

@@ -1,0 +1,11 @@
+---
+apiVersion: yaho.soer3n.dev/v1alpha2
+kind: Chart
+metadata:
+  name: nextcloud
+spec:
+  name: nextcloud
+  repository: nextcloud
+  versions:
+  - 3.5.16
+  createDeps: true
