@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -89,45 +90,48 @@ func ParseConfigMaps(cm chan v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersion
 }
 
 // TODO: move this to chart model!
-func DeployConfigMap(configmap v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, c client.WithWatch, scheme *runtime.Scheme, logger logr.Logger) error {
+func DeployConfigMap(configmap v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, localClient, remoteClient client.WithWatch, scheme *runtime.Scheme, logger logr.Logger) error {
 	//mu := &sync.Mutex{}
 	//defer mu.Unlock()
 	//mu.Lock()
-	chartList := &yahov1alpha2.ChartList{}
-	ls := labels.Set{}
 
-	// filter repositories by group selector if set
-	ls = labels.Merge(ls, labels.Set{configMapLabelKey: hc.Name()})
+	if reflect.DeepEqual(localClient, remoteClient) {
+		chartList := &yahov1alpha2.ChartList{}
+		ls := labels.Set{}
 
-	if err := c.List(context.Background(), chartList, &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(ls),
-	}); err != nil {
-		return err
-	}
+		// filter repositories by group selector if set
+		ls = labels.Merge(ls, labels.Set{configMapLabelKey: hc.Name()})
 
-	if len(chartList.Items) != 1 {
-		return errors.New("multiple charts found")
-	}
-	chartObj := chartList.Items[0]
-	if err := controllerutil.SetControllerReference(&chartObj, &configmap, scheme); err != nil {
-		return err
+		if err := localClient.List(context.Background(), chartList, &client.ListOptions{
+			LabelSelector: labels.SelectorFromSet(ls),
+		}); err != nil {
+			return err
+		}
+
+		if len(chartList.Items) != 1 {
+			return errors.New("multiple charts found")
+		}
+		chartObj := chartList.Items[0]
+		if err := controllerutil.SetControllerReference(&chartObj, &configmap, scheme); err != nil {
+			return err
+		}
 	}
 
 	current := &v1.ConfigMap{}
-	err := c.Get(context.Background(), client.ObjectKey{
+	err := remoteClient.Get(context.Background(), client.ObjectKey{
 		Namespace: configmap.ObjectMeta.Namespace,
 		Name:      configmap.ObjectMeta.Name,
 	}, current)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			if err = c.Create(context.TODO(), &configmap); err != nil {
+			if err = remoteClient.Create(context.TODO(), &configmap); err != nil {
 				return err
 			}
 		}
 		return err
 	}
 
-	if err := c.Update(context.Background(), &configmap, &client.UpdateOptions{}); err != nil {
+	if err := remoteClient.Update(context.Background(), &configmap, &client.UpdateOptions{}); err != nil {
 		return err
 	}
 

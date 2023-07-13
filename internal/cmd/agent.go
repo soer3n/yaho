@@ -2,16 +2,20 @@ package cmd
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	helmcontrollers "github.com/soer3n/yaho/controllers/agent"
 	"github.com/soer3n/yaho/internal/utils"
 	"github.com/spf13/cobra"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	kyaml "sigs.k8s.io/yaml"
 )
 
 func NewAgentCmd(scheme *runtime.Scheme) *cobra.Command {
@@ -22,30 +26,35 @@ func NewAgentCmd(scheme *runtime.Scheme) *cobra.Command {
 	}
 
 	cmd.AddCommand(newAgentRunCmd(scheme))
+	cmd.AddCommand(newAgentKubeconfigCmd(scheme))
 	return cmd
 }
 
 func newAgentKubeconfigCmd(scheme *runtime.Scheme) *cobra.Command {
 
-	var metricsAddr string
-	var isLocal bool
-	var enableLeaderElection bool
-	var probeAddr string
-	var configFile string
+	var configPath string
+	var address string
+	var namespace string
+	var name string
 
 	cmd := &cobra.Command{
 		Use:   "kubeconfig",
 		Short: "parse and store agent kubeconfig",
 		Long:  `parse and store agent kubeconfig`,
 		Run: func(cmd *cobra.Command, args []string) {
-			configFile, _ = cmd.Flags().GetString("config")
-			metricsAddr, _ = cmd.Flags().GetString("metrics-bind-address")
-			probeAddr, _ = cmd.Flags().GetString("health-probe-bind-address")
-			enableLeaderElection, _ = cmd.Flags().GetBool("leader-elect")
-			isLocal, _ = cmd.Flags().GetBool("is-local")
-			runAgent(scheme, configFile, isLocal, metricsAddr, probeAddr, enableLeaderElection)
+			configPath, _ = cmd.Flags().GetString("kubeconfig")
+			address, _ = cmd.Flags().GetString("address")
+			namespace, _ = cmd.Flags().GetString("namespace")
+			name, _ = cmd.Flags().GetString("name")
+			runGetKubeconfig(configPath, address, name, namespace, scheme)
 		},
 	}
+
+	cmd.PersistentFlags().String("name", "agent-secret", "The name to use for secret.")
+	cmd.PersistentFlags().String("kubeconfig", "~/.kube/config", "The path to kubeconfig to use.")
+	cmd.PersistentFlags().String("address", "https://kubernetes.svc.default.cluster.local", "The address for the kubernetes apiserver.")
+	cmd.PersistentFlags().String("namespace", "helm", "The namespace where to deploy the service account.")
+
 	return cmd
 }
 
@@ -81,6 +90,32 @@ func newAgentRunCmd(scheme *runtime.Scheme) *cobra.Command {
 	cmd.PersistentFlags().Bool("is-local", false, "if true sets the k8s api server url to 127.0.0.1:6443, else to cluster domain")
 
 	return cmd
+}
+
+func runGetKubeconfig(path, address, name, namespace string, scheme *runtime.Scheme) {
+	secret, err := utils.BuildKubeconfigSecret(path, address, name, namespace, scheme)
+
+	if err != nil {
+		setupLog.Error(err, "unable to build kubeconfig secret")
+		os.Exit(1)
+	}
+
+	codec := serializer.NewCodecFactory(scheme).LegacyCodec(v1.SchemeGroupVersion)
+	output, err := runtime.Encode(codec, secret)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	y, err := kyaml.JSONToYAML(output)
+
+	if err != nil {
+		fmt.Printf("Error while Marshaling. %v", err)
+	}
+
+	fmt.Println("---")
+	fmt.Println(string(y))
 }
 
 func runAgent(scheme *runtime.Scheme, configFile string, isLocal bool, metricsAddr, probeAddr string, enableLeaderElection bool) {

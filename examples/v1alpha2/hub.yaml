@@ -1,0 +1,28 @@
+---
+apiVersion: yaho.soer3n.dev/v1alpha2
+kind: Hub
+metadata:
+  name: local
+spec:
+  clusters: []
+  #- name: local
+  #  interval: 10s
+  #  agent:
+  #    deploy: false
+  #    name: yaho-agent
+  #    namespace: helm
+  #  secret:
+  #    name: local-hub-secret
+  #    namespace: helm
+  #    key: kubeconfig
+  #- name: zp7mc2rjd2
+  #  interval: 30s
+  #  agent:
+  #    deploy: false
+  #    name: yaho-agent
+  #    namespace: helm
+  #  secret:
+  #    name: zp7mc2rjd2-hub-secret
+  #    namespace: helm
+  #    key: kubeconfig
+  defaults: {}

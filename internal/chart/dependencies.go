@@ -128,7 +128,7 @@ func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettin
 	return nil
 }
 
-func getRepositoryNameByUrl(url string, c client.WithWatch) (string, error) {
+func GetRepositoryNameByUrl(url string, c client.WithWatch) (string, error) {
 	var name string
 
 	r := &yahov1alpha2.RepositoryList{}
@@ -170,7 +170,7 @@ func (c *Chart) CreateOrUpdateSubCharts() error {
 		}
 
 		for _, dep := range cv.Metadata.Dependencies {
-			repoName, err := getRepositoryNameByUrl(dep.Repository, c.kubernetes.client)
+			repoName, err := GetRepositoryNameByUrl(dep.Repository, c.kubernetes.client)
 
 			if err != nil {
 				c.logger.Error(err, "chart", dep.Name)

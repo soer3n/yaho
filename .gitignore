@@ -1,4 +1,5 @@
 .vscode/*
+*workspace
 dashboard/node_modules
 dashboard/node_modules/*
 dashboard/package-lock.json

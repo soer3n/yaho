@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
@@ -137,7 +138,7 @@ func (c *Chart) Update(instance *yahov1alpha2.Chart) error {
 
 		// compare and manage charts
 		c.logger.Info("create or update configmaps", "version", currentVersion.Version)
-		if err := c.manageSubResources(hc, currentVersion, c.Repo); err != nil {
+		if err := ManageSubResources(hc, currentVersion, c.Repo, c.Namespace, c.kubernetes.client, c.kubernetes.client, c.kubernetes.scheme, c.logger); err != nil {
 			condition := metav1.Condition{
 				Type:               "configmapCreate",
 				Status:             metav1.ConditionFalse,
@@ -246,7 +247,7 @@ func (c *Chart) prepareVersion(hc *chart.Chart, v *repo.ChartVersion, chartUrl s
 	for _, dep := range v.Dependencies {
 		tempChart := &chart.Chart{}
 
-		repositoryName, err := getRepositoryNameByUrl(dep.Repository, c.kubernetes.client)
+		repositoryName, err := GetRepositoryNameByUrl(dep.Repository, c.kubernetes.client)
 
 		if err != nil {
 			c.logger.Error(err, "error getting repository name by url", "name", dep.Name)
@@ -289,25 +290,25 @@ func (c *Chart) prepareVersion(hc *chart.Chart, v *repo.ChartVersion, chartUrl s
 	return nil
 }
 
-func (c *Chart) manageSubResources(hc *chart.Chart, v *repo.ChartVersion, repository string) error {
+func ManageSubResources(hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, localClient, remoteClient client.WithWatch, scheme *runtime.Scheme, logger logr.Logger) error {
 	cmChannel := make(chan v1.ConfigMap)
 	wg := &sync.WaitGroup{}
 
 	wg.Add(2)
-	c.logger.Info("parse and deploy configmaps")
+	logger.Info("parse and deploy configmaps")
 
 	go func() {
-		if err := chartversion.ParseConfigMaps(cmChannel, hc, v, repository, c.Namespace, c.logger); err != nil {
+		if err := chartversion.ParseConfigMaps(cmChannel, hc, v, repository, namespace, logger); err != nil {
 			close(cmChannel)
-			c.logger.Error(err, "error on parsing affected resources")
+			logger.Error(err, "error on parsing affected resources")
 		}
 		wg.Done()
 	}()
 
 	go func() {
 		for configmap := range cmChannel {
-			if err := chartversion.DeployConfigMap(configmap, hc, v, repository, c.Namespace, c.kubernetes.client, c.kubernetes.scheme, c.logger); err != nil {
-				c.logger.Error(err, "error on creating configmap", "configmap", configmap.ObjectMeta.Name)
+			if err := chartversion.DeployConfigMap(configmap, hc, v, repository, namespace, localClient, remoteClient, scheme, logger); err != nil {
+				logger.Error(err, "error on creating configmap", "configmap", configmap.ObjectMeta.Name)
 			}
 		}
 		wg.Done()
@@ -372,6 +373,7 @@ func LoadChartByResources(c client.WithWatch, logger logr.Logger, helmChart *cha
 
 	go func() {
 		defer wg.Done()
+		klog.V(0).Infof("parameter: %v --- %v --- %v --- %v", helmChart, *v, chartName, chartPathOptions)
 		setVersion(mu, helmChart, *v, chartName, chartPathOptions)
 	}()
 

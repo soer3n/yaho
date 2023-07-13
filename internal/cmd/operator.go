@@ -18,16 +18,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"context"
 	"flag"
 	"os"
 
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	helmcontrollers "github.com/soer3n/yaho/controllers/manager"
+	"github.com/soer3n/yaho/internal/hub"
 	"github.com/soer3n/yaho/internal/utils"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	// to ensure that exec-entrypoint and run can make use of them.
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -129,8 +135,11 @@ func runOperator(scheme *runtime.Scheme, configFile string, isLocal bool, metric
 		os.Exit(1)
 	}
 	if err = (&helmcontrollers.HubReconciler{
-		Log:    ctrl.Log.WithName("controllers").WithName("helm").WithName("Hub"),
-		Scheme: mgr.GetScheme(),
+		WithWatch:      rc,
+		WatchNamespace: ns,
+		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("Hub"),
+		Scheme:         mgr.GetScheme(),
+		Hubs:           make(map[string]hub.Hub),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Hub")
 		os.Exit(1)
@@ -154,6 +163,47 @@ func runOperator(scheme *runtime.Scheme, configFile string, isLocal bool, metric
 	if err := mgr.AddReadyzCheck("check", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
+	}
+
+	localHub := &yahov1alpha2.Hub{}
+
+	c, err := client.New(mgr.GetConfig(), client.Options{Scheme: scheme})
+	if err != nil {
+		setupLog.Error(err, "unable to create init client")
+		os.Exit(1)
+	}
+
+	if err := c.Get(context.TODO(), types.NamespacedName{Name: "local"}, localHub, &client.GetOptions{}); err != nil {
+
+		setupLog.Info(err.Error())
+		if errors.IsNotFound(err) {
+			setupLog.Info("creating local hub because it was not found")
+			localHub = &yahov1alpha2.Hub{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "local",
+				},
+				Spec: yahov1alpha2.HubSpec{
+					Clusters: []yahov1alpha2.HubCluster{
+						{
+							Name:     "local",
+							Interval: "10s",
+							Secret: yahov1alpha2.Secret{
+								Name:      "yaho-local-kubeconfig",
+								Key:       "kubeconfig",
+								Namespace: getWatchNamespace(),
+							},
+						},
+					},
+				},
+			}
+
+			if err := c.Create(context.TODO(), localHub, &client.CreateOptions{}); err != nil {
+				setupLog.Error(err, "problem creating local hub")
+				os.Exit(1)
+			}
+		} else {
+			setupLog.Info("local hub already existing")
+		}
 	}
 
 	setupLog.Info("starting manager")

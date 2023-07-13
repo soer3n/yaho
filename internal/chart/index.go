@@ -35,7 +35,7 @@ func GetChartVersionFromIndexConfigmap(version string, indexMap *v1.ConfigMap) (
 	rawData, ok := indexMap.BinaryData["versions"]
 
 	if !ok {
-		return nil, errors.New("could not load version from index")
+		return nil, errors.New("could not load versions from index")
 	}
 
 	if err := json.Unmarshal(rawData, &index); err != nil {
@@ -48,7 +48,7 @@ func GetChartVersionFromIndexConfigmap(version string, indexMap *v1.ConfigMap) (
 		}
 	}
 
-	return nil, errors.New("could not load version from index")
+	return nil, errors.New("could not find version from loaded index")
 }
 
 func (c *Chart) getChartURL(version, repository string) (string, error) {

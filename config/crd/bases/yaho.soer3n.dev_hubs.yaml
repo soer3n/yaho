@@ -12,7 +12,7 @@ spec:
     listKind: HubList
     plural: hubs
     singular: hub
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1alpha2
     schema:
@@ -34,13 +34,53 @@ spec:
           spec:
             description: HubSpec defines the desired state of Hub
             properties:
-              foo:
-                description: Foo is an example field of Hub. Edit hub_types.go to
-                  remove/update
-                type: string
+              clusters:
+                items:
+                  properties:
+                    agent:
+                      properties:
+                        deploy:
+                          type: boolean
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      type: object
+                    defaults:
+                      type: object
+                    interval:
+                      type: string
+                    name:
+                      type: string
+                    secret:
+                      properties:
+                        key:
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      type: object
+                  type: object
+                type: array
+              defaults:
+                type: object
             type: object
           status:
             description: HubStatus defines the observed state of Hub
+            properties:
+              backends:
+                additionalProperties:
+                  properties:
+                    address:
+                      type: string
+                    synced:
+                      type: boolean
+                  type: object
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: object
             type: object
         type: object
     served: true

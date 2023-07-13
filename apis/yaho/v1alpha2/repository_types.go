@@ -33,6 +33,7 @@ type RepositorySpec struct {
 	Charts     []Entry `json:"charts,omitempty"`
 	Sync       Sync    `json:"sync,omitempty"`
 	AuthSecret string  `json:"authSecret,omitempty"`
+	Interval   string  `json:"interval,omitempty"`
 }
 
 type Entry struct {

@@ -6,6 +6,7 @@ metadata:
 spec:
   name: nextcloud
   url: https://nextcloud.github.io/helm/
+  interval: 300s
 
 ---
 apiVersion: yaho.soer3n.dev/v1alpha2
@@ -15,3 +16,4 @@ metadata:
 spec:
   name: bitnami
   url: https://charts.bitnami.com/bitnami
+  interval: 300s

@@ -5,6 +5,7 @@ metadata:
   name: nextcloud-config
   namespace: helm
 spec:
+  serviceAccountName: yaho-agent
   namespace:
     install: false
     allowed:

@@ -189,13 +189,15 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.
 
 	_ = r.Status().Update(ctx, instance)
 
+	duration, _ := time.ParseDuration(instance.Spec.Interval)
+
 	if *instance.Status.Synced {
-		r.Log.Info("Reconcile repo after status sync regular in 10 seconds.", "repo", instance.ObjectMeta.Name)
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		r.Log.Info("Reconcile repo after status sync regular", "repo", instance.ObjectMeta.Name, "interval", instance.Spec.Interval)
+		return ctrl.Result{RequeueAfter: duration}, nil
 	}
 
-	r.Log.Info("Reconcile unsynced repo in 10 seconds.", "repo", instance.ObjectMeta.Name)
-	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	r.Log.Info("Reconcile repo after status sync regular", "repo", instance.ObjectMeta.Name, "interval", instance.Spec.Interval)
+	return ctrl.Result{RequeueAfter: duration}, nil
 }
 
 func (r *RepoReconciler) handleFinalizer(hc *repository.Repo, instance *yahov1alpha2.Repository) (bool, error) {

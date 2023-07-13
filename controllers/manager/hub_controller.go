@@ -19,11 +19,16 @@ package manager
 
 import (
 	"context"
+	"reflect"
+	"time"
 
 	"github.com/go-logr/logr"
 	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
+	"github.com/soer3n/yaho/internal/hub"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,6 +37,7 @@ import (
 // HubReconciler reconciles a Chart object
 type HubReconciler struct {
 	client.WithWatch
+	Hubs           map[string]hub.Hub
 	WatchNamespace string
 	Log            logr.Logger
 	Scheme         *runtime.Scheme
@@ -67,6 +73,100 @@ func (r *HubReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		}
 		// Error reading the object - requeue the request.
 		reqLogger.Error(err, "Failed to get HelmChart")
+		return ctrl.Result{}, err
+	}
+
+	currentHub, ok := r.Hubs[instance.ObjectMeta.Name]
+	if !ok {
+		r.Log.Info("setting current hub", "hub", instance.ObjectMeta.Name)
+		currentHub = hub.Hub{
+			Backends: make(map[string]hub.BackendInterface),
+		}
+		r.Hubs[instance.ObjectMeta.Name] = currentHub
+	}
+
+	// validate if specified clusters have an active channel
+	for _, item := range instance.Spec.Clusters {
+		r.Log.Info("parsing specified cluster", "hub", instance.ObjectMeta.Name, "cluster", item.Name)
+		localCluster, ok := currentHub.Backends[item.Name]
+
+		if !ok {
+			r.Log.Info("initializing specified cluster", "hub", instance.ObjectMeta.Name, "cluster", item.Name)
+			// TODO: get specified secret with kubeconfig
+			secret := &v1.Secret{}
+
+			if err := r.WithWatch.Get(ctx, types.NamespacedName{Name: item.Secret.Name, Namespace: item.Secret.Namespace}, secret, &client.GetOptions{}); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			r.Log.Info("initiate cluster", "name", item.Name, "namespace", r.WatchNamespace)
+
+			ctx, cancelFunc := context.WithCancel(ctx)
+			localCluster, err = hub.NewClusterBackend(item.Name, r.WatchNamespace, secret.Data[item.Secret.Key], r.WithWatch, hub.Defaults{}, r.Scheme, r.Log, cancelFunc)
+
+			r.Log.Info("new cluster", "cluster", localCluster)
+
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			r.Log.Info("adding specified cluster to hub channel", "hub", instance.ObjectMeta.Name, "cluster", localCluster)
+
+			duration, _ := time.ParseDuration(item.Interval)
+			if err := currentHub.AddBackend(localCluster, ctx, duration); err != nil {
+				return r.syncStatus(ctx, instance, currentHub, err)
+			}
+		}
+
+		r.Log.Info("updating specified cluster", "hub", instance.ObjectMeta.Name, "cluster", item.Name)
+		r.Hubs[instance.ObjectMeta.Name] = currentHub
+		if err := currentHub.UpdateBackend(localCluster); err != nil {
+			return r.syncStatus(ctx, instance, currentHub, err)
+		}
+	}
+
+	// validate if there are removed clusters by comparing specified and items from status
+	for key := range instance.Status.Backends {
+		r.Log.Info("parsing cluster from status for validate deletion", "hub", instance.ObjectMeta.Name, "cluster", key)
+		markedToDelete := true
+		for _, i := range instance.Spec.Clusters {
+			if i.Name == key {
+				markedToDelete = false
+				break
+			}
+		}
+		if markedToDelete || len(instance.Spec.Clusters) < 1 {
+			r.Log.Info("remove cluster", "hub", instance.ObjectMeta.Name, "cluster", key)
+			if err := currentHub.RemoveBackend(key); err != nil {
+				return r.syncStatus(ctx, instance, currentHub, err)
+			}
+		}
+	}
+
+	r.Hubs[instance.ObjectMeta.Name] = currentHub
+	return r.syncStatus(ctx, instance, currentHub, nil)
+}
+
+func (r *HubReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.Hub, hub hub.Hub, err error) (ctrl.Result, error) {
+	currentBackends := make(map[string]yahov1alpha2.HubBackend)
+
+	for _, b := range instance.Spec.Clusters {
+		currentBackends[b.Name] = yahov1alpha2.HubBackend{
+			Address: "",
+			InSync:  true,
+		}
+	}
+
+	if !reflect.DeepEqual(instance.Status.Backends, currentBackends) {
+		instance.Status.Backends = currentBackends
+
+		r.Log.Info("update status", "hub", instance.ObjectMeta.Name)
+		if err := r.Status().Update(ctx, instance); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 

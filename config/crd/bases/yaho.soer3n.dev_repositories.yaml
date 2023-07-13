@@ -210,6 +210,8 @@ spec:
                       type: array
                   type: object
                 type: array
+              interval:
+                type: string
               name:
                 type: string
               sync:
