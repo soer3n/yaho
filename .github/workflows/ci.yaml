@@ -28,7 +28,7 @@ jobs:
   test-unit:
     runs-on: ubuntu-latest
     if: ${{ (github.event.review.state == 'approved') || github.ref == 'refs/heads/master' }}
-    needs: build
+    # needs: build
     steps:
     - uses: actions/checkout@v3
     - name: set up Go
@@ -51,8 +51,8 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ (github.event.review.state == 'approved') || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/v1alpha2' }}
     name: test-e2e-k8s-${{ matrix.version }}
-    needs:
-    - build
+    # needs:
+    # - build
     steps:
     - uses: actions/checkout@v3
     - name: set up Go
