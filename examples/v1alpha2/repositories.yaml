@@ -4,9 +4,14 @@ kind: Repository
 metadata:
   name: nextcloud
 spec:
-  name: nextcloud
-  url: https://nextcloud.github.io/helm/
-  interval: 300s
+  mode: configmap # could be configmap or pvc
+  source:
+    type: helm
+    url: https://nextcloud.github.io/helm/
+  charts:
+    sync:
+      enabled: false # if true index configmaps will be created if requested from due to chart resource creation
+      interval: 300s # the duration in which requested configmaps will be checked; takes only effect if enabled is true
 
 ---
 apiVersion: yaho.soer3n.dev/v1alpha2
@@ -14,6 +19,16 @@ kind: Repository
 metadata:
   name: bitnami
 spec:
-  name: bitnami
-  url: https://charts.bitnami.com/bitnami
-  interval: 300s
+  mode: configmap
+  source:
+    type: helm
+    url: https://charts.bitnami.com/bitnami
+  charts: # here index configmaps can be limited to requested charts
+    sync:
+      enabled: true
+      interval: 300s
+    items:
+    - name: common
+    - name: postgresql
+    - name: mariadb
+    - name: redis

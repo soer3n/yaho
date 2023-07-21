@@ -42,6 +42,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apitypes "k8s.io/apimachinery/pkg/types"
@@ -302,7 +303,7 @@ func GetRepositoryCountFunc(ctx context.Context, key client.ObjectKey, obj *yaho
 			return &l
 		}
 
-		return obj.Status.Charts
+		return obj.Status.Charts.Loaded
 	}
 }
 
@@ -318,11 +319,13 @@ func GetChartSyncedStatusFunc(ctx context.Context, key client.ObjectKey, obj *ya
 			return false
 		}
 
-		if obj.Status.Versions == nil {
+		condition := meta.FindStatusCondition(obj.Status.Conditions, "remoteSync")
+
+		if condition == nil {
 			return false
 		}
 
-		if *obj.Status.Versions == "synced" {
+		if condition.Status == metav1.ConditionTrue {
 			return true
 		}
 
@@ -336,11 +339,13 @@ func GetChartDependencyStatusFunc(ctx context.Context, key client.ObjectKey, obj
 			return false
 		}
 
-		if obj.Status.Dependencies == nil {
+		condition := meta.FindStatusCondition(obj.Status.Conditions, "dependenciesSync")
+
+		if condition == nil {
 			return false
 		}
 
-		if *obj.Status.Dependencies == "synced" {
+		if condition.Status == metav1.ConditionTrue {
 			return true
 		}
 

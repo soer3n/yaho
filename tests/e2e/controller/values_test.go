@@ -86,16 +86,24 @@ var _ = Context("Install a release with values", func() {
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: testRepoName},
 				Spec: yahov1alpha2.RepositorySpec{
-					Name: testRepoName,
-					URL:  testRepoURL,
-					Charts: []yahov1alpha2.Entry{
-						{
-							Name:     testReleaseChartName,
-							Versions: []string{testReleaseChartVersion},
+					Source: yahov1alpha2.RepositorySource{
+						URL:  testRepoURL,
+						Type: "helm",
+					},
+					Charts: yahov1alpha2.RepositoryCharts{
+						Sync: yahov1alpha2.Sync{
+							Enabled:  true,
+							Interval: "10s",
 						},
-						{
-							Name:     testReleaseChartThirdNameAssert,
-							Versions: []string{testReleaseChartThirdNameAssertVersion},
+						Items: []yahov1alpha2.Entry{
+							{
+								Name:     testReleaseChartName,
+								Versions: []string{testReleaseChartVersion},
+							},
+							{
+								Name:     testReleaseChartThirdNameAssert,
+								Versions: []string{testReleaseChartThirdNameAssertVersion},
+							},
 						},
 					},
 				},
@@ -108,12 +116,20 @@ var _ = Context("Install a release with values", func() {
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: testRepoNameSecond},
 				Spec: yahov1alpha2.RepositorySpec{
-					Name: testRepoNameSecond,
-					URL:  testRepoURLSecond,
-					Charts: []yahov1alpha2.Entry{
-						{
-							Name:     testReleaseChartNameSecond,
-							Versions: []string{testReleaseChartVersionSecond},
+					Source: yahov1alpha2.RepositorySource{
+						URL:  testRepoURLSecond,
+						Type: "helm",
+					},
+					Charts: yahov1alpha2.RepositoryCharts{
+						Sync: yahov1alpha2.Sync{
+							Enabled:  true,
+							Interval: "10s",
+						},
+						Items: []yahov1alpha2.Entry{
+							{
+								Name:     testReleaseChartNameSecond,
+								Versions: []string{testReleaseChartVersionSecond},
+							},
 						},
 					},
 				},

@@ -7,6 +7,7 @@ import (
 	"github.com/go-logr/logr"
 	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"github.com/soer3n/yaho/internal/chart"
+	"github.com/soer3n/yaho/internal/chartversion"
 	"github.com/soer3n/yaho/internal/utils"
 	"github.com/soer3n/yaho/internal/values"
 	"helm.sh/helm/v3/pkg/action"
@@ -59,12 +60,14 @@ func New(instance *yahov1alpha2.Release, watchNamespace string, scheme *runtime.
 
 		if err != nil {
 			helmRelease.logger.Info(err.Error())
+			return helmRelease, err
 		}
 
 		helmRelease.logger.Info("parsed config", "name", instance.Spec.Name, "config", config)
 
 		if err := helmRelease.setOptions(config, instance.Spec.Namespace); err != nil {
 			helmRelease.logger.Error(err, "set options", "name", instance.Spec.Name)
+			return helmRelease, err
 		}
 	}
 
@@ -84,8 +87,9 @@ func New(instance *yahov1alpha2.Release, watchNamespace string, scheme *runtime.
 	}
 
 	helmRelease.ValuesTemplate.Values = specValues
+	helmRelease.logger.Info("specified values: %v", "values", helmRelease.ValuesTemplate.Values)
 	// TODO: rework getting index configmap
-	cm, err := chart.GetChartIndexConfigMap(helmRelease.Name, helmRelease.Repo, watchNamespace, helmRelease.K8sClient)
+	cm, err := chart.GetChartIndexConfigMap(instance.Spec.Chart, helmRelease.Repo, watchNamespace, helmRelease.K8sClient)
 
 	if err != nil {
 		return helmRelease, err
@@ -97,7 +101,7 @@ func New(instance *yahov1alpha2.Release, watchNamespace string, scheme *runtime.
 		return helmRelease, err
 	}
 
-	var hc *helmchart.Chart
+	hc := &helmchart.Chart{}
 
 	options := &action.ChartPathOptions{
 		Version:               instance.Spec.Version,
@@ -105,7 +109,19 @@ func New(instance *yahov1alpha2.Release, watchNamespace string, scheme *runtime.
 		Verify:                false,
 	}
 
-	if err := chart.LoadChartByResources(helmRelease.K8sClient, helmRelease.logger, hc, cv, instance.Spec.Chart, instance.Spec.Repo, watchNamespace, options, helmRelease.Chart.Values); err != nil {
+	defaultValues := chartversion.GetDefaultValuesFromConfigMap(helmRelease.Name, helmRelease.Repo, cv.Version, watchNamespace, helmRelease.K8sClient, helmRelease.logger)
+
+	parsedValues := utils.MergeMaps(defaultValues, specValues)
+
+	if err := chart.LoadChartByResources(helmRelease.K8sClient, helmRelease.logger, hc, cv, instance.Spec.Chart, instance.Spec.Repo, watchNamespace, options, parsedValues); err != nil {
+		return helmRelease, err
+	}
+
+	reqLogger.Info("parsed subvalues", "redis", parsedValues["redis"])
+	reqLogger.Info("specified subvalues", "redis", specValues["redis"])
+	reqLogger.Info("chart struct subvalues", "redis", hc.Values["redis"])
+
+	if err := chart.LoadDependencies(hc, watchNamespace, utils.GetEnvSettings(map[string]string{}), scheme, helmRelease.logger, helmRelease.K8sClient); err != nil {
 		return helmRelease, err
 	}
 

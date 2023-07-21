@@ -6,11 +6,18 @@ import (
 	"encoding/json"
 	"math/big"
 	"path/filepath"
+	"time"
 
+	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -80,4 +87,49 @@ func RandomString(n int) string {
 		b[i] = letters[n.Uint64()]
 	}
 	return string(b)
+}
+
+func WatchForSubResourceSync(subResource interface{}, gvr schema.GroupVersionResource, namespace string, eventType watch.EventType) bool {
+
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return false
+	}
+
+	dynClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return false
+	}
+
+	watcher, err := dynClient.Resource(gvr).Namespace(namespace).Watch(context.Background(), metav1.ListOptions{})
+
+	if err != nil {
+		// c.logger.Info("cannot get watcher for subresource")
+		return false
+	}
+
+	defer watcher.Stop()
+
+	select {
+	case res := <-watcher.ResultChan():
+		ch := res.Object.(*yahov1alpha2.Chart)
+
+		if res.Type == eventType {
+
+			klog.V(0).Infof("check conditions for chart %s. Current conditions: %v", ch.ObjectMeta.Name, ch.Status.Conditions)
+			for _, condition := range ch.Status.Conditions {
+				if condition.Status == metav1.ConditionFalse {
+					return false
+				}
+			}
+			//synced := "synced"
+			//if *ch.Status.Dependencies == synced && *ch.Status.Versions == synced {
+			return true
+			//}
+		}
+	case <-time.After(10 * time.Second):
+		return false
+	}
+
+	return false
 }

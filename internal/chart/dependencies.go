@@ -22,14 +22,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettings, scheme *runtime.Scheme, logger logr.Logger, c client.WithWatch, g utils.HTTPClientInterface, getter genericclioptions.RESTClientGetter, kubeconfig []byte) error {
+func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettings, scheme *runtime.Scheme, logger logr.Logger, c client.WithWatch) error {
 	// TODO: load chart by configmaps using label selector
 	var err error
 
@@ -39,7 +39,7 @@ func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettin
 		options.RepoURL = dep.Repository
 		options.Version = dep.Version
 		var valueObj chartutil.Values
-		var index *v1.ConfigMapList
+		index := &v1.ConfigMapList{}
 
 		labelSetRepo, _ := labels.ConvertSelectorToLabelsMap(configMapLabelType + "=index")
 		labelSetChart, _ := labels.ConvertSelectorToLabelsMap(configMapLabelKey + "=" + dep.Name)
@@ -76,8 +76,17 @@ func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettin
 			return err
 		}
 
+		ix, err := utils.LoadChartIndex(dep.Name, repoName, namespace, c)
+		logger.Info("loading chart index for dependency", "chart", hc.Name(), "dependency", dep.Name, "version", dep.Version, "index", ix.Len())
+
+		if err != nil {
+			return err
+		}
+
+		parsedVersion, _ := getParsedVersion(dep.Version, *ix)
+
 		// getting subchart default value configmap
-		subVals := chartversion.GetDefaultValuesFromConfigMap(dep.Name, repoName, dep.Version, namespace, c, logger)
+		subVals := chartversion.GetDefaultValuesFromConfigMap(dep.Name, repoName, parsedVersion, namespace, c, logger)
 
 		// parse conditional to boolean
 		if subChartCondition != nil {
@@ -88,28 +97,36 @@ func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettin
 		// check conditional
 		if depCondition {
 
-			ix, err := utils.LoadChartIndex(dep.Name, repoName, namespace, c)
-
-			if err != nil {
-				return err
-			}
-
 			var cv *repo.ChartVersion
+			logger.Info("parsing version for dependency chart", "chart", hc.Name(), "dependency", dep.Name, "version", dep.Version, "parsedVersion", parsedVersion, "index", ix.Len())
 
 			for _, item := range *ix {
-				if item.Version == dep.Version {
-					item = cv
+				if item.Version == parsedVersion {
+					logger.Info("found parsed version for dependency chart in index", "chart", hc.Name(), "dependency", dep.Name, "version", parsedVersion, "index", ix.Len())
+					cv = item
 				}
 			}
 
 			dhc := &chart.Chart{}
 
-			if err := LoadChartByResources(c, logger, dhc, cv, dep.Name, repoName, namespace, &action.ChartPathOptions{}, subVals); err != nil {
+			options := &action.ChartPathOptions{
+				Version:               cv.Version,
+				InsecureSkipTLSverify: false,
+				Verify:                false,
+			}
+
+			logger.Info("loading source configmaps for dependency", "chart", hc.Name(), "dependency", dep.Name, "version", parsedVersion, "options", options, "chartversion", cv)
+			if err := LoadChartByResources(c, logger, dhc, cv, dep.Name, repoName, namespace, options, subVals); err != nil {
 				return err
 			}
 
 			if dhc.Files == nil {
 				return errors.New("could not load subchart " + dep.Name)
+			}
+
+			//TODO: we need to also load the dependencies of current dependency chart
+			if err := LoadDependencies(dhc, namespace, settings, scheme, logger, c); err != nil {
+				return err
 			}
 
 			if valueObj, err = chartutil.ToRenderValues(dhc, subVals, chartutil.ReleaseOptions{}, chartutil.DefaultCapabilities); err != nil {
@@ -137,8 +154,8 @@ func GetRepositoryNameByUrl(url string, c client.WithWatch) (string, error) {
 	}
 	found := false
 	for _, repository := range r.Items {
-		if repository.Spec.URL == url {
-			name = repository.Spec.Name
+		if repository.Spec.Source.URL == url {
+			name = repository.ObjectMeta.Name
 			found = true
 			break
 		}
@@ -181,7 +198,7 @@ func (c *Chart) CreateOrUpdateSubCharts() error {
 					Reason:             "chartUpdate",
 					Message:            fmt.Sprintf("failed to get repository name for chart %s", dep.Name),
 				}
-				meta.SetStatusCondition(&c.Status.Conditions, condition)
+				meta.SetStatusCondition(c.Status.Conditions, condition)
 				return err
 			}
 
@@ -194,7 +211,7 @@ func (c *Chart) CreateOrUpdateSubCharts() error {
 					Reason:             "chartUpdate",
 					Message:            fmt.Sprintf("failed to create chart resource for %s/%s", repoName, dep.Name),
 				}
-				meta.SetStatusCondition(&c.Status.Conditions, condition)
+				meta.SetStatusCondition(c.Status.Conditions, condition)
 				return err
 			}
 
@@ -208,7 +225,7 @@ func (c *Chart) CreateOrUpdateSubCharts() error {
 		Reason:             "chartUpdate",
 		Message:            "successful synced",
 	}
-	meta.SetStatusCondition(&c.Status.Conditions, condition)
+	meta.SetStatusCondition(c.Status.Conditions, condition)
 
 	return nil
 }
@@ -255,7 +272,7 @@ func (c *Chart) createOrUpdateSubChart(dep *chart.Dependency, repository string)
 
 		// TODO: use client to get reousrce and check then labels
 		repoObj := &yahov1alpha2.Repository{}
-		if err := c.kubernetes.client.Get(context.Background(), types.NamespacedName{Name: c.Repo}, repoObj); err != nil {
+		if err := c.kubernetes.client.Get(context.Background(), types.NamespacedName{Name: repository}, repoObj); err != nil {
 			return err
 		}
 		if v, ok := repoObj.ObjectMeta.Labels[configMapRepoGroupLabelKey]; ok {
@@ -299,7 +316,11 @@ func (c *Chart) createOrUpdateSubChart(dep *chart.Dependency, repository string)
 		return err
 	}
 
-	if !c.watchForSubResourceSync(current) {
+	if !utils.WatchForSubResourceSync(current, schema.GroupVersionResource{
+		Group:    current.TypeMeta.GroupVersionKind().Group,
+		Version:  current.TypeMeta.GroupVersionKind().Version,
+		Resource: current.TypeMeta.GroupVersionKind().Kind,
+	}, "", watch.Modified) {
 		return errors.New("subresource" + current.ObjectMeta.Name + "not synced")
 	}
 

@@ -42,8 +42,8 @@ type Namespace struct {
 }
 
 type Sync struct {
-	Enabled  bool `json:"enabled,omitempty"`
-	Interval int  `json:"interval,omitempty"`
+	Enabled  bool   `json:"enabled,omitempty"`
+	Interval string `json:"interval,omitempty"`
 }
 
 // Flags represents data for parsing flags for creating release resources

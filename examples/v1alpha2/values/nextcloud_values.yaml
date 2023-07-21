@@ -1,0 +1,248 @@
+apiVersion: yaho.soer3n.dev/v1alpha2
+kind: Values
+metadata:
+  name: values-nextcloud
+  namespace: helm
+spec:
+  refs:
+    ingress: values-nextcloud-ing
+    cronjob: values-nextcloud-cron
+  yaml:
+    image:
+      repository: nextcloud
+      tag: production-fpm
+      pullPolicy: IfNotPresent
+    nameOverride: "foo"
+    fullnameOverride: "foo"
+    replicaCount: 1
+
+    nextcloud:
+      host: nextcloud.apps.domain.com
+      username: admin
+      password: changemenot
+      update: 0
+      datadir: /var/www/html/data
+      tableprefix:
+      persistence:
+        subPath: config
+      mail:
+        enabled: false
+        fromAddress: admin
+        domain: nextcloud.apps.domain.com
+        smtp:
+          host: nextcloud.apps.domain.com
+          secure: ssl
+          port: 465
+          authtype: LOGIN
+          name: user
+          password: pass
+      phpConfigs:
+        memory-limit.ini: |
+          memory_limit=2048M
+      defaultConfigs:
+        # To protect /var/www/html/config
+        .htaccess: true
+        # Redis default configuration
+        redis.config.php: true
+        # Apache configuration for rewrite urls
+        apache-pretty-urls.config.php: true
+        # Define APCu as local cache
+        apcu.config.php: true
+        # Apps directory configs
+        apps.config.php: true
+        # Used for auto configure database
+        autoconfig.php: false
+        # SMTP default configuration
+        smtp.config.php: true
+        # Extra config files created in /var/www/html/config/
+        # ref: https://docs.nextcloud.com/server/15/admin_manual/configuration_server/config_sample_php_parameters.html#multiple-config-php-file
+        # configs: {}
+      configs:
+        s3.config.php: |-
+          <?php
+          $CONFIG = array (
+            'objectstore' => array(
+              'class' => '\\OC\\Files\\ObjectStore\\S3',
+              'arguments' => array(
+                'bucket'     => 'nextcloud',
+                'autocreate' => false,
+                'key'        => 'YOURCONSOLEACCESS',
+                'secret'     => 'YOURCONSOLESECRET',
+                'hostname'   => 'data-console.minio-data',
+                'port'       => 9090,
+                'use_ssl'    => false,
+                'use_path_style' => true
+              )
+            )
+          );
+        oidc.config.php: |-
+          <?php
+          $CONFIG = array (
+          // Some Nextcloud options that might make sense here
+          'allow_user_to_change_display_name' => false,
+          'lost_password_link' => 'disabled',
+
+          // URL of provider. All other URLs are auto-discovered from .well-known
+          'oidc_login_provider_url' => 'https://openid.example.com',
+
+          // Client ID and secret registered with the provider
+          'oidc_login_client_id' => 'application',
+          'oidc_login_client_secret' => 'secret',
+
+          // Automatically redirect the login page to the provider
+          'oidc_login_auto_redirect' => false,
+
+          // Redirect to this page after logging out the user
+          'oidc_login_logout_url' => 'https://openid.example.com/thankyou',
+
+          // Quota to assign if no quota is specified in the OIDC response (bytes)
+          //
+          // NOTE: If you want to allow NextCloud to manage quotas, omit this option. Do not set it to
+          // zero or -1 or ''.
+          'oidc_login_default_quota' => '1000000000',
+
+          // Login button text
+          'oidc_login_button_text' => 'Log in with OpenID',
+
+          // Hide the NextCloud password change form.
+          'oidc_login_hide_password_form' => false,
+
+          // Attribute map for OIDC response. Available keys are:
+          //   * id:       Unique identifier for username
+          //   * name:     Full name
+          //                  If set to null, existing display name won't be overwritten
+          //   * mail:     Email address
+          //                  If set to null, existing email address won't be overwritten
+          //   * quota:    Nextcloud storage quota
+          //   * home:     Home directory location. A symlink or external storage to this location is used
+          //   * ldap_uid: LDAP uid to search for when running in proxy mode
+          //   * groups:   Array or space separated string of NC groups for the user
+          //   * is_admin: If this value is truthy, the user is added to the admin group (optional)
+          //
+          // The attributes in the OIDC response are flattened by adding the nested
+          // array key as the prefix and an underscore. Thus,
+          //
+          //     $profile = [
+          //         'id' => 1234,
+          //         'attributes' => [
+          //             'uid' => 'myuid',
+          //             'abc' => 'xyz'
+          //         ],
+          //         'list' => ['one', 'two']
+          //     ];
+          //
+          // would become,
+          //
+          //     $profile = [
+          //         'id' => 1234,
+          //        'attributes' => [
+          //             'uid' => 'myuid',
+          //             'abc' => 'xyz'
+          //         ],
+          //         'attributes_uid' => 'myuid',
+          //         'attributes_abc' => 'xyz',
+          //         'list' => ['one', 'two'],
+          //         'list_0' => 'one',
+          //         'list_1' => 'two',
+          //         'list_one' => 'one',
+          //         'list_two' => 'two',
+          //     ]
+          //
+          // https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
+          //
+          // note: on Keycloak, OIDC name claim = "${given_name} ${family_name}" or one of them if any is missing
+          //
+          'oidc_login_attributes' => array (
+              'id' => 'sub',
+              'name' => 'name',
+              'mail' => 'email',
+              'quota' => 'ownCloudQuota',
+              'home' => 'homeDirectory',
+              'ldap_uid' => 'uid',
+              'groups' => 'ownCloudGroups',
+              'is_admin' => 'ownCloudAdmin',
+          ),
+
+          // Default group to add users to (optional, defaults to nothing)
+          'oidc_login_default_group' => 'oidc',
+
+          // Use external storage instead of a symlink to the home directory
+          // Requires the files_external app to be enabled
+          'oidc_login_use_external_storage' => false,
+
+          // Set OpenID Connect scope
+          'oidc_login_scope' => 'openid profile',
+
+      strategy:
+        type: Recreate
+        # type: RollingUpdate
+        # rollingUpdate:
+        #   maxSurge: 1
+        #   maxUnavailable: 0
+      extraEnv:
+      - name: REDIS_HOST_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: redis-secret
+            key: redis-password
+      - name: OVERWRITEPROTOCOL
+        value: https
+      
+    service:
+      type: ClusterIP
+      port: 8080
+      loadBalancerIP: nil
+      nodePort: nil
+    persistence:
+      # Nextcloud Data (/var/www/html)
+      enabled: true
+      annotations: {}
+      storageClass: "standard"
+      accessMode: ReadWriteMany
+      size: 2Gi
+
+    livenessProbe:
+      enabled: true
+      initialDelaySeconds: 30
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    readinessProbe:
+      enabled: true
+      initialDelaySeconds: 30
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+
+    hpa:
+      enabled: false
+      cputhreshold: 60
+      minPods: 1
+      maxPods: 10
+
+    nodeSelector: {}
+
+    tolerations: []
+
+    affinity: {}
+
+    metrics:
+      enabled: false
+      replicaCount: 1
+      https: true
+      timeout: 5s
+      image:
+        repository: xperimental/nextcloud-exporter
+        tag: v0.3.0
+        pullPolicy: IfNotPresent
+      service:
+        type: ClusterIP
+        ## Use serviceLoadBalancerIP to request a specific static IP,
+        ## otherwise leave blank
+        # loadBalancerIP:
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "9205"
+        labels: {}

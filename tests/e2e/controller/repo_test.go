@@ -11,6 +11,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var _ = Context("Install and configure a repository", func() {
@@ -96,9 +97,17 @@ var _ = Context("Install and configure a repository", func() {
 			By("creating a new repository resource with wrong url")
 
 			repoOneAssert.Obj.Spec = yahov1alpha2.RepositorySpec{
-				Name:   testRepoName,
-				URL:    testRepoURL + "foo",
-				Charts: []yahov1alpha2.Entry{},
+				Source: yahov1alpha2.RepositorySource{
+					URL:  testRepoURL + "foo",
+					Type: "helm",
+				},
+				Charts: yahov1alpha2.RepositoryCharts{
+					Sync: yahov1alpha2.Sync{
+						Enabled:  true,
+						Interval: "10s",
+					},
+					Items: []yahov1alpha2.Entry{},
+				},
 			}
 
 			err = testClient.Create(context.Background(), repoOneAssert.Obj)
@@ -111,7 +120,7 @@ var _ = Context("Install and configure a repository", func() {
 
 			By("updating the repository resource with correct url")
 
-			repoOneAssert.Obj.Spec.URL = testRepoURL
+			repoOneAssert.Obj.Spec.Source.URL = testRepoURL
 
 			err = testClient.Update(context.Background(), repoOneAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
@@ -127,14 +136,23 @@ var _ = Context("Install and configure a repository", func() {
 
 			By("updating the repository resource with charts should create index configmaps")
 
-			repoOneAssert.Obj.Spec.Charts = []yahov1alpha2.Entry{
-				{
-					Name:     testRepoChartNameAssert,
-					Versions: []string{},
+			err = testClient.Get(context.Background(), types.NamespacedName{Name: repoOneAssert.Obj.Name}, repoOneAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to get test resource")
+
+			repoOneAssert.Obj.Spec.Charts = yahov1alpha2.RepositoryCharts{
+				Sync: yahov1alpha2.Sync{
+					Enabled:  true,
+					Interval: "10s",
 				},
-				{
-					Name:     testRepoChartThirdNameAssert,
-					Versions: []string{},
+				Items: []yahov1alpha2.Entry{
+					{
+						Name:     testRepoChartNameAssert,
+						Versions: []string{},
+					},
+					{
+						Name:     testRepoChartThirdNameAssert,
+						Versions: []string{},
+					},
 				},
 			}
 
@@ -156,14 +174,23 @@ var _ = Context("Install and configure a repository", func() {
 
 			By("updating the repository resource with chart versions belonging to it should create configmaps for chart version")
 
-			repoOneAssert.Obj.Spec.Charts = []yahov1alpha2.Entry{
-				{
-					Name:     testRepoChartNameAssert,
-					Versions: []string{testRepoChartNameAssertqVersion},
+			err = testClient.Get(context.Background(), types.NamespacedName{Name: repoOneAssert.Obj.Name}, repoOneAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to get test resource")
+
+			repoOneAssert.Obj.Spec.Charts = yahov1alpha2.RepositoryCharts{
+				Sync: yahov1alpha2.Sync{
+					Enabled:  true,
+					Interval: "10s",
 				},
-				{
-					Name:     testRepoChartThirdNameAssert,
-					Versions: []string{testRepoChartThirdNameAssertVersion},
+				Items: []yahov1alpha2.Entry{
+					{
+						Name:     testRepoChartNameAssert,
+						Versions: []string{testRepoChartNameAssertqVersion},
+					},
+					{
+						Name:     testRepoChartThirdNameAssert,
+						Versions: []string{testRepoChartThirdNameAssertVersion},
+					},
 				},
 			}
 
@@ -181,10 +208,19 @@ var _ = Context("Install and configure a repository", func() {
 
 			By("deleting the first chart of the repository resource")
 
-			repoOneAssert.Obj.Spec.Charts = []yahov1alpha2.Entry{
-				{
-					Name:     testRepoChartThirdNameAssert,
-					Versions: []string{testRepoChartThirdNameAssertVersion},
+			err = testClient.Get(context.Background(), types.NamespacedName{Name: repoOneAssert.Obj.Name}, repoOneAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to get test resource")
+
+			repoOneAssert.Obj.Spec.Charts = yahov1alpha2.RepositoryCharts{
+				Sync: yahov1alpha2.Sync{
+					Enabled:  true,
+					Interval: "10s",
+				},
+				Items: []yahov1alpha2.Entry{
+					{
+						Name:     testRepoChartThirdNameAssert,
+						Versions: []string{testRepoChartThirdNameAssertVersion},
+					},
 				},
 			}
 
@@ -196,12 +232,15 @@ var _ = Context("Install and configure a repository", func() {
 			chartOneAssert.Synced = BeFalse()
 			chartOneAssert.Deps = BeFalse()
 
-			repoOneAssert.InstalledCharts = int64(1)
+			repoOneAssert.InstalledCharts = int64(2)
 
 			repoOneAssert.Do(namespace)
 			repoTwoAssert.Do(namespace)
 
 			By("deleting the repository resource should also cleanup related resources")
+
+			err = testClient.Get(context.Background(), types.NamespacedName{Name: repoOneAssert.Obj.Name}, repoOneAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to get test resource")
 
 			err = testClient.Delete(context.Background(), repoOneAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to delete test resource")

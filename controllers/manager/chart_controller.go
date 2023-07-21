@@ -123,16 +123,27 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	if err != nil {
 		reqLogger.Error(err, "failed to initialize chart resource struct", "name", instance.ObjectMeta.Name)
-		return r.syncStatus(ctx, instance, hc.Status)
+		return r.syncStatus(ctx, instance, &yahov1alpha2.ChartStatus{
+			ChartVersions: hc.Status.ChartVersions,
+			Conditions:    *hc.Status.Conditions,
+			Deprecated:    &hc.Status.Deprecated,
+			LinkedCharts:  hc.Status.LinkedCharts,
+		})
 	}
+
+	r.Log.Info("status before chart update", "chart", instance.ObjectMeta.Name, "repository", instance.Spec.Repository, "status", instance.Status, "struct_status", hc.Status)
 
 	if err := hc.Update(instance); err != nil {
-		reqLogger.Error(err, "failed to updatechart resource", "name", instance.ObjectMeta.Name)
-		return r.syncStatus(ctx, instance, hc.Status)
+		reqLogger.Error(err, "failed to update chart resource", "name", instance.ObjectMeta.Name)
+		return r.syncStatus(ctx, instance, &yahov1alpha2.ChartStatus{
+			ChartVersions: hc.Status.ChartVersions,
+			Conditions:    *hc.Status.Conditions,
+			Deprecated:    &hc.Status.Deprecated,
+			LinkedCharts:  hc.Status.LinkedCharts,
+		})
 	}
 
-	//versions = "synced"
-	//instance.Status.Versions = &versions
+	r.Log.Info("status after chart update", "chart", instance.ObjectMeta.Name, "repository", instance.Spec.Repository, "status", instance.Status)
 
 	if instance.Spec.CreateDeps {
 		if err := hc.CreateOrUpdateSubCharts(); err != nil {
@@ -143,31 +154,41 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				Reason:             "chartUpdate",
 				Message:            err.Error(),
 			}
-			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+			meta.SetStatusCondition(hc.Status.Conditions, condition)
 			reqLogger.Error(err, "error on managing subcharts. Reconciling.", "name", instance.ObjectMeta.Name)
 
 		}
-
-		//deps = "synced"
-		//instance.Status.Dependencies = &deps
 	}
 
 	reqLogger.Info("chart resource is up to date", "name", instance.ObjectMeta.Name)
 
-	return r.syncStatus(ctx, instance, hc.Status)
+	return r.syncStatus(ctx, instance, &yahov1alpha2.ChartStatus{
+		ChartVersions: hc.Status.ChartVersions,
+		Conditions:    *hc.Status.Conditions,
+		Deprecated:    &hc.Status.Deprecated,
+		LinkedCharts:  hc.Status.LinkedCharts,
+	})
 }
 
-func (r *ChartReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.Chart, status *yahov1alpha2.ChartStatus) (ctrl.Result, error) {
+func (r *ChartReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.Chart, newStatus *yahov1alpha2.ChartStatus) (ctrl.Result, error) {
 
 	changed := false
-	if !reflect.DeepEqual(instance.Status.ChartVersions, status.ChartVersions) {
+	if !reflect.DeepEqual(instance.Status.ChartVersions, newStatus.ChartVersions) {
 		changed = true
-		instance.Status.ChartVersions = status.ChartVersions
+	}
+	r.Log.Info("compare versions with status", "chart", instance.ObjectMeta.Name, "repository", instance.Spec.Repository, "changed", changed, "versions", instance.Status.ChartVersions)
+
+	if r.setConditions(instance, newStatus) {
+		changed = true
+	}
+	r.Log.Info("set new status conditions", "chart", instance.ObjectMeta.Name, "repository", instance.Spec.Repository, "changed", changed, "status", instance.Status.Conditions, "new", newStatus.Conditions)
+
+	if !reflect.DeepEqual(instance.Status.LinkedCharts, newStatus.LinkedCharts) {
+		changed = true
 	}
 
-	if r.setConditions(instance, status) {
+	if instance.Status.Deprecated != newStatus.Deprecated {
 		changed = true
-		instance.Status.Conditions = status.Conditions
 	}
 
 	if !changed {
@@ -175,9 +196,22 @@ func (r *ChartReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2
 		return ctrl.Result{}, nil
 	}
 
+	instance.Status = *newStatus
 	if err := r.Status().Update(ctx, instance); err != nil {
 		r.Log.Info("could not update status. reconcile", "chart", instance.ObjectMeta.Name)
 		return ctrl.Result{}, err
+	}
+
+	for _, condition := range instance.Status.Conditions {
+		if condition.Status == metav1.ConditionFalse {
+			r.Log.Info("reconcile in 10 seconds again due to failed condition", "chart", instance.ObjectMeta.Name, "condition", condition)
+			return ctrl.Result{Requeue: true, RequeueAfter: 10 * time.Second}, nil
+		}
+	}
+
+	if len(newStatus.Conditions) < 1 {
+		r.Log.Info("reconcile in 10 seconds again due to missing conditions in status", "chart", instance.ObjectMeta.Name)
+		return ctrl.Result{Requeue: true, RequeueAfter: 10 * time.Second}, nil
 	}
 
 	r.Log.Info("don't reconcile.", "chart", instance.ObjectMeta.Name)
@@ -185,31 +219,50 @@ func (r *ChartReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2
 }
 
 func (r *ChartReconciler) setConditions(instance *yahov1alpha2.Chart, auth *yahov1alpha2.ChartStatus) bool {
-	// TODO: use a map here
 	changed := false
-	if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "indexLoaded", meta.FindStatusCondition(auth.Conditions, "indexLoaded").Status) {
-		changed = true
-		condition := metav1.Condition{Type: "indexLoaded", Status: meta.FindStatusCondition(auth.Conditions, "indexLoaded").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "indexLoaded").Reason, Message: meta.FindStatusCondition(auth.Conditions, "indexLoaded").Message}
-		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+
+	if instance.Status.Conditions == nil {
+		instance.Status.Conditions = make([]metav1.Condition, 5)
 	}
 
-	condition := meta.FindStatusCondition(auth.Conditions, "configmapCreate")
+	condition := meta.FindStatusCondition(auth.Conditions, "indexLoaded")
+	if condition != nil {
+		if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "indexLoaded", condition.Status) {
+			changed = true
+			// condition := metav1.Condition{Type: "indexLoaded", Status: condition.Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: condition.Reason, Message: condition.Message}
+			// meta.SetStatusCondition(&instance.Status.Conditions, condition)
+		}
+	} else {
+		if meta.FindStatusCondition(instance.Status.Conditions, "indexLoaded") == nil {
+			changed = true
+			meta.SetStatusCondition(&auth.Conditions, metav1.Condition{
+				Type:               "indexLoaded",
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             "statusSync",
+				Message:            "status not available",
+			})
+		}
+	}
+
+	condition = meta.FindStatusCondition(auth.Conditions, "configmapCreate")
 
 	if condition != nil {
 		if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "configmapCreate", condition.Status) {
 			changed = true
-			condition := metav1.Condition{Type: "configmapCreate", Status: meta.FindStatusCondition(auth.Conditions, "configmapCreate").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "configmapCreate").Reason, Message: meta.FindStatusCondition(auth.Conditions, "configmapCreate").Message}
-			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+			// meta.SetStatusCondition(&instance.Status.Conditions, *condition)
 		}
 	} else {
-		condition := metav1.Condition{
-			Type:               "configmapCreate",
-			Status:             metav1.ConditionFalse,
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "statusSync",
-			Message:            "status not available",
+		if meta.FindStatusCondition(instance.Status.Conditions, "configmapCreate") == nil {
+			changed = true
+			meta.SetStatusCondition(&auth.Conditions, metav1.Condition{
+				Type:               "configmapCreate",
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             "statusSync",
+				Message:            "status not available",
+			})
 		}
-		meta.SetStatusCondition(&instance.Status.Conditions, condition)
 	}
 
 	condition = meta.FindStatusCondition(auth.Conditions, "remoteSync")
@@ -217,18 +270,19 @@ func (r *ChartReconciler) setConditions(instance *yahov1alpha2.Chart, auth *yaho
 	if condition != nil {
 		if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "remoteSync", meta.FindStatusCondition(auth.Conditions, "remoteSync").Status) {
 			changed = true
-			condition := metav1.Condition{Type: "remoteSync", Status: meta.FindStatusCondition(auth.Conditions, "remoteSync").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "remoteSync").Reason, Message: meta.FindStatusCondition(auth.Conditions, "remoteSync").Message}
-			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+			// meta.SetStatusCondition(&instance.Status.Conditions, *condition)
 		}
 	} else {
-		condition := metav1.Condition{
-			Type:               "remoteSync",
-			Status:             metav1.ConditionFalse,
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "statusSync",
-			Message:            "status not available",
+		if meta.FindStatusCondition(instance.Status.Conditions, "remoteSync") == nil {
+			changed = true
+			meta.SetStatusCondition(&auth.Conditions, metav1.Condition{
+				Type:               "remoteSync",
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             "statusSync",
+				Message:            "status not available",
+			})
 		}
-		meta.SetStatusCondition(&instance.Status.Conditions, condition)
 	}
 
 	condition = meta.FindStatusCondition(auth.Conditions, "dependenciesSync")
@@ -236,18 +290,19 @@ func (r *ChartReconciler) setConditions(instance *yahov1alpha2.Chart, auth *yaho
 	if condition != nil {
 		if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "dependenciesSync", meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Status) {
 			changed = true
-			condition := metav1.Condition{Type: "dependenciesSync", Status: meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Reason, Message: meta.FindStatusCondition(auth.Conditions, "dependenciesSync").Message}
-			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+			// meta.SetStatusCondition(&instance.Status.Conditions, *condition)
 		}
 	} else {
-		condition := metav1.Condition{
-			Type:               "dependenciesSync",
-			Status:             metav1.ConditionFalse,
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "statusSync",
-			Message:            "status not available",
+		if meta.FindStatusCondition(instance.Status.Conditions, "dependenciesSync") == nil {
+			changed = true
+			meta.SetStatusCondition(&auth.Conditions, metav1.Condition{
+				Type:               "dependenciesSync",
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             "statusSync",
+				Message:            "status not available",
+			})
 		}
-		meta.SetStatusCondition(&instance.Status.Conditions, condition)
 	}
 
 	condition = meta.FindStatusCondition(auth.Conditions, "prepareChart")
@@ -255,18 +310,39 @@ func (r *ChartReconciler) setConditions(instance *yahov1alpha2.Chart, auth *yaho
 	if condition != nil {
 		if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "prepareChart", meta.FindStatusCondition(auth.Conditions, "prepareChart").Status) {
 			changed = true
-			condition := metav1.Condition{Type: "prepareChart", Status: meta.FindStatusCondition(auth.Conditions, "prepareChart").Status, LastTransitionTime: metav1.Time{Time: time.Now()}, Reason: meta.FindStatusCondition(auth.Conditions, "prepareChart").Reason, Message: meta.FindStatusCondition(auth.Conditions, "prepareChart").Message}
-			meta.SetStatusCondition(&instance.Status.Conditions, condition)
+			// meta.SetStatusCondition(&instance.Status.Conditions, *condition)
 		}
 	} else {
-		condition := metav1.Condition{
-			Type:               "prepareChart",
-			Status:             metav1.ConditionFalse,
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "statusSync",
-			Message:            "status not available",
+		if meta.FindStatusCondition(instance.Status.Conditions, "prepareChart") == nil {
+			changed = true
+			meta.SetStatusCondition(&auth.Conditions, metav1.Condition{
+				Type:               "prepareChart",
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             "statusSync",
+				Message:            "status not available",
+			})
 		}
-		meta.SetStatusCondition(&instance.Status.Conditions, condition)
+	}
+
+	condition = meta.FindStatusCondition(auth.Conditions, "remoteSync")
+
+	if condition != nil {
+		if !meta.IsStatusConditionPresentAndEqual(instance.Status.Conditions, "remoteSync", meta.FindStatusCondition(auth.Conditions, "remoteSync").Status) {
+			changed = true
+			// meta.SetStatusCondition(&instance.Status.Conditions, *condition)
+		}
+	} else {
+		if meta.FindStatusCondition(instance.Status.Conditions, "remoteSync") == nil {
+			changed = true
+			meta.SetStatusCondition(&auth.Conditions, metav1.Condition{
+				Type:               "remoteSync",
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             "statusSync",
+				Message:            "status not available",
+			})
+		}
 	}
 
 	return changed

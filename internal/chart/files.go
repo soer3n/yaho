@@ -70,6 +70,10 @@ func appendFilesFromConfigMap(chartName, version, suffix string, c client.Client
 		return
 	}
 
+	if len(configmapList.Items) < 1 {
+		logger.Info("no configmaps found", "chart", chartName, "version", version, "suffix", suffix, "labels", selector)
+	}
+
 	for _, configmap := range configmapList.Items {
 		for key, data := range configmap.BinaryData {
 			baseName := "templates/"

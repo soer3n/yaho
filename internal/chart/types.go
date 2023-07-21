@@ -7,6 +7,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -16,8 +17,7 @@ type Chart struct {
 	Name       string
 	Namespace  string
 	Repo       string
-	Status     *yahov1alpha2.ChartStatus
-	url        string
+	Status     *ChartStatus
 	helm       helm
 	kubernetes kubernetes
 	getter     utils.HTTPClientInterface
@@ -34,6 +34,13 @@ type helm struct {
 	settings *cli.EnvSettings
 	index    repo.ChartVersions
 	config   *action.Configuration
+}
+
+type ChartStatus struct {
+	Conditions    *[]metav1.Condition
+	ChartVersions map[string]yahov1alpha2.ChartVersion
+	LinkedCharts  []string
+	Deprecated    bool
 }
 
 // Auth represents struct with auth data for a repo

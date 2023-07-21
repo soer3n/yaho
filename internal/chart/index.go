@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
@@ -42,13 +43,15 @@ func GetChartVersionFromIndexConfigmap(version string, indexMap *v1.ConfigMap) (
 		return nil, err
 	}
 
+	currentVersion, _ := getParsedVersion(version, index)
+
 	for _, v := range index {
-		if v.Version == version {
+		if v.Version == currentVersion {
 			return v, nil
 		}
 	}
 
-	return nil, errors.New("could not find version from loaded index")
+	return nil, fmt.Errorf("could not find version for %s from loaded index for chart %s", version, index[0].Metadata.Name)
 }
 
 func (c *Chart) getChartURL(version, repository string) (string, error) {
@@ -63,7 +66,7 @@ func (c *Chart) getChartURL(version, repository string) (string, error) {
 		if e.Version == version {
 			c.logger.Info("found valid version", "chart", c.Name, "repository", repository, "version", version)
 			// use first url because it should be set in each case
-			chartURL, err := repo.ResolveReferenceURL(repoObj.Spec.URL, e.URLs[0])
+			chartURL, err := repo.ResolveReferenceURL(repoObj.Spec.Source.URL, e.URLs[0])
 
 			if err != nil {
 				return "", err
@@ -76,7 +79,7 @@ func (c *Chart) getChartURL(version, repository string) (string, error) {
 	return "", errors.New("could not set chartversion url")
 }
 
-func (c *Chart) getParsedVersion(version string, index repo.ChartVersions) (string, error) {
+func getParsedVersion(version string, index repo.ChartVersions) (string, error) {
 
 	var constraint *semver.Constraints
 	var v *semver.Version

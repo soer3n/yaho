@@ -103,10 +103,17 @@ var _ = Context("Install and configure a chart", func() {
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: testRepoName},
 				Spec: yahov1alpha2.RepositorySpec{
-
-					Name:   testRepoName,
-					URL:    testRepoURL,
-					Charts: []yahov1alpha2.Entry{},
+					Source: yahov1alpha2.RepositorySource{
+						URL:  testRepoURL,
+						Type: "helm",
+					},
+					Charts: yahov1alpha2.RepositoryCharts{
+						Items: []yahov1alpha2.Entry{},
+						Sync: yahov1alpha2.Sync{
+							Enabled:  true,
+							Interval: "10s",
+						},
+					},
 				},
 			}
 
@@ -118,9 +125,17 @@ var _ = Context("Install and configure a chart", func() {
 				TypeMeta:   metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{Name: testRepoNameSecond},
 				Spec: yahov1alpha2.RepositorySpec{
-					Name:   testRepoNameSecond,
-					URL:    testRepoURLSecond,
-					Charts: []yahov1alpha2.Entry{},
+					Source: yahov1alpha2.RepositorySource{
+						URL:  testRepoURLSecond,
+						Type: "helm",
+					},
+					Charts: yahov1alpha2.RepositoryCharts{
+						Items: []yahov1alpha2.Entry{},
+						Sync: yahov1alpha2.Sync{
+							Enabled:  true,
+							Interval: "10s",
+						},
+					},
 				},
 			}
 
@@ -130,10 +145,12 @@ var _ = Context("Install and configure a chart", func() {
 			repoOneAssert.IsPresent = true
 			repoOneAssert.Status = BeTrue()
 			repoOneAssert.Synced = BeTrue()
+			repoOneAssert.InstalledCharts = int64(2)
 
 			repoTwoAssert.IsPresent = true
 			repoTwoAssert.Status = BeTrue()
 			repoTwoAssert.Synced = BeTrue()
+			repoTwoAssert.InstalledCharts = int64(1)
 
 			chartOneAssert.IndicesInstalled = BeNil()
 
@@ -161,7 +178,7 @@ var _ = Context("Install and configure a chart", func() {
 			err = testClient.Create(context.Background(), chartThreeAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
-			repoOneAssert.InstalledCharts = int64(1)
+			repoOneAssert.InstalledCharts = int64(2)
 
 			chartThreeAssert.IsPresent = BeNil()
 			chartThreeAssert.Deps = BeTrue()
@@ -185,7 +202,7 @@ var _ = Context("Install and configure a chart", func() {
 			repoOneAssert.Synced = BeFalse()
 
 			chartThreeAssert.Synced = BeFalse()
-			chartThreeAssert.Deps = BeFalse()
+			chartThreeAssert.Deps = BeTrue()
 
 			repoOneAssert.Do(namespace)
 			repoTwoAssert.Do(namespace)
@@ -287,7 +304,7 @@ var _ = Context("Install and configure a chart", func() {
 			err = testClient.Delete(context.Background(), chartTwoAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
-			repoTwoAssert.InstalledCharts = int64(0)
+			repoTwoAssert.InstalledCharts = int64(1)
 
 			chartTwoAssert.ResourcesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present"))
 			chartTwoAssert.IsPresent = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "yaho.soer3n.dev"}, "testing-dep-testresource-2"))
@@ -302,7 +319,7 @@ var _ = Context("Install and configure a chart", func() {
 			err = testClient.Delete(context.Background(), chartThreeAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
-			repoOneAssert.InstalledCharts = int64(1)
+			repoOneAssert.InstalledCharts = int64(2)
 
 			chartThreeAssert.ResourcesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present"))
 			chartThreeAssert.IsPresent = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "yaho.soer3n.dev"}, "testing-nested-testresource"))
@@ -317,7 +334,7 @@ var _ = Context("Install and configure a chart", func() {
 			err = testClient.Delete(context.Background(), chartOneAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
-			repoOneAssert.InstalledCharts = int64(0)
+			repoOneAssert.InstalledCharts = int64(2)
 
 			chartOneAssert.ResourcesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "related configmaps not present"))
 			chartOneAssert.IsPresent = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "charts", Group: "yaho.soer3n.dev"}, "testing-testresource"))
@@ -338,10 +355,12 @@ var _ = Context("Install and configure a chart", func() {
 			repoOneAssert.IsPresent = false
 			repoOneAssert.Status = BeFalse()
 			repoOneAssert.Synced = BeFalse()
+			repoOneAssert.InstalledCharts = int64(0)
 
 			repoTwoAssert.IsPresent = false
 			repoTwoAssert.Status = BeFalse()
 			repoTwoAssert.Synced = BeFalse()
+			repoTwoAssert.InstalledCharts = int64(0)
 
 			chartOneAssert.IndicesInstalled = BeEquivalentTo(k8serrors.NewNotFound(schema.GroupResource{Resource: "configmaps"}, "helm-testresource-testing-index"))
 

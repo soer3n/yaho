@@ -119,7 +119,7 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// should be before struct initialization
 	// or divided into two tasks (finalizer creation and deletion)
 	if requeue, err = r.handleFinalizer(hc, instance); err != nil {
-		reqLogger.Info("Failed on handling finalizer", "repo", instance.Spec.Name)
+		reqLogger.Info("Failed on handling finalizer", "repo", instance.ObjectMeta.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -139,8 +139,8 @@ func (r *RepoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	synced = true
 	instance.Status.Synced = &synced
 
-	reqLogger.Info("Repo deployed", "name", instance.Spec.Name, "namespace", instance.ObjectMeta.Namespace)
-	reqLogger.Info("Don't reconcile repos.", "name", instance.Spec.Name)
+	reqLogger.Info("Repo deployed", "name", instance.ObjectMeta.Name, "namespace", instance.ObjectMeta.Namespace)
+	reqLogger.Info("Don't reconcile repos.", "name", instance.ObjectMeta.Name)
 	return r.syncStatus(ctx, instance, hc, nil)
 }
 
@@ -189,14 +189,14 @@ func (r *RepoReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.
 
 	_ = r.Status().Update(ctx, instance)
 
-	duration, _ := time.ParseDuration(instance.Spec.Interval)
+	duration, _ := time.ParseDuration(instance.Spec.Charts.Sync.Interval)
 
 	if *instance.Status.Synced {
-		r.Log.Info("Reconcile repo after status sync regular", "repo", instance.ObjectMeta.Name, "interval", instance.Spec.Interval)
+		r.Log.Info("Reconcile repo after status sync regular", "repo", instance.ObjectMeta.Name, "interval", instance.Spec.Charts.Sync.Interval)
 		return ctrl.Result{RequeueAfter: duration}, nil
 	}
 
-	r.Log.Info("Reconcile repo after status sync regular", "repo", instance.ObjectMeta.Name, "interval", instance.Spec.Interval)
+	r.Log.Info("Reconcile repo after status sync regular", "repo", instance.ObjectMeta.Name, "interval", instance.Spec.Charts.Sync.Interval)
 	return ctrl.Result{RequeueAfter: duration}, nil
 }
 

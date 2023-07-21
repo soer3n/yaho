@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
 
 	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
 	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/repo"
@@ -25,6 +27,7 @@ import (
 const configMapLabelKey = "yaho.soer3n.dev/chart"
 const configMapRepoLabelKey = "yaho.soer3n.dev/repo"
 const configMapLabelType = "yaho.soer3n.dev/type"
+const configMapLabelSubName = "yaho.soer3n.dev/subname"
 
 // CreateConfigMaps represents func for parsing configmaps and sending them to receive method
 func createConfigMaps(cm chan v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, logger logr.Logger) error {
@@ -95,6 +98,8 @@ func DeployConfigMap(configmap v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersi
 	//defer mu.Unlock()
 	//mu.Lock()
 
+	logger.Info("request for configmap deployment", "chart", hc.Name(), "repository", repository, "name", configmap.Name, "data_length", len(configmap.Data), "binary_data_length", len(configmap.BinaryData))
+	// TODO: what is happening here? and why?
 	if reflect.DeepEqual(localClient, remoteClient) {
 		chartList := &yahov1alpha2.ChartList{}
 		ls := labels.Set{}
@@ -131,10 +136,42 @@ func DeployConfigMap(configmap v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersi
 		return err
 	}
 
-	if err := remoteClient.Update(context.Background(), &configmap, &client.UpdateOptions{}); err != nil {
-		return err
+	logger.Info("got current configmap deployment", "chart", hc.Name(), "repository", repository, "name", configmap.Name, "data_length", len(current.Data), "binary_data_length", len(current.BinaryData))
+
+	if configmap.BinaryData == nil {
+		logger.Info("configmap binary data empty after parsing.", "repository", repository, "chart", hc.Name(), "name", configmap.Name)
 	}
 
+	if configmap.Data == nil {
+		logger.Info("configmap data empty after parsing.", "repository", repository, "chart", hc.Name(), "name", configmap.Name)
+	}
+
+	if !reflect.DeepEqual(current.BinaryData, configmap.BinaryData) {
+
+		logger.Info("update configmap data after parsing.", "repository", repository, "chart", hc.Name(), "name", configmap.Name)
+
+		currentList := []string{}
+		newList := []string{}
+
+		for k := range current.BinaryData {
+			currentList = append(currentList, k)
+		}
+
+		for k := range configmap.BinaryData {
+			newList = append(newList, k)
+		}
+
+		logger.Info("configmap diff:", "repository", repository, "chart", hc.Name(), "name", configmap.Name, "current_files", cmp.Diff(currentList, newList))
+
+		fmt.Print(cmp.Diff(currentList, newList))
+
+		if err := remoteClient.Update(context.Background(), &configmap, &client.UpdateOptions{}); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	logger.Info("no re-deployment needed for configmap.", "repository", repository, "chart", hc.Name(), "name", configmap.Name)
 	return nil
 }
 
@@ -151,6 +188,9 @@ func createTemplateConfigMap(cm chan v1.ConfigMap, name, namespace, repository s
 		list = hc.Templates
 	}
 
+	logger.Info("template list loaded", "chart", hc.Name(), "repository", repository, "type", name, "length", len(list))
+
+	// TODO: add subname label for sub directories
 	objectMeta := metav1.ObjectMeta{
 		Name:      "helm-" + name + "-" + repository + "-" + v.Metadata.Name + "-" + v.Metadata.Version,
 		Namespace: namespace,
@@ -168,6 +208,7 @@ func createTemplateConfigMap(cm chan v1.ConfigMap, name, namespace, repository s
 	configMapMap := make(map[string]v1.ConfigMap)
 	binaryData := make(map[string][]byte)
 
+	logger.Info("build configmap from loaded template list", "chart", hc.Name(), "repository", repository, "type", name, "length", len(list))
 	for _, entry := range list {
 		path := strings.SplitAfter(entry.Name, "/")
 
@@ -197,6 +238,7 @@ func createTemplateConfigMap(cm chan v1.ConfigMap, name, namespace, repository s
 						configMapLabelKey:     v.Metadata.Name + "-" + v.Metadata.Version,
 						configMapRepoLabelKey: repository,
 						configMapLabelType:    name,
+						configMapLabelSubName: key,
 					},
 				},
 				BinaryData: map[string][]byte{
@@ -239,7 +281,7 @@ func createDefaultValueConfigMap(cm chan v1.ConfigMap, namespace, repository str
 	castedValues, _ := json.Marshal(values)
 	configmap.Data["values"] = string(castedValues)
 
-	logger.Info("parsed default values configmap", "chart", v.Name, "repository", repository, "configmap", configmap)
+	logger.Info("parsed default values configmap", "chart", v.Name, "repository", repository, "values", len(configmap.BinaryData))
 
 	cm <- configmap
 }

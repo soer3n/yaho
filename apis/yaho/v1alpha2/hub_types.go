@@ -29,12 +29,12 @@ type HubSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	Clusters []HubCluster `json:"clusters,omitempty"`
+	Interval string       `json:"interval,omitempty"`
 	Defaults HubDefaults  `json:"defaults,omitempty"`
 }
 
 type HubCluster struct {
 	Name     string          `json:"name,omitempty"`
-	Interval string          `json:"interval,omitempty"`
 	Agent    HubClusterAgent `json:"agent,omitempty"`
 	Secret   Secret          `json:"secret,omitempty"`
 	Defaults HubDefaults     `json:"defaults,omitempty"`

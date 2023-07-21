@@ -200,32 +200,38 @@ spec:
               authSecret:
                 type: string
               charts:
-                items:
-                  properties:
-                    name:
-                      type: string
-                    versions:
-                      items:
-                        type: string
-                      type: array
-                  type: object
-                type: array
-              interval:
-                type: string
-              name:
-                type: string
-              sync:
                 properties:
-                  enabled:
-                    type: boolean
-                  interval:
-                    type: integer
+                  items:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        versions:
+                          items:
+                            type: string
+                          type: array
+                      type: object
+                    type: array
+                  sync:
+                    properties:
+                      enabled:
+                        type: boolean
+                      interval:
+                        type: string
+                    type: object
                 type: object
-              url:
+              mode:
+                description: can be configmap or pvc (maybe also s3?)
                 type: string
+              source:
+                properties:
+                  type:
+                    type: string
+                  url:
+                    type: string
+                type: object
             required:
-            - name
-            - url
+            - source
             type: object
           status:
             description: RepositoryStatus defines the observed state of Repo

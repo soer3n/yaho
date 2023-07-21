@@ -1,0 +1,60 @@
+apiVersion: yaho.soer3n.dev/v1alpha2
+kind: Values
+metadata:
+  name: values-db-nextcloud
+  namespace: helm
+spec:
+  yaml:
+    internalDatabase:
+      enabled: true
+      name: nextcloud
+
+    externalDatabase:
+      enabled: false
+      type: postgresql
+      host: nextcloud-psql.postgres
+      user: nextcloud
+      password: qf5ZG7PfWzrsTvFGpsbMI7CdxHM4TXVFf5CXwInAgkuGMAljgO90nrUxApoPpGVp
+      database: nextcloud
+      existingSecret:
+        enabled: false
+        secretName: nextcloud.nextcloud-psql.credentials.postgresql.acid.zalan.do
+        usernameKey: username
+        passwordKey: password
+
+    mariadb:
+    ## Whether to deploy a mariadb server to satisfy the applications database requirements. To use an external database set this to false and configure the externalDatabase parameters
+      enabled: false
+      db:
+        name: nextcloud
+        user: nextcloud
+        password: changeme
+
+      replication:
+        enabled: true
+      master:
+        persistence:
+          enabled: true
+          storageClass: "standard"
+          accessMode: ReadWriteMany
+          size: 8Gi
+      slave:
+        persistence:
+          enabled: true
+          storageClass: "standard"
+          accessMode: ReadWriteMany
+          size: 8Gi
+
+    postgresql:
+      enabled: true
+      global:
+        postgresql:
+          postgresqlUsername: nextcloud
+          postgresqlPassword: changeme
+          postgresqlDatabase: nextcloud
+      persistence:
+        enabled: true
+        storageClass: "standard"
+      containerSecurityContext:
+        enabled: true
+        runAsUser: 1001

@@ -112,7 +112,7 @@ func (r *HubReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 			r.Log.Info("adding specified cluster to hub channel", "hub", instance.ObjectMeta.Name, "cluster", localCluster)
 
-			duration, _ := time.ParseDuration(item.Interval)
+			duration, _ := time.ParseDuration(instance.Spec.Interval)
 			if err := currentHub.AddBackend(localCluster, ctx, duration); err != nil {
 				return r.syncStatus(ctx, instance, currentHub, err)
 			}
@@ -170,7 +170,8 @@ func (r *HubReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.H
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	duration, _ := time.ParseDuration(instance.Spec.Interval)
+	return ctrl.Result{Requeue: true, RequeueAfter: duration}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -28,12 +28,16 @@ type RepositorySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Name       string  `json:"name"`
-	URL        string  `json:"url"`
-	Charts     []Entry `json:"charts,omitempty"`
-	Sync       Sync    `json:"sync,omitempty"`
-	AuthSecret string  `json:"authSecret,omitempty"`
-	Interval   string  `json:"interval,omitempty"`
+	Source     RepositorySource `json:"source"`
+	Charts     RepositoryCharts `json:"charts,omitempty"`
+	AuthSecret string           `json:"authSecret,omitempty"`
+	// can be configmap or pvc (maybe also s3?)
+	Mode string `json:"mode,omitempty"`
+}
+
+type RepositoryCharts struct {
+	Sync  Sync    `json:"sync,omitempty"`
+	Items []Entry `json:"items,omitempty"`
 }
 
 type Entry struct {
@@ -41,17 +45,22 @@ type Entry struct {
 	Versions []string `json:"versions,omitempty"`
 }
 
+type RepositorySource struct {
+	URL  string `json:"url,omitempty"`
+	Type string `json:"type,omitempty"`
+}
+
 // RepositoryStatus defines the observed state of Repo
 type RepositoryStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Synced *bool            `json:"synced,omitempty"`
-	Charts RepositoryCharts `json:"charts,omitempty"`
+	Synced *bool                  `json:"synced,omitempty"`
+	Charts RepositoryChartsStatus `json:"charts,omitempty"`
 	// enum: indexLoaded, remoteSync
 	Conditions []metav1.Condition `json:"conditions"`
 }
 
-type RepositoryCharts struct {
+type RepositoryChartsStatus struct {
 	Names  []string `json:"names,omitempty"`
 	Linked *int64   `json:"linked,omitempty"`
 	Loaded *int64   `json:"loaded,omitempty"`

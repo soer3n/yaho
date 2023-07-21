@@ -52,7 +52,7 @@ type ChartStatus struct {
 	LinkedCharts  []string                `json:"linkedCharts,omitempty"`
 	// TODO: implement conditions in a new way:
 	// enum: indexLoaded, configmapCreate, remoteSync, prepareChart, dependenciesSync
-	Conditions []metav1.Condition `json:"conditions"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	Deprecated *bool              `json:"deprecated,omitempty"`
 }
 
@@ -66,9 +66,10 @@ type ChartVersion struct {
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
-// +kubebuilder:printcolumn:name="Repo",type="string",JSONPath=`.spec.repository`
-// +kubebuilder:printcolumn:name="Versions",type="string",JSONPath=`.status.versions`
-// +kubebuilder:printcolumn:name="Deps",type="string",JSONPath=`.status.dependencies`
+// +kubebuilder:printcolumn:name="Repository",type="string",JSONPath=`.spec.repository`
+// +kubebuilder:printcolumn:name="Versions",type="string",JSONPath=".status.conditions[?(@.type==\"indexLoaded\")].status"
+// +kubebuilder:printcolumn:name="Dependencies",type="string",JSONPath=".status.conditions[?(@.type==\"dependenciesSync\")].status"
+// +kubebuilder:printcolumn:name="Deprecated",type="string",JSONPath=`.status.deprecated`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Chart is the Schema for the charts API

@@ -52,7 +52,7 @@ func newAgentKubeconfigCmd(scheme *runtime.Scheme) *cobra.Command {
 
 	cmd.PersistentFlags().String("name", "agent-secret", "The name to use for secret.")
 	cmd.PersistentFlags().String("kubeconfig", "~/.kube/config", "The path to kubeconfig to use.")
-	cmd.PersistentFlags().String("address", "https://kubernetes.svc.default.cluster.local", "The address for the kubernetes apiserver.")
+	cmd.PersistentFlags().String("address", "https://kubernetes.default.svc.cluster.local", "The address for the kubernetes apiserver.")
 	cmd.PersistentFlags().String("namespace", "helm", "The namespace where to deploy the service account.")
 
 	return cmd

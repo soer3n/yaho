@@ -38,12 +38,16 @@ const configMapLabelUnmanaged = "yaho.soer3n.dev/unmanaged"
 func New(name, repository, namespace string, status *yahov1alpha2.ChartStatus, settings *cli.EnvSettings, scheme *runtime.Scheme, logger logr.Logger, k8sclient client.WithWatch, g utils.HTTPClientInterface, getter genericclioptions.RESTClientGetter, kubeconfig []byte) (*Chart, error) {
 
 	var err error
+	currentStatus := status.DeepCopy()
 
 	chart := &Chart{
-		Name:       name,
-		Repo:       repository,
-		Namespace:  namespace,
-		Status:     status.DeepCopy(),
+		Name:      name,
+		Repo:      repository,
+		Namespace: namespace,
+		Status: &ChartStatus{
+			Conditions:    &currentStatus.Conditions,
+			ChartVersions: currentStatus.ChartVersions,
+		},
 		helm:       helm{},
 		kubernetes: kubernetes{},
 		logger:     logger,
@@ -72,7 +76,7 @@ func New(name, repository, namespace string, status *yahov1alpha2.ChartStatus, s
 			Reason:             "chartInitialization",
 			Message:            err.Error(),
 		}
-		meta.SetStatusCondition(&chart.Status.Conditions, condition)
+		meta.SetStatusCondition(chart.Status.Conditions, condition)
 		return nil, err
 	}
 
@@ -83,7 +87,7 @@ func New(name, repository, namespace string, status *yahov1alpha2.ChartStatus, s
 		Reason:             "chartInitialization",
 		Message:            "successfully loaded",
 	}
-	meta.SetStatusCondition(&chart.Status.Conditions, condition)
+	meta.SetStatusCondition(chart.Status.Conditions, condition)
 
 	chart.helm.index = *ix
 	chart.kubernetes.scheme = scheme
@@ -96,8 +100,12 @@ func (c *Chart) Update(instance *yahov1alpha2.Chart) error {
 	c.logger.Info("set versions")
 	if err := c.setVersions(instance); err != nil {
 		c.logger.Info(err.Error())
+		c.setConditions(instance, &chart.Chart{}, false)
 		return err
 	}
+
+	c.setConditions(instance, &chart.Chart{}, false)
+
 	for name := range c.Status.ChartVersions {
 
 		hc := &chart.Chart{}
@@ -106,6 +114,7 @@ func (c *Chart) Update(instance *yahov1alpha2.Chart) error {
 		chartUrl, err := c.getChartURL(name, instance.Spec.Repository)
 
 		if err != nil {
+			c.setConditions(instance, &chart.Chart{}, false)
 			return err
 		}
 
@@ -116,51 +125,158 @@ func (c *Chart) Update(instance *yahov1alpha2.Chart) error {
 		}
 
 		if err := c.prepareVersion(hc, currentVersion, chartUrl); err != nil {
-			condition := metav1.Condition{
-				Type:               "prepareChart",
-				Status:             metav1.ConditionFalse,
-				LastTransitionTime: metav1.Time{Time: time.Now()},
-				Reason:             "chartUpdate",
-				Message:            err.Error(),
-			}
-			meta.SetStatusCondition(&c.Status.Conditions, condition)
+			c.setConditions(instance, hc, false)
 			return err
 		}
-
-		condition := metav1.Condition{
-			Type:               "prepareChart",
-			Status:             metav1.ConditionTrue,
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "chartUpdate",
-			Message:            "successful update",
-		}
-		meta.SetStatusCondition(&c.Status.Conditions, condition)
 
 		// compare and manage charts
 		c.logger.Info("create or update configmaps", "version", currentVersion.Version)
 		if err := ManageSubResources(hc, currentVersion, c.Repo, c.Namespace, c.kubernetes.client, c.kubernetes.client, c.kubernetes.scheme, c.logger); err != nil {
-			condition := metav1.Condition{
-				Type:               "configmapCreate",
-				Status:             metav1.ConditionFalse,
-				LastTransitionTime: metav1.Time{Time: time.Now()},
-				Reason:             "chartUpdate",
-				Message:            err.Error(),
-			}
-			meta.SetStatusCondition(&c.Status.Conditions, condition)
+			c.setConditions(instance, hc, false)
 			return err
 		}
 
-		condition = metav1.Condition{
-			Type:               "configmapCreate",
-			Status:             metav1.ConditionTrue,
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             "chartUpdate",
-			Message:            "successful update",
+		c.Status.ChartVersions[currentVersion.Version] = yahov1alpha2.ChartVersion{
+			Loaded:    true,
+			Specified: c.Status.ChartVersions[currentVersion.Version].Specified,
 		}
-		meta.SetStatusCondition(&c.Status.Conditions, condition)
+		c.setConditions(instance, hc, true)
+	}
+	return nil
+}
+
+func (c *Chart) setConditions(instance *yahov1alpha2.Chart, hc *chart.Chart, configmapsCreated bool) {
+
+	// TODO: set initial expected "good" status
+	meta.SetStatusCondition(c.Status.Conditions, metav1.Condition{
+		Type:               "prepareChart",
+		Status:             metav1.ConditionTrue,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "chartUpdate",
+		Message:            "success",
+	})
+	meta.SetStatusCondition(c.Status.Conditions, metav1.Condition{
+		Type:               "configmapCreate",
+		Status:             metav1.ConditionTrue,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "chartUpdate",
+		Message:            "success",
+	})
+	meta.SetStatusCondition(c.Status.Conditions, metav1.Condition{
+		Type:               "remoteSync",
+		Status:             metav1.ConditionTrue,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "chartUpdate",
+		Message:            "success",
+	})
+
+	// set versions func....
+	if len(c.Status.ChartVersions) < 1 {
+		if len(instance.Spec.Versions) < 1 {
+			message := "no versions set."
+			meta.SetStatusCondition(c.Status.Conditions, metav1.Condition{
+				Type:               "prepareChart",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             "chartUpdate",
+				Message:            message,
+			})
+		} else {
+			message := "no versions from spec are synced."
+			meta.SetStatusCondition(c.Status.Conditions, metav1.Condition{
+				Type:               "prepareChart",
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             "chartUpdate",
+				Message:            message,
+			})
+		}
+	} else {
+		for k, item := range c.Status.ChartVersions {
+			if !item.Loaded {
+				message := "version " + k + " currently not loaded."
+				meta.SetStatusCondition(c.Status.Conditions, metav1.Condition{
+					Type:               "prepareChart",
+					Status:             metav1.ConditionFalse,
+					LastTransitionTime: metav1.Time{Time: time.Now()},
+					Reason:             "chartUpdate",
+					Message:            message,
+				})
+			}
+		}
+
+		for _, item := range instance.Spec.Versions {
+			if _, ok := c.Status.ChartVersions[item]; !ok {
+				message := "specified version " + item + " currently not loaded."
+				meta.SetStatusCondition(c.Status.Conditions, metav1.Condition{
+					Type:               "prepareChart",
+					Status:             metav1.ConditionFalse,
+					LastTransitionTime: metav1.Time{Time: time.Now()},
+					Reason:             "chartUpdate",
+					Message:            message,
+				})
+			}
+		}
 	}
 
-	return nil
+	// ManageSubResources func...
+	if !configmapsCreated {
+		message := "could not create resources."
+		meta.SetStatusCondition(c.Status.Conditions, metav1.Condition{
+			Type:               "configmapCreate",
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: metav1.Time{Time: time.Now()},
+			Reason:             "chartUpdate",
+			Message:            message,
+		})
+	}
+
+	remoteSync := metav1.ConditionTrue
+	remoteSyncMessage := "success"
+
+	for _, versionStatus := range c.Status.ChartVersions {
+		if !versionStatus.Loaded {
+			remoteSync = metav1.ConditionFalse
+			remoteSyncMessage = "not all is synced."
+		}
+	}
+
+	meta.SetStatusCondition(c.Status.Conditions, metav1.Condition{
+		Type:               "remoteSync",
+		Status:             remoteSync,
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             "chartUpdate",
+		Message:            remoteSyncMessage,
+	})
+
+	// prepare version func....
+	if hc.Metadata == nil {
+		message := "could not load chart metadata."
+		meta.SetStatusCondition(c.Status.Conditions, metav1.Condition{
+			Type:               "configmapCreate",
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: metav1.Time{Time: time.Now()},
+			Reason:             "chartUpdate",
+			Message:            message,
+		})
+
+		return
+	}
+
+	linkedCharts := []string{}
+
+	for _, chart := range hc.Metadata.Dependencies {
+		repo, err := GetRepositoryNameByUrl(chart.Repository, c.kubernetes.client)
+
+		if err != nil {
+			c.logger.Info("could get repo name by url for linked chart", "chart", c.Name, "linked_chart", chart.Name, "repository_url", chart.Repository)
+		}
+		linkedCharts = append(linkedCharts, repo+"/"+chart.Name)
+	}
+
+	c.Status.LinkedCharts = linkedCharts
+	c.Status.Deprecated = hc.Metadata.Deprecated
+
 }
 
 func (c *Chart) setVersions(instance *yahov1alpha2.Chart) error {
@@ -171,6 +287,20 @@ func (c *Chart) setVersions(instance *yahov1alpha2.Chart) error {
 		c.Status.ChartVersions = make(map[string]yahov1alpha2.ChartVersion)
 	}
 
+	for value, version := range instance.Status.ChartVersions {
+		requested := false
+		for _, requestedVersion := range instance.Spec.Versions {
+			if version.Specified && value == requestedVersion {
+				requested = true
+			}
+		}
+
+		if !requested {
+			c.logger.Info("remove version from status map because it is no longer requested...", "version", version, "chart", c.Name)
+			delete(c.Status.ChartVersions, value)
+		}
+	}
+
 	for _, version := range instance.Spec.Versions {
 		c.logger.Info("init rendering version ...", "version", version, "chart", c.Name)
 
@@ -179,7 +309,7 @@ func (c *Chart) setVersions(instance *yahov1alpha2.Chart) error {
 
 		if strings.Contains(version, "*") || strings.Contains(version, "x") {
 			c.logger.Info("rendering placeholder in version ...", "version", version, "chart", c.Name)
-			parsedVersion, err = c.getParsedVersion(version, c.helm.index)
+			parsedVersion, err = getParsedVersion(version, c.helm.index)
 
 			if err != nil {
 				return err
@@ -193,26 +323,8 @@ func (c *Chart) setVersions(instance *yahov1alpha2.Chart) error {
 				Loaded:    false,
 				Specified: true,
 			}
-			// set new version entry in status
 		}
-		/*
-				c.logger.Info("init version struct", "version", version)
-				obj, err := chartversion.New(version, namespace, instance.ObjectMeta.Name, instance.Spec.Name, instance.Spec.Repository, nil, c.index, scheme, c.logger, c.K8sClient, c.getter)
 
-				if err != nil {
-					c.logger.Info(err.Error(), "version", version)
-					return err
-				}
-
-				if c.Status.Deprecated == nil {
-					instance.Status.Deprecated = &obj.Version.Deprecated
-				}
-
-				chartVersions = append(chartVersions, obj)
-			}
-
-			c.Versions = chartVersions
-		*/
 	}
 	return nil
 }
@@ -263,7 +375,7 @@ func (c *Chart) prepareVersion(hc *chart.Chart, v *repo.ChartVersion, chartUrl s
 
 		var cv *repo.ChartVersion
 
-		currentVersion, _ := c.getParsedVersion(dep.Version, *cvi)
+		currentVersion, _ := getParsedVersion(dep.Version, *cvi)
 
 		for _, i := range *cvi {
 			if i.Version == currentVersion {
@@ -293,6 +405,7 @@ func (c *Chart) prepareVersion(hc *chart.Chart, v *repo.ChartVersion, chartUrl s
 func ManageSubResources(hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, localClient, remoteClient client.WithWatch, scheme *runtime.Scheme, logger logr.Logger) error {
 	cmChannel := make(chan v1.ConfigMap)
 	wg := &sync.WaitGroup{}
+	errList := []error{}
 
 	wg.Add(2)
 	logger.Info("parse and deploy configmaps")
@@ -308,13 +421,18 @@ func ManageSubResources(hc *chart.Chart, v *repo.ChartVersion, repository, names
 	go func() {
 		for configmap := range cmChannel {
 			if err := chartversion.DeployConfigMap(configmap, hc, v, repository, namespace, localClient, remoteClient, scheme, logger); err != nil {
-				logger.Error(err, "error on creating configmap", "configmap", configmap.ObjectMeta.Name)
+				errList = append(errList, err)
+				logger.Error(err, "error on configmap deployment", "configmap", configmap.ObjectMeta.Name)
 			}
 		}
 		wg.Done()
 	}()
 
 	wg.Wait()
+
+	if err := errors.Join(errList...); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -369,22 +487,25 @@ func LoadChartByResources(c client.WithWatch, logger logr.Logger, helmChart *cha
 
 	mu := &sync.Mutex{}
 	wg := sync.WaitGroup{}
+	klog.V(0).Infof("load chart %s by cluster configmaps.\n Options: %v \nChart Version: %v", chartName, chartPathOptions, *v)
 	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
-		klog.V(0).Infof("parameter: %v --- %v --- %v --- %v", helmChart, *v, chartName, chartPathOptions)
 		setVersion(mu, helmChart, *v, chartName, chartPathOptions)
 	}()
 
 	go func() {
 		defer wg.Done()
 		setValues(mu, helmChart, chartName, repository, namespace, chartPathOptions, logger, c, vals)
+		klog.V(0).Infof("parsed values by cluster configmaps for chart %s:\n %v", chartName, len(helmChart.Values))
 	}()
 
 	go func() {
 		defer wg.Done()
 		setFiles(mu, helmChart, chartName, chartPathOptions, logger, c)
+		klog.V(0).Infof("parsed files by cluster configmaps for chart %s:\n %v", chartName, len(helmChart.Files))
+		klog.V(0).Infof("parsed templates by cluster configmaps for chart %s:\n %v", chartName, len(helmChart.Templates))
 	}()
 
 	wg.Wait()

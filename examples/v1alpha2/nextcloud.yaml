@@ -3,15 +3,17 @@ kind: Release
 metadata:
   name: release
   namespace: helm
+  annotations:
+    yaho.soer3n.dev/approval: "manual"
 spec:
   name: nextcloud
   namespace: share
   config: nextcloud-config
   repo: nextcloud
   chart: nextcloud
-  version: 2.6.5
-  values: []
-#  - values-nextcloud
-#  - values-redis
-#  - values-db-nextcloud
-#  - values-nginx-nextcloud
+  version: 3.5.*
+  values:
+  - values-nextcloud
+  - values-redis
+  - values-db-nextcloud
+  - values-nginx-nextcloud

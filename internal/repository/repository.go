@@ -42,11 +42,11 @@ const configMapLabelUnmanaged = "yaho.soer3n.dev/unmanaged"
 func New(instance *yahov1alpha2.Repository, namespace string, ctx context.Context, settings *cli.EnvSettings, reqLogger logr.Logger, k8sclient client.Client, g utils.HTTPClientInterface, c kube.Client) *Repo {
 	var helmRepo *Repo
 
-	reqLogger.Info("Trying HelmRepo", "repo", instance.Spec.Name)
+	reqLogger.Info("Trying HelmRepo", "repo", instance.ObjectMeta.Name)
 
 	helmRepo = &Repo{
-		Name: instance.Spec.Name,
-		URL:  instance.Spec.URL,
+		Name: instance.ObjectMeta.Name,
+		URL:  instance.Spec.Source.URL,
 		Namespace: Namespace{
 			Name:    namespace,
 			Install: false,
@@ -55,7 +55,7 @@ func New(instance *yahov1alpha2.Repository, namespace string, ctx context.Contex
 		K8sClient:  k8sclient,
 		getter:     g,
 		helmClient: c,
-		logger:     reqLogger.WithValues("repo", instance.Spec.Name),
+		logger:     reqLogger.WithValues("repo", instance.ObjectMeta.Name),
 		wg:         &sync.WaitGroup{},
 		mu:         sync.Mutex{},
 		ctx:        ctx,
@@ -126,6 +126,8 @@ func (hr *Repo) Update(instance *yahov1alpha2.Repository, scheme *runtime.Scheme
 		hr.logger.Info("Error on listing charts for repository %v", hr.Name)
 	}
 
+	hr.logger.Info("currently installed charts", "charts", installedCharts.Items)
+
 	for _, item := range installedCharts.Items {
 
 		// skip if chart resource is created manually
@@ -134,15 +136,26 @@ func (hr *Repo) Update(instance *yahov1alpha2.Repository, scheme *runtime.Scheme
 		}
 
 		contains := false
-		for _, chart := range instance.Spec.Charts {
+		for _, chart := range instance.Spec.Charts.Items {
 
+			//TODO: need check in status resource
 			if chart.Name == item.Spec.Name {
+				hr.logger.Info("installed chart found in spec. Don't delete.", "chart", chart.Name)
 				contains = true
 				break
 			}
 		}
 
-		if !contains {
+		versionsNotOnlySpecifiedInStatus := false
+		for version, value := range item.Status.ChartVersions {
+			if value.Specified {
+				hr.logger.Info("found version for installed chart which has been specified in status and spec. Don't delete.", "chart", item.Name, "version", version)
+				versionsNotOnlySpecifiedInStatus = true
+				break
+			}
+		}
+
+		if !contains || versionsNotOnlySpecifiedInStatus {
 			hr.logger.Info("deleting chart", "repo", hr.Name, "chart", item.ObjectMeta.Name)
 
 			obj := item.DeepCopy()
@@ -153,7 +166,7 @@ func (hr *Repo) Update(instance *yahov1alpha2.Repository, scheme *runtime.Scheme
 
 	}
 
-	for _, chart := range instance.Spec.Charts {
+	for _, chart := range instance.Spec.Charts.Items {
 		if err := hr.deployChart(repo, chart, scheme); err != nil {
 			return err
 		}
@@ -167,7 +180,7 @@ func (hr *Repo) Update(instance *yahov1alpha2.Repository, scheme *runtime.Scheme
 func (hr *Repo) GetChartCount() int64 {
 	var count int64
 
-	for _ = range hr.index.Entries {
+	for range hr.index.Entries {
 		count++
 	}
 
@@ -179,9 +192,9 @@ func (hr *Repo) createIndexConfigmaps(instance *yahov1alpha2.Repository, scheme 
 	for chart, versions := range hr.index.Entries {
 
 		// TODO: what is happening here? And why?
-		if len(instance.Spec.Charts) > 0 {
+		if len(instance.Spec.Charts.Items) > 0 {
 			ok := false
-			for _, sc := range instance.Spec.Charts {
+			for _, sc := range instance.Spec.Charts.Items {
 				if sc.Name == chart {
 					ok = true
 					break

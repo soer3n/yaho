@@ -183,10 +183,10 @@ func runOperator(scheme *runtime.Scheme, configFile string, isLocal bool, metric
 					Name: "local",
 				},
 				Spec: yahov1alpha2.HubSpec{
+					Interval: "10s",
 					Clusters: []yahov1alpha2.HubCluster{
 						{
-							Name:     "local",
-							Interval: "10s",
+							Name: "local",
 							Secret: yahov1alpha2.Secret{
 								Name:      "yaho-local-kubeconfig",
 								Key:       "kubeconfig",
