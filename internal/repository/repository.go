@@ -155,7 +155,7 @@ func (hr *Repo) Update(instance *yahov1alpha2.Repository, scheme *runtime.Scheme
 			}
 		}
 
-		if !contains || versionsNotOnlySpecifiedInStatus {
+		if !contains && versionsNotOnlySpecifiedInStatus {
 			hr.logger.Info("deleting chart", "repo", hr.Name, "chart", item.ObjectMeta.Name)
 
 			obj := item.DeepCopy()

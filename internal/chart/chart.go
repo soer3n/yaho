@@ -131,7 +131,7 @@ func (c *Chart) Update(instance *yahov1alpha2.Chart) error {
 
 		// compare and manage charts
 		c.logger.Info("create or update configmaps", "version", currentVersion.Version)
-		if err := ManageSubResources(hc, currentVersion, c.Repo, c.Namespace, c.kubernetes.client, c.kubernetes.client, c.kubernetes.scheme, c.logger); err != nil {
+		if err := ManageSubResources(hc, currentVersion, c.Repo, c.Namespace, c.kubernetes.client, c.kubernetes.client, true, c.kubernetes.scheme, c.logger); err != nil {
 			c.setConditions(instance, hc, false)
 			return err
 		}
@@ -289,14 +289,18 @@ func (c *Chart) setVersions(instance *yahov1alpha2.Chart) error {
 
 	for value, version := range instance.Status.ChartVersions {
 		requested := false
-		for _, requestedVersion := range instance.Spec.Versions {
-			if version.Specified && value == requestedVersion {
-				requested = true
+		if !version.Specified {
+			requested = true
+		} else {
+			for _, requestedVersion := range instance.Spec.Versions {
+				if value == requestedVersion {
+					requested = true
+				}
 			}
 		}
 
 		if !requested {
-			c.logger.Info("remove version from status map because it is no longer requested...", "version", version, "chart", c.Name)
+			c.logger.Info("remove version from status map because it is no longer requested...", "version", version, "chart", c.Name, "status", version)
 			delete(c.Status.ChartVersions, value)
 		}
 	}
@@ -402,7 +406,7 @@ func (c *Chart) prepareVersion(hc *chart.Chart, v *repo.ChartVersion, chartUrl s
 	return nil
 }
 
-func ManageSubResources(hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, localClient, remoteClient client.WithWatch, scheme *runtime.Scheme, logger logr.Logger) error {
+func ManageSubResources(hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, localClient, remoteClient client.WithWatch, sameCluster bool, scheme *runtime.Scheme, logger logr.Logger) error {
 	cmChannel := make(chan v1.ConfigMap)
 	wg := &sync.WaitGroup{}
 	errList := []error{}
@@ -420,7 +424,7 @@ func ManageSubResources(hc *chart.Chart, v *repo.ChartVersion, repository, names
 
 	go func() {
 		for configmap := range cmChannel {
-			if err := chartversion.DeployConfigMap(configmap, hc, v, repository, namespace, localClient, remoteClient, scheme, logger); err != nil {
+			if err := chartversion.DeployConfigMap(configmap, hc, v, repository, namespace, localClient, remoteClient, sameCluster, scheme, logger); err != nil {
 				errList = append(errList, err)
 				logger.Error(err, "error on configmap deployment", "configmap", configmap.ObjectMeta.Name)
 			}

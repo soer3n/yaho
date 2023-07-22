@@ -4,13 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"reflect"
 	"strings"
-	"sync"
 
 	"github.com/go-logr/logr"
-	"github.com/google/go-cmp/cmp"
 	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/repo"
@@ -32,26 +28,9 @@ const configMapLabelSubName = "yaho.soer3n.dev/subname"
 // CreateConfigMaps represents func for parsing configmaps and sending them to receive method
 func createConfigMaps(cm chan v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, logger logr.Logger) error {
 
-	wg := &sync.WaitGroup{}
-
-	wg.Add(3)
-
-	go func() {
-		createTemplateConfigMap(cm, "tmpl", namespace, repository, hc, v, logger)
-		wg.Done()
-	}()
-
-	go func() {
-		createTemplateConfigMap(cm, "crds", namespace, repository, hc, v, logger)
-		wg.Done()
-	}()
-
-	go func() {
-		createDefaultValueConfigMap(cm, namespace, repository, v, hc.Values, logger)
-		wg.Done()
-	}()
-
-	wg.Wait()
+	createTemplateConfigMap(cm, "tmpl", namespace, repository, hc, v, logger)
+	createTemplateConfigMap(cm, "crds", namespace, repository, hc, v, logger)
+	createDefaultValueConfigMap(cm, namespace, repository, v, hc.Values, logger)
 	return nil
 }
 
@@ -82,32 +61,32 @@ func ParseConfigMaps(cm chan v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersion
 		return k8serrors.NewBadRequest("chart not loaded")
 	}
 
-	go func() {
-		if err := createConfigMaps(cm, hc, v, repository, namespace, logger); err != nil {
-			logger.Error(err, "error on creating or updating related resources")
-		}
-		close(cm)
-	}()
+	if err := createConfigMaps(cm, hc, v, repository, namespace, logger); err != nil {
+		logger.Error(err, "error on creating or updating related resources")
+		return err
+	}
+	close(cm)
 
 	return nil
 }
 
 // TODO: move this to chart model!
-func DeployConfigMap(configmap v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, localClient, remoteClient client.WithWatch, scheme *runtime.Scheme, logger logr.Logger) error {
+func DeployConfigMap(configmap v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersion, repository, namespace string, localClient, remoteClient client.WithWatch, deployToSameCluster bool, scheme *runtime.Scheme, logger logr.Logger) error {
 	//mu := &sync.Mutex{}
 	//defer mu.Unlock()
 	//mu.Lock()
 
-	logger.Info("request for configmap deployment", "chart", hc.Name(), "repository", repository, "name", configmap.Name, "data_length", len(configmap.Data), "binary_data_length", len(configmap.BinaryData))
+	logger.Info("request for configmap deployment", "localClient", localClient, "remoteClient", remoteClient, "chart", hc.Name(), "repository", repository, "name", configmap.Name, "data_length", len(configmap.Data), "binary_data_length", len(configmap.BinaryData))
 	// TODO: what is happening here? and why?
-	if reflect.DeepEqual(localClient, remoteClient) {
+
+	if deployToSameCluster {
 		chartList := &yahov1alpha2.ChartList{}
 		ls := labels.Set{}
 
 		// filter repositories by group selector if set
 		ls = labels.Merge(ls, labels.Set{configMapLabelKey: hc.Name()})
 
-		if err := localClient.List(context.Background(), chartList, &client.ListOptions{
+		if err := remoteClient.List(context.Background(), chartList, &client.ListOptions{
 			LabelSelector: labels.SelectorFromSet(ls),
 		}); err != nil {
 			return err
@@ -120,6 +99,8 @@ func DeployConfigMap(configmap v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersi
 		if err := controllerutil.SetControllerReference(&chartObj, &configmap, scheme); err != nil {
 			return err
 		}
+
+		logger.Info("set owner reference for configmap deployment", "chart", hc.Name(), "repository", repository, "name", configmap.Name, "owner", chartObj.Name, "owner_ref", configmap.OwnerReferences)
 	}
 
 	current := &v1.ConfigMap{}
@@ -129,49 +110,20 @@ func DeployConfigMap(configmap v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersi
 	}, current)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
+			// TODO: check if data is empty
+			if (configmap.BinaryData == nil || len(configmap.BinaryData) < 1) && (configmap.Data == nil || len(configmap.Data) < 1) {
+				logger.Info("configmap binary data empty after parsing.", "repository", repository, "chart", hc.Name(), "name", configmap.Name)
+				// return fmt.Errorf("binary data and data fields are empty")
+			}
+
 			if err = remoteClient.Create(context.TODO(), &configmap); err != nil {
 				return err
 			}
+			logger.Info("current configmap deployment created", "chart", hc.Name(), "repository", repository, "name", configmap.Name, "owner_ref", configmap.ObjectMeta.OwnerReferences)
 		}
-		return err
 	}
 
-	logger.Info("got current configmap deployment", "chart", hc.Name(), "repository", repository, "name", configmap.Name, "data_length", len(current.Data), "binary_data_length", len(current.BinaryData))
-
-	if configmap.BinaryData == nil {
-		logger.Info("configmap binary data empty after parsing.", "repository", repository, "chart", hc.Name(), "name", configmap.Name)
-	}
-
-	if configmap.Data == nil {
-		logger.Info("configmap data empty after parsing.", "repository", repository, "chart", hc.Name(), "name", configmap.Name)
-	}
-
-	if !reflect.DeepEqual(current.BinaryData, configmap.BinaryData) {
-
-		logger.Info("update configmap data after parsing.", "repository", repository, "chart", hc.Name(), "name", configmap.Name)
-
-		currentList := []string{}
-		newList := []string{}
-
-		for k := range current.BinaryData {
-			currentList = append(currentList, k)
-		}
-
-		for k := range configmap.BinaryData {
-			newList = append(newList, k)
-		}
-
-		logger.Info("configmap diff:", "repository", repository, "chart", hc.Name(), "name", configmap.Name, "current_files", cmp.Diff(currentList, newList))
-
-		fmt.Print(cmp.Diff(currentList, newList))
-
-		if err := remoteClient.Update(context.Background(), &configmap, &client.UpdateOptions{}); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	logger.Info("no re-deployment needed for configmap.", "repository", repository, "chart", hc.Name(), "name", configmap.Name)
+	logger.Info("got current configmap deployment", "chart", hc.Name(), "repository", repository, "name", configmap.Name, "owner_ref", configmap.ObjectMeta.OwnerReferences, "data_length", len(current.Data), "binary_data_length", len(current.BinaryData))
 	return nil
 }
 

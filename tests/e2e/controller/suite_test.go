@@ -37,6 +37,7 @@ import (
 	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	agentcontrollers "github.com/soer3n/yaho/controllers/agent"
 	managercontrollers "github.com/soer3n/yaho/controllers/manager"
+	"github.com/soer3n/yaho/internal/hub"
 	"github.com/soer3n/yaho/internal/utils"
 	"helm.sh/helm/v3/pkg/action"
 	v1 "k8s.io/api/core/v1"
@@ -162,9 +163,12 @@ func setupNamespace() *v1.Namespace {
 		Expect(err).NotTo(HaveOccurred(), "failed to setup controller")
 
 		err = (&managercontrollers.HubReconciler{
-			Log:      logf.Log,
-			Recorder: mgr.GetEventRecorderFor("hub-controller"),
-			Scheme:   mgr.GetScheme(),
+			WithWatch:      rc,
+			WatchNamespace: ns,
+			Hubs:           map[string]hub.Hub{},
+			Log:            logf.Log,
+			Recorder:       mgr.GetEventRecorderFor("hub-controller"),
+			Scheme:         mgr.GetScheme(),
 		}).SetupWithManager(mgr)
 		Expect(err).NotTo(HaveOccurred(), "failed to setup hub controller")
 
@@ -570,6 +574,17 @@ func (r ReleaseAssert) Do(namespace string) {
 			time.Second*20, time.Millisecond*1500).Should(r.Synced)
 	}
 
+}
+
+func SetupKubeconfigSecret(path, address, name, namespace string) {
+	s := testClient.Scheme()
+	err = yahov1alpha2.AddToScheme(s)
+	Expect(err).NotTo(HaveOccurred())
+	secret, err := utils.BuildKubeconfigSecret(path, address, name, namespace, s)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+	err = testClient.Create(context.Background(), secret)
+	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
 }
 
 func SetupRBAC(namespace string) {

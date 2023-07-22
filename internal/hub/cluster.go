@@ -10,11 +10,12 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -50,7 +51,7 @@ func NewClusterBackend(name, namespace string, kubeconfig []byte, localClient cl
 		cancelFunc:     cancelFunc,
 	}
 
-	klog.V(0).Infof("new cluster: %v", string(cluster.WatchNamespace))
+	logger.V(0).Info("new cluster", "name", name, "watchNamespace", string(cluster.WatchNamespace))
 
 	return cluster, nil
 }
@@ -118,28 +119,28 @@ func (c *Cluster) Update(defaults Defaults, kubeconfig []byte, scheme *runtime.S
 	currentReleaseList := &yahov1alpha2.ReleaseList{}
 
 	if err := c.remoteClient.List(context.TODO(), currentReleaseList, &client.ListOptions{}); err != nil {
-		klog.V(0).Infof("[%s] state for cluster %s is not ok. Error: %s", time.Now(), c.name, err.Error())
+		c.logger.V(0).Info("state for cluster is not ok.", "cluster", c.name, "error", err.Error())
 		return err
 	}
 
-	klog.V(0).Infof("[%s] state for cluster %s is ok.", time.Now(), c.name)
+	c.logger.V(0).Info("state for cluster is ok.", "name", c.name)
 
 	for _, r := range currentReleaseList.Items {
 		hc := &chart.Chart{}
 
 		if err := syncChartResources(c.name, r.Spec.Chart, r.Spec.Repo, r.Spec.Version, c.WatchNamespace, hc, c.localClient, c.remoteClient, c.scheme, c.logger); err != nil {
-			klog.V(0).Infof("error on release in health check loop for cluster %s. Error: %s ...", c.name, err.Error())
+			c.logger.V(0).Error(err, "error on release in health check loop for cluster...")
 			continue
 		}
 
 		//4. get repo index for each dependency in local cluster
 		if err := syncChartDependencyResources(c.name, r.Spec.Chart, r.Spec.Repo, r.Spec.Version, c.WatchNamespace, hc, c.localClient, c.remoteClient, c.scheme, c.logger); err != nil {
-			klog.V(0).Infof("error on release in health check loop for cluster %s. Error: %s ...", c.name, err.Error())
+			c.logger.V(0).Error(err, "error on release in health check loop for cluster...", "name", c.name)
 			continue
 		}
 
 		//7. try to sync configmaps (index, default values, templates, crds) to remote cluster
-		klog.V(0).Infof("event from cluster %s, release %s, chart %s, version %s\n", c.name, r.ObjectMeta.Name, r.Spec.Chart, r.Spec.Version)
+		c.logger.V(0).Info("event from cluster.", "cluster", c.name, "release", r.ObjectMeta.Name, "chart", r.Spec.Chart, "version", r.Spec.Version)
 	}
 
 	return nil
@@ -147,41 +148,38 @@ func (c *Cluster) Update(defaults Defaults, kubeconfig []byte, scheme *runtime.S
 
 func (c *Cluster) Start(tickerCtx context.Context, d time.Duration) {
 
-	klog.V(0).Infof("initiate watcher for cluster %s...", c.name)
+	c.logger.V(0).Info("initiate watcher", "cluster", c.name)
 	releaseList := &yahov1alpha2.ReleaseList{}
 	w, err := c.remoteClient.Watch(tickerCtx, releaseList, &client.ListOptions{})
 
 	if err != nil {
-		klog.V(0).Infof("%s.", err.Error())
+		c.logger.V(0).Error(err, "error on creating watcher for cluster", "name", c.name)
 	}
 
 	go func(ctx context.Context) {
-		klog.V(0).Infof("watcher for cluster %s started ...", c.name)
-		defer klog.V(0).Infof("watcher for cluster %s stopped ...", c.name)
+		c.logger.V(0).Info("watcher for cluster started ...", "cluster", c.name)
+		defer c.logger.V(0).Info("watcher for cluster stopped ...", "cluster", c.name)
 
 		for {
 			select {
 			case <-ctx.Done():
-				klog.V(0).Infof("closing watcher channel for cluster %s ...", c.name)
+				c.logger.V(0).Info("closing watcher channel for cluster ...", "cluster", c.name)
 				close(c.channel)
 				return
 			case res := <-w.ResultChan():
 				r := res.Object.(*yahov1alpha2.Release)
 				hc := &chart.Chart{}
-
+				c.logger.V(0).Info("event from cluster", "event_type", res.Type, "cluster", c.name, "release", r.ObjectMeta.Name, "chart", r.Spec.Chart, "version", r.Spec.Version)
 				if err := syncChartResources(c.name, r.Spec.Chart, r.Spec.Repo, r.Spec.Version, c.WatchNamespace, hc, c.localClient, c.remoteClient, c.scheme, c.logger); err != nil {
-					klog.V(0).Infof("error on release in event loop for cluster %s. Error: %s ...", c.name, err.Error())
+					c.logger.V(0).Error(err, "error on release in event loop for cluster")
 					continue
 				}
 
 				//4. get repo index for each dependency in local cluster
 				if err := syncChartDependencyResources(c.name, r.Spec.Chart, r.Spec.Repo, r.Spec.Version, c.WatchNamespace, hc, c.localClient, c.remoteClient, c.scheme, c.logger); err != nil {
-					klog.V(0).Infof("error on release in event loop for cluster %s. Error: %s ...", c.name, err.Error())
+					c.logger.V(0).Error(err, "error on release in event loop for cluster")
 					continue
 				}
-
-				//7. try to sync configmaps (index, default values, templates, crds) to remote cluster
-				klog.V(0).Infof("event %s from cluster %s, release %s, chart %s, version %s\n", res.Type, c.name, r.ObjectMeta.Name, r.Spec.Chart, r.Spec.Version)
 			}
 		}
 	}(tickerCtx)
@@ -239,12 +237,13 @@ func syncChartResources(cluster, chartname, repository, version, namespace strin
 	if err := localClient.List(context.TODO(), ycList, &client.ListOptions{
 		LabelSelector: labels.SelectorFromSet(ls),
 	}); err != nil {
-		klog.V(0).Infof("error on release event for cluster %s. Error: %s ...", cluster, err.Error())
+		logger.V(0).Error(err, "error on release event for cluster...", "cluster", "chart", chartname, "repository", repository)
 		return err
 	}
 
 	if len(ycList.Items) < 1 {
-		klog.V(0).Infof("need to create chart %s/%s for cluster %s. Error: No items found by selectors ...", repository, chartname, cluster)
+		logger.V(0).Info("need to create chart for cluster. No items found by selectors...", "repository", repository, "chart", chartname, "cluster", cluster)
+
 		//3a. create chart if it is not present
 		new := &yahov1alpha2.Chart{
 			ObjectMeta: metav1.ObjectMeta{
@@ -261,13 +260,24 @@ func syncChartResources(cluster, chartname, repository, version, namespace strin
 			},
 		}
 
+		ownerRepository := &yahov1alpha2.Repository{}
+
+		if err := localClient.Get(context.TODO(), types.NamespacedName{Name: repository}, ownerRepository, &client.GetOptions{}); err != nil {
+			logger.V(0).Error(err, "error on getting owner repository for chart for cluster...", "cluster", cluster, "chart", chartname, "repository", repository)
+			return err
+		}
+
+		if err := controllerutil.SetControllerReference(ownerRepository, new, scheme); err != nil {
+			logger.Error(err, "failed to set owner ref for chart", "chart", chartname)
+		}
+
 		if err := localClient.Create(context.TODO(), new, &client.CreateOptions{}); err != nil {
-			klog.V(0).Infof("error on chart parsing for cluster %s. Error: %s ...", cluster, err.Error())
+			logger.V(0).Error(err, "error on chart parsing for cluster...", "cluster", cluster, "chart", chartname)
 			return err
 		}
 
 		// return fmt.Errorf("need new init for chart %s/%s in cluster %s", repository, chartname, cluster)
-		klog.V(0).Infof("need new init for chart %s/%s in cluster %s. Waiting for initial status", repository, chartname, cluster)
+		logger.V(0).Info("need new init for chart in cluster. Waiting for initial status", "repository", repository, "chart", chartname, "cluster", cluster)
 		if !utils.WatchForSubResourceSync(new, schema.GroupVersionResource{
 			Group:    new.TypeMeta.GroupVersionKind().Group,
 			Version:  new.TypeMeta.GroupVersionKind().Version,
@@ -279,7 +289,7 @@ func syncChartResources(cluster, chartname, repository, version, namespace strin
 
 	yc := ycList.Items[0]
 
-	klog.V(0).Infof("got initial status for chart %s/%s in cluster %s. Status: %v", repository, chartname, cluster, yc.Status)
+	logger.V(0).Info("got initial status for chart in cluster.", "repository", repository, "chart", chartname, "cluster", cluster, "status", yc.Status)
 
 	// 3b. update chart resource status if version is not yet parsed
 	_, isPresent := yc.Status.ChartVersions[cv.Version]
@@ -292,9 +302,9 @@ func syncChartResources(cluster, chartname, repository, version, namespace strin
 			Specified: false,
 		}
 
-		klog.V(0).Infof("chart status update needed for requested version %s/%s-%s for cluster %s.", repository, chartname, version, cluster)
+		logger.V(0).Info("chart status update needed for requested version for cluster.", "repository", repository, "chart", chartname, "version", version, "cluster", cluster)
 		if err := localClient.Status().Update(context.TODO(), &yc); err != nil {
-			klog.V(0).Infof("error on chart status update for requested version %s/%s-%s for cluster %s. Error: %s ...", repository, chartname, version, cluster, err.Error())
+			logger.V(0).Error(err, "error on chart status update for requested version for cluster.", "repository", repository, "chart", chartname, "version", version, "cluster", cluster)
 			return err
 		}
 	}
@@ -309,7 +319,7 @@ func syncChartResources(cluster, chartname, repository, version, namespace strin
 	err = yahochart.LoadChartByResources(localClient, logger, hc, cv, chartname, repository, namespace, options, map[string]interface{}{})
 
 	if err != nil {
-		klog.V(0).Infof("error on loading chart %s/%s-%s for cluster %s. Error: %s ...", repository, chartname, version, cluster, err.Error())
+		logger.V(0).Error(err, "error on loading chart for cluster...", "repository", repository, "chart", chartname, "version", version, "cluster", cluster)
 		return err
 	}
 
@@ -319,22 +329,22 @@ func syncChartResources(cluster, chartname, repository, version, namespace strin
 
 	// klog.V(0).Infof("configmap changed... new: %v \n current: %v \n", configmap.BinaryData, current.BinaryData)
 	// klog.V(0).Infof("manage subresources. cluster: %s, repository: %s, chart: %v", cluster, repository, hc)
-	klog.V(0).Infof("manage subresources. cluster: %s, repository: %s, chart: %v, templates: %s, values: %s", cluster, repository, hc.Name(), len(hc.Templates), len(hc.Values))
-	if err := yahochart.ManageSubResources(hc, cv, repository, namespace, localClient, remoteClient, scheme, logger); err != nil {
-		klog.V(0).Infof("error on loading configmaps related to chart %s/%s-%s for cluster %s. Error: %s ...", repository, chartname, version, cluster, err.Error())
+	logger.V(0).Info("manage subresources for cluster", "cluster", cluster, "repository", repository, "chart", hc.Name(), "template_count", len(hc.Templates), "values_count", len(hc.Values))
+	if err := yahochart.ManageSubResources(hc, cv, repository, namespace, localClient, remoteClient, false, scheme, logger); err != nil {
+		logger.V(0).Error(err, "error on loading configmaps related to chart.", "repository", repository, "chart", chartname, "version", version, "cluster", cluster)
 		return err
 	}
 
-	klog.V(0).Infof("loading dependencies. cluster: %s, repository: %s, chart: %v, dependencies: %v", cluster, repository, hc.Name(), hc.Metadata.Dependencies)
+	logger.V(0).Info("loading dependencies for cluster.", "cluster", cluster, "repository", repository, "chart", hc.Name(), "dependencies", hc.Metadata.Dependencies)
 	if err := yahochart.LoadDependencies(hc, namespace, utils.GetEnvSettings(map[string]string{}), scheme, logger, localClient); err != nil {
-		klog.V(0).Infof("error on loading dependencies. cluster: %s, repository: %s, chart: %v, dependencies: %v; error: %s", cluster, repository, hc.Name(), hc.Metadata.Dependencies, err.Error())
+		logger.V(0).Error(err, "error on loading dependencies for cluster", "cluster", cluster, "repository", repository, "chart", hc.Name(), "dependencies", hc.Metadata.Dependencies)
 		return err
 	}
 
 	for _, dep := range hc.Dependencies() {
-		klog.V(0).Infof("manage subresources for dependency chart %s. cluster: %s, repository: %s, chart: %v, templates: %s, values: %s", dep.Name(), cluster, repository, hc.Name(), len(hc.Templates), len(hc.Values))
-		if err := yahochart.ManageSubResources(hc, cv, repository, namespace, localClient, remoteClient, scheme, logger); err != nil {
-			klog.V(0).Infof("error on loading configmaps related to dependecy chart %s for cluster %s. chart: %s/%s-%s Error: %s ...", dep.Name(), repository, chartname, version, cluster, err.Error())
+		logger.V(0).Info("manage subresources for dependency chart", "dependency_chart", dep.Name(), "cluster", cluster, "repository", repository, "chart", hc.Name(), "template_count", len(hc.Templates), "value_count", len(hc.Values))
+		if err := yahochart.ManageSubResources(hc, cv, repository, namespace, localClient, remoteClient, false, scheme, logger); err != nil {
+			logger.V(0).Error(err, "error on loading configmaps related to dependecy chart...", "dependency_chart", dep.Name(), "repository", repository, "chart", chartname, "version", version, "cluster", cluster)
 			return err
 		}
 	}

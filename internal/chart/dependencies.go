@@ -190,7 +190,7 @@ func (c *Chart) CreateOrUpdateSubCharts() error {
 			repoName, err := GetRepositoryNameByUrl(dep.Repository, c.kubernetes.client)
 
 			if err != nil {
-				c.logger.Error(err, "chart", dep.Name)
+				c.logger.Error(err, "error on getting repository by url", "chart", dep.Name)
 				condition := metav1.Condition{
 					Type:               "dependenciesSync",
 					Status:             metav1.ConditionFalse,
