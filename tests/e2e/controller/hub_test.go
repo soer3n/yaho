@@ -88,7 +88,11 @@ var _ = Context("Install a release", func() {
 
 			SetupRBAC(namespace)
 			SetupConfig(namespace)
-			SetupKubeconfigSecret(os.Getenv("KUBECONFIG"), "https://127.0.0.1:6443", "yaho-local-kubeconfig", namespace)
+			kubeconfigPath := os.Getenv("KUBECONFIG")
+			if kubeconfigPath == "" {
+				kubeconfigPath = os.Getenv("HOME") + "/.kube/config"
+			}
+			SetupKubeconfigSecret(kubeconfigPath, "https://127.0.0.1:6443", "yaho-local-kubeconfig", namespace)
 
 			time.Sleep(2 * time.Second)
 
