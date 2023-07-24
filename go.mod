@@ -168,7 +168,7 @@ require (
 )
 
 replace (
-	github.com/docker/cli => github.com/docker/cli v24.0.4+incompatible
+	github.com/docker/cli => github.com/docker/cli v24.0.5+incompatible
 	github.com/docker/docker => github.com/docker/docker v23.0.6+incompatible
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20230127205639-68031ae9242a
 )
