@@ -36,6 +36,7 @@ func newAgentKubeconfigCmd(scheme *runtime.Scheme) *cobra.Command {
 	var address string
 	var namespace string
 	var name string
+	var deployEnabled bool
 
 	cmd := &cobra.Command{
 		Use:   "kubeconfig",
@@ -43,10 +44,15 @@ func newAgentKubeconfigCmd(scheme *runtime.Scheme) *cobra.Command {
 		Long:  `parse and store agent kubeconfig`,
 		Run: func(cmd *cobra.Command, args []string) {
 			configPath, _ = cmd.Flags().GetString("kubeconfig")
+			localKubeconfigPath := os.Getenv("KUBECONFIG")
+			if localKubeconfigPath == "" {
+				localKubeconfigPath = os.Getenv("HOME") + "/.kube/config"
+			}
 			address, _ = cmd.Flags().GetString("address")
 			namespace, _ = cmd.Flags().GetString("namespace")
 			name, _ = cmd.Flags().GetString("name")
-			runGetKubeconfig(configPath, address, name, namespace, scheme)
+			deployEnabled, _ = cmd.Flags().GetBool("deploy-enabled")
+			runGetKubeconfig(configPath, address, name, namespace, deployEnabled, scheme)
 		},
 	}
 
@@ -54,6 +60,7 @@ func newAgentKubeconfigCmd(scheme *runtime.Scheme) *cobra.Command {
 	cmd.PersistentFlags().String("kubeconfig", "~/.kube/config", "The path to kubeconfig to use.")
 	cmd.PersistentFlags().String("address", "https://kubernetes.default.svc.cluster.local", "The address for the kubernetes apiserver.")
 	cmd.PersistentFlags().String("namespace", "helm", "The namespace where to deploy the service account.")
+	cmd.PersistentFlags().Bool("deploy-enabled", false, "if true permissions for deployment creation will be added to namespaced role")
 
 	return cmd
 }
@@ -92,8 +99,8 @@ func newAgentRunCmd(scheme *runtime.Scheme) *cobra.Command {
 	return cmd
 }
 
-func runGetKubeconfig(path, address, name, namespace string, scheme *runtime.Scheme) {
-	secret, err := utils.BuildKubeconfigSecret(path, address, name, namespace, scheme)
+func runGetKubeconfig(path, address, name, namespace string, deployEnabled bool, scheme *runtime.Scheme) {
+	secret, err := utils.BuildKubeconfigSecret(path, address, name, namespace, deployEnabled, scheme)
 
 	if err != nil {
 		setupLog.Error(err, "unable to build kubeconfig secret")
@@ -131,12 +138,13 @@ func runAgent(scheme *runtime.Scheme, configFile string, isLocal bool, metricsAd
 
 	// set default options
 	options, err := utils.ManagerOptions(configFile)
-	options.Scheme = scheme
 
 	if err != nil {
 		setupLog.Error(err, "unable to load the config file")
 		os.Exit(1)
 	}
+
+	options.Scheme = scheme
 
 	ns := getWatchNamespace()
 

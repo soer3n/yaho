@@ -49,6 +49,7 @@ import (
 	apitypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -580,8 +581,21 @@ func SetupKubeconfigSecret(path, address, name, namespace string) {
 	s := testClient.Scheme()
 	err = yahov1alpha2.AddToScheme(s)
 	Expect(err).NotTo(HaveOccurred())
-	secret, err := utils.BuildKubeconfigSecret(path, address, name, namespace, s)
+
+	f, err := os.ReadFile(path)
 	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")
+
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			"kubeconfig": f,
+		},
+	}
+
+	klog.Info(string(f))
 
 	err = testClient.Create(context.Background(), secret)
 	Expect(err).NotTo(HaveOccurred(), "failed to create test resource")

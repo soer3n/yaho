@@ -49,6 +49,7 @@ func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettin
 
 		opts := &client.ListOptions{
 			LabelSelector: labels.SelectorFromSet(ls),
+			Namespace:     namespace,
 		}
 
 		if err := c.List(context.TODO(), index, opts); err != nil {
@@ -58,7 +59,7 @@ func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettin
 		repoName, ok := index.Items[0].ObjectMeta.Labels[configMapRepoLabelKey]
 
 		if !ok {
-			logger.Info("repo label not found for dependency", "type", "index", "chart", dep.Name)
+			logger.V(2).Info("repo label not found for dependency", "type", "index", "chart", dep.Name)
 		}
 
 		depCondition := true
@@ -77,7 +78,7 @@ func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettin
 		}
 
 		ix, err := utils.LoadChartIndex(dep.Name, repoName, namespace, c)
-		logger.Info("loading chart index for dependency", "chart", hc.Name(), "dependency", dep.Name, "version", dep.Version, "index", ix.Len())
+		logger.V(2).Info("loading chart index for dependency", "chart", hc.Name(), "dependency", dep.Name, "version", dep.Version, "index", ix.Len())
 
 		if err != nil {
 			return err
@@ -98,11 +99,11 @@ func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettin
 		if depCondition {
 
 			var cv *repo.ChartVersion
-			logger.Info("parsing version for dependency chart", "chart", hc.Name(), "dependency", dep.Name, "version", dep.Version, "parsedVersion", parsedVersion, "index", ix.Len())
+			logger.V(0).Info("parsing version for dependency chart", "chart", hc.Name(), "dependency", dep.Name, "version", dep.Version, "parsedVersion", parsedVersion, "index", ix.Len())
 
 			for _, item := range *ix {
 				if item.Version == parsedVersion {
-					logger.Info("found parsed version for dependency chart in index", "chart", hc.Name(), "dependency", dep.Name, "version", parsedVersion, "index", ix.Len())
+					logger.V(2).Info("found parsed version for dependency chart in index", "chart", hc.Name(), "dependency", dep.Name, "version", parsedVersion, "index", ix.Len())
 					cv = item
 				}
 			}
@@ -115,7 +116,7 @@ func LoadDependencies(hc *chart.Chart, namespace string, settings *cli.EnvSettin
 				Verify:                false,
 			}
 
-			logger.Info("loading source configmaps for dependency", "chart", hc.Name(), "dependency", dep.Name, "version", parsedVersion, "options", options, "chartversion", cv)
+			logger.V(0).Info("loading source configmaps for dependency", "chart", hc.Name(), "dependency", dep.Name, "version", parsedVersion, "options", options, "chartversion", cv)
 			if err := LoadChartByResources(c, logger, dhc, cv, dep.Name, repoName, namespace, options, subVals); err != nil {
 				return err
 			}
@@ -171,7 +172,7 @@ func GetRepositoryNameByUrl(url string, c client.WithWatch) (string, error) {
 // shoud only be called within manager controllers!
 func (c *Chart) CreateOrUpdateSubCharts() error {
 
-	c.logger.Info("create or update chart resources for dependencies")
+	c.logger.V(0).Info("create or update chart resources for dependencies")
 	for k := range c.Status.ChartVersions {
 
 		var cv *repo.ChartVersion
@@ -182,7 +183,7 @@ func (c *Chart) CreateOrUpdateSubCharts() error {
 		}
 
 		if cv == nil {
-			c.logger.Info("could not load chart version from current index, continue ...", "chart", c.Name, "version", k)
+			c.logger.V(0).Info("could not load chart version from current index, continue ...", "chart", c.Name, "version", k)
 			continue
 		}
 
@@ -203,7 +204,7 @@ func (c *Chart) CreateOrUpdateSubCharts() error {
 			}
 
 			if err := c.createOrUpdateSubChart(dep, repoName); err != nil {
-				c.logger.Info("error on managing subchart", "child", dep.Name, "error", err.Error())
+				c.logger.V(2).Info("error on managing subchart", "child", dep.Name, "error", err.Error())
 				condition := metav1.Condition{
 					Type:               "dependenciesSync",
 					Status:             metav1.ConditionFalse,
@@ -232,14 +233,14 @@ func (c *Chart) CreateOrUpdateSubCharts() error {
 
 func (c *Chart) createOrUpdateSubChart(dep *chart.Dependency, repository string) error {
 
-	c.logger.Info("fetching chart related to release resource")
+	c.logger.V(0).Info("fetching dependency charts related to requested resource")
 
 	charts := &yahov1alpha2.ChartList{}
 	labelSetRepo, _ := labels.ConvertSelectorToLabelsMap(configMapRepoLabelKey + "=" + repository)
 	labelSetChart, _ := labels.ConvertSelectorToLabelsMap(configMapLabelKey + "=" + dep.Name)
 	ls := labels.Merge(labelSetRepo, labelSetChart)
 
-	c.logger.Info("selector", "labelset", ls)
+	c.logger.V(2).Info("selector", "labelset", ls)
 
 	opts := &client.ListOptions{
 		LabelSelector: labels.SelectorFromSet(ls),
@@ -252,7 +253,7 @@ func (c *Chart) createOrUpdateSubChart(dep *chart.Dependency, repository string)
 	var group *string
 
 	if len(charts.Items) == 0 {
-		c.logger.Info("chart not found")
+		c.logger.V(2).Info("chart not found")
 
 		obj := &yahov1alpha2.Chart{
 			ObjectMeta: metav1.ObjectMeta{

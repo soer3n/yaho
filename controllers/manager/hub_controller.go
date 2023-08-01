@@ -89,20 +89,38 @@ func (r *HubReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	for _, item := range instance.Spec.Clusters {
 		r.Log.Info("parsing specified cluster", "hub", instance.ObjectMeta.Name, "cluster", item.Name)
 		localCluster, ok := currentHub.Backends[item.Name]
+		// TODO: use constants
+		clusterAgentName := "yaho-agent"
+		clusterAgentNamespace := "helm"
+
+		if item.Agent != nil {
+			if item.Agent.Name != "" {
+				clusterAgentName = item.Agent.Name
+			}
+			if item.Agent.Namespace != "" {
+				clusterAgentNamespace = item.Agent.Namespace
+			}
+		}
+
+		secret := &v1.Secret{}
+
+		if err := r.WithWatch.Get(ctx, types.NamespacedName{Name: item.Secret.Name, Namespace: item.Secret.Namespace}, secret, &client.GetOptions{}); err != nil {
+			return ctrl.Result{}, err
+		}
 
 		if !ok {
 			r.Log.Info("initializing specified cluster", "hub", instance.ObjectMeta.Name, "cluster", item.Name)
-			// TODO: get specified secret with kubeconfig
-			secret := &v1.Secret{}
-
-			if err := r.WithWatch.Get(ctx, types.NamespacedName{Name: item.Secret.Name, Namespace: item.Secret.Namespace}, secret, &client.GetOptions{}); err != nil {
-				return ctrl.Result{}, err
-			}
-
 			r.Log.Info("initiate cluster", "name", item.Name, "namespace", r.WatchNamespace)
 
-			ctx, cancelFunc := context.WithCancel(ctx)
-			localCluster, err = hub.NewClusterBackend(item.Name, r.WatchNamespace, secret.Data[item.Secret.Key], r.WithWatch, hub.Defaults{}, r.Scheme, r.Log, cancelFunc)
+			ctx, cancelFunc := context.WithCancel(context.Background())
+			deployAgent := false
+
+			if item.Agent != nil {
+				if item.Agent.Deploy != nil {
+					deployAgent = *item.Agent.Deploy
+				}
+			}
+			localCluster, err = hub.NewClusterBackend(item.Name, r.WatchNamespace, clusterAgentName, clusterAgentNamespace, secret, deployAgent, r.WithWatch, hub.Defaults{}, r.Scheme, r.Log, cancelFunc)
 
 			r.Log.Info("new cluster", "cluster", localCluster)
 
@@ -120,7 +138,7 @@ func (r *HubReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 		r.Log.Info("updating specified cluster", "hub", instance.ObjectMeta.Name, "cluster", item.Name)
 		r.Hubs[instance.ObjectMeta.Name] = currentHub
-		if err := currentHub.UpdateBackend(localCluster); err != nil {
+		if err := currentHub.UpdateBackend(localCluster, secret); err != nil {
 			return r.syncStatus(ctx, instance, currentHub, err)
 		}
 	}

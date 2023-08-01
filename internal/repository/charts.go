@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"reflect"
 
 	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,7 +14,7 @@ import (
 
 func (hr *Repo) deployChart(instance *yahov1alpha2.Repository, chart yahov1alpha2.Entry, scheme *runtime.Scheme) error {
 
-	hr.logger.Info("fetching chart related to release resource")
+	hr.logger.Info("fetching chart related to resource")
 
 	c := &yahov1alpha2.Chart{}
 	charts := &yahov1alpha2.ChartList{}
@@ -21,7 +22,7 @@ func (hr *Repo) deployChart(instance *yahov1alpha2.Repository, chart yahov1alpha
 	labelSetChart, _ := labels.ConvertSelectorToLabelsMap(configMapLabelKey + "=" + chart.Name)
 	ls := labels.Merge(labelSetRepo, labelSetChart)
 
-	hr.logger.Info("selector", "labelset", ls)
+	hr.logger.V(2).Info("selector", "labelset", ls)
 
 	opts := &client.ListOptions{
 		LabelSelector: labels.SelectorFromSet(ls),
@@ -32,7 +33,7 @@ func (hr *Repo) deployChart(instance *yahov1alpha2.Repository, chart yahov1alpha
 	}
 
 	if len(charts.Items) == 0 {
-		hr.logger.Info("chart resource not present", "chart", chart.Name)
+		hr.logger.V(0).Info("chart resource not present", "chart", chart.Name)
 		c.ObjectMeta = metav1.ObjectMeta{
 			Name:   chart.Name + "-" + hr.Name,
 			Labels: ls,
@@ -50,14 +51,22 @@ func (hr *Repo) deployChart(instance *yahov1alpha2.Repository, chart yahov1alpha
 		}
 
 		if err := hr.K8sClient.Create(context.Background(), c); err != nil {
-			hr.logger.Info("error on chart create", "error", err.Error())
+			hr.logger.V(0).Info("error on chart create", "error", err.Error())
 		}
 
-		hr.logger.Info("chart resource created", "chart", chart.Name)
+		hr.logger.V(0).Info("chart resource created", "chart", chart.Name)
 		return nil
 	}
 
 	c = &charts.Items[0]
+
+	// TODO: deep.Equal fails if version is set with semver wildcard characters. This needs to be fixed.
+
+	if c.Spec.Name == chart.Name && reflect.DeepEqual(c.Spec.Versions, chart.Versions) && c.Spec.Repository == instance.ObjectMeta.Name && c.Spec.CreateDeps {
+		hr.logger.V(0).Info("chart is up to date", "chart", chart.Name)
+		return nil
+	}
+
 	c.Spec = yahov1alpha2.ChartSpec{
 		Name:       chart.Name,
 		Versions:   chart.Versions,
@@ -66,10 +75,24 @@ func (hr *Repo) deployChart(instance *yahov1alpha2.Repository, chart yahov1alpha
 	}
 
 	if err := hr.K8sClient.Update(context.Background(), c); err != nil {
-		hr.logger.Info("could not update chart resource", "chart", chart.Name, "error", err.Error())
+		hr.logger.V(0).Info("could not update chart resource", "chart", chart.Name, "error", err.Error())
 		return err
 	}
-	hr.logger.Info("chart resource updated", "chart", chart.Name)
+	hr.logger.V(0).Info("chart resource updated", "chart", chart.Name)
 
 	return nil
 }
+
+/*
+func (hr *Repo) specifiedChartVersionsEqual(c yahov1alpha2.Chart) bool {
+
+	chartVersions := &repo.ChartVersions{}
+	for chartName, cv := range hr.index.Entries {
+		if chartName == c.Spec.Name {
+			chartVersions = &cv
+		}
+	}
+
+	return true
+}
+*/

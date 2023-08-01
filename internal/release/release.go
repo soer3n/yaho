@@ -104,7 +104,7 @@ func New(instance *yahov1alpha2.Release, watchNamespace string, scheme *runtime.
 	hc := &helmchart.Chart{}
 
 	options := &action.ChartPathOptions{
-		Version:               instance.Spec.Version,
+		Version:               cv.Version,
 		InsecureSkipTLSverify: false,
 		Verify:                false,
 	}
@@ -116,10 +116,6 @@ func New(instance *yahov1alpha2.Release, watchNamespace string, scheme *runtime.
 	if err := chart.LoadChartByResources(helmRelease.K8sClient, helmRelease.logger, hc, cv, instance.Spec.Chart, instance.Spec.Repo, watchNamespace, options, parsedValues); err != nil {
 		return helmRelease, err
 	}
-
-	reqLogger.Info("parsed subvalues", "redis", parsedValues["redis"])
-	reqLogger.Info("specified subvalues", "redis", specValues["redis"])
-	reqLogger.Info("chart struct subvalues", "redis", hc.Values["redis"])
 
 	if err := chart.LoadDependencies(hc, watchNamespace, utils.GetEnvSettings(map[string]string{}), scheme, helmRelease.logger, helmRelease.K8sClient); err != nil {
 		return helmRelease, err

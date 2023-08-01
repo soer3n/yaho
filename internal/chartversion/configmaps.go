@@ -93,6 +93,9 @@ func DeployConfigMap(configmap v1.ConfigMap, hc *chart.Chart, v *repo.ChartVersi
 		}
 
 		if len(chartList.Items) != 1 {
+			for _, item := range chartList.Items {
+				logger.Info("found chart", "chart", item.Name, "labels", item.Labels)
+			}
 			return errors.New("multiple charts found")
 		}
 		chartObj := chartList.Items[0]

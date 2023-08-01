@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -28,14 +29,14 @@ func (h *Hub) AddBackend(backend BackendInterface, tickerCtx context.Context, d 
 	return nil
 }
 
-func (h *Hub) UpdateBackend(backend BackendInterface) error {
+func (h *Hub) UpdateBackend(backend BackendInterface, secret *v1.Secret) error {
 
 	if _, ok := h.Backends[backend.GetName()]; !ok {
 		h.Backends[backend.GetName()] = backend
 	} else {
 		if err := h.Backends[backend.GetName()].Update(
 			backend.GetDefaults(),
-			backend.GetConfig(),
+			secret,
 			backend.GetScheme(),
 		); err != nil {
 			return err

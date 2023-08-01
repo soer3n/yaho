@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func setFiles(mu *sync.Mutex, helmChart *chart.Chart, chartName string, chartPathOptions *action.ChartPathOptions, logger logr.Logger, c client.WithWatch) {
+func setFiles(mu *sync.Mutex, helmChart *chart.Chart, chartName, namespace string, chartPathOptions *action.ChartPathOptions, logger logr.Logger, c client.WithWatch) {
 	defer mu.Unlock()
 	mu.Lock()
 
@@ -25,7 +25,7 @@ func setFiles(mu *sync.Mutex, helmChart *chart.Chart, chartName string, chartPat
 	helmChart.Files = []*chart.File{}
 	helmChart.Templates = []*chart.File{}
 
-	go getFiles(chartPathOptions.Version, chartName, c, logger, quit, d, t)
+	go getFiles(chartPathOptions.Version, chartName, namespace, c, logger, quit, d, t)
 
 	for {
 		select {
@@ -44,14 +44,14 @@ func setFiles(mu *sync.Mutex, helmChart *chart.Chart, chartName string, chartPat
 	}
 }
 
-func getFiles(chartVersion, chartName string, c client.Client, logger logr.Logger, quit chan bool, f chan *chart.File, t chan *chart.File) {
+func getFiles(chartVersion, chartName, namespace string, c client.Client, logger logr.Logger, quit chan bool, f chan *chart.File, t chan *chart.File) {
 
-	appendFilesFromConfigMap(chartName, chartVersion, "tmpl", c, logger, quit, f)
-	appendFilesFromConfigMap(chartName, chartVersion, "tmpl", c, logger, quit, t)
-	appendFilesFromConfigMap(chartName, chartVersion, "crds", c, logger, quit, f)
+	appendFilesFromConfigMap(chartName, chartVersion, namespace, "tmpl", c, logger, quit, f)
+	appendFilesFromConfigMap(chartName, chartVersion, namespace, "tmpl", c, logger, quit, t)
+	appendFilesFromConfigMap(chartName, chartVersion, namespace, "crds", c, logger, quit, f)
 }
 
-func appendFilesFromConfigMap(chartName, version, suffix string, c client.Client, logger logr.Logger, quit chan bool, channels ...chan *chart.File) {
+func appendFilesFromConfigMap(chartName, version, namespace, suffix string, c client.Client, logger logr.Logger, quit chan bool, channels ...chan *chart.File) {
 	var err error
 
 	configmapList := v1.ConfigMapList{}
@@ -64,8 +64,9 @@ func appendFilesFromConfigMap(chartName, version, suffix string, c client.Client
 
 	if err = c.List(context.Background(), &configmapList, &client.ListOptions{
 		LabelSelector: selector,
+		Namespace:     namespace,
 	}); err != nil {
-		logger.Info("error on listing files configmaps", "chart", chartName)
+		logger.Error(err, "error on listing files configmaps", "chart", chartName)
 		quit <- true
 		return
 	}

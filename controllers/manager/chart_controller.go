@@ -124,10 +124,6 @@ func (r *ChartReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	if err != nil {
 		reqLogger.Error(err, "failed to initialize chart resource struct", "name", instance.ObjectMeta.Name)
 
-		if hc != nil {
-			reqLogger.Error(err, "failed to initialize chart ", "name", instance.ObjectMeta.Name, "status", hc.Status)
-		}
-
 		return r.syncStatus(ctx, instance, &yahov1alpha2.ChartStatus{
 			ChartVersions: hc.Status.ChartVersions,
 			Conditions:    *hc.Status.Conditions,
@@ -192,7 +188,7 @@ func (r *ChartReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2
 		changed = true
 	}
 
-	if instance.Status.Deprecated != newStatus.Deprecated {
+	if instance.Status.Deprecated == nil || *instance.Status.Deprecated != *newStatus.Deprecated {
 		changed = true
 	}
 

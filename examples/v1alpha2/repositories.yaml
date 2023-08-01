@@ -10,7 +10,7 @@ spec:
     url: https://nextcloud.github.io/helm/
   charts:
     sync:
-      enabled: false # if true index configmaps will be created if requested from due to chart resource creation
+      enabled: false # if true index configmaps will be created if requested due to chart resource creation
       interval: 300s # the duration in which requested configmaps will be checked; takes only effect if enabled is true
 
 ---

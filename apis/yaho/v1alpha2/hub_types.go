@@ -34,10 +34,10 @@ type HubSpec struct {
 }
 
 type HubCluster struct {
-	Name     string          `json:"name,omitempty"`
-	Agent    HubClusterAgent `json:"agent,omitempty"`
-	Secret   Secret          `json:"secret,omitempty"`
-	Defaults HubDefaults     `json:"defaults,omitempty"`
+	Name     string           `json:"name,omitempty"`
+	Agent    *HubClusterAgent `json:"agent,omitempty"`
+	Secret   Secret           `json:"secret,omitempty"`
+	Defaults HubDefaults      `json:"defaults,omitempty"`
 }
 
 type HubClusterAgent struct {

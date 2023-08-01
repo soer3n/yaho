@@ -202,7 +202,7 @@ var _ = Context("Install and configure a chart", func() {
 			repoOneAssert.Synced = BeFalse()
 
 			chartThreeAssert.Synced = BeFalse()
-			chartThreeAssert.Deps = BeTrue()
+			chartThreeAssert.Deps = BeFalse()
 
 			repoOneAssert.Do(namespace)
 			repoTwoAssert.Do(namespace)
@@ -260,6 +260,9 @@ var _ = Context("Install and configure a chart", func() {
 
 			By("updating a second chart setting a valid version")
 
+			err = testClient.Get(context.Background(), types.NamespacedName{Name: chartTwoAssert.Obj.Name}, chartTwoAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to get test resource")
+
 			chartTwoAssert.Obj.Spec = yahov1alpha2.ChartSpec{
 				Name:       testRepoChartSecondNameAssert,
 				Repository: testRepoNameSecond,
@@ -276,6 +279,9 @@ var _ = Context("Install and configure a chart", func() {
 			repoTwoAssert.Do(namespace)
 
 			By("updating a second chart by enabling dependency creation")
+
+			err = testClient.Get(context.Background(), types.NamespacedName{Name: chartTwoAssert.Obj.Name}, chartTwoAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to get test resource")
 
 			chartTwoAssert.Obj.Spec = yahov1alpha2.ChartSpec{
 				Name:       testRepoChartSecondNameAssert,
@@ -301,6 +307,9 @@ var _ = Context("Install and configure a chart", func() {
 
 			By("deleting the second chart")
 
+			err = testClient.Get(context.Background(), types.NamespacedName{Name: chartTwoAssert.Obj.Name}, chartTwoAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to get test resource")
+
 			err = testClient.Delete(context.Background(), chartTwoAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
@@ -316,6 +325,9 @@ var _ = Context("Install and configure a chart", func() {
 
 			By("deleting the first chart")
 
+			err = testClient.Get(context.Background(), types.NamespacedName{Name: chartThreeAssert.Obj.Name}, chartThreeAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to get test resource")
+
 			err = testClient.Delete(context.Background(), chartThreeAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")
 
@@ -330,6 +342,9 @@ var _ = Context("Install and configure a chart", func() {
 			repoTwoAssert.Do(namespace)
 
 			By("deleting dependency chart related to second chart resource")
+
+			err = testClient.Get(context.Background(), types.NamespacedName{Name: chartOneAssert.Obj.Name}, chartOneAssert.Obj)
+			Expect(err).NotTo(HaveOccurred(), "failed to get test resource")
 
 			err = testClient.Delete(context.Background(), chartOneAssert.Obj)
 			Expect(err).NotTo(HaveOccurred(), "failed to update test resource")

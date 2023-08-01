@@ -219,7 +219,7 @@ func (c *HelmRESTClientGetter) ToRawKubeConfigLoader() clientcmd.ClientConfig {
 
 	clusters := make(map[string]*clientcmdapi.Cluster)
 	clusters["default-cluster"] = &clientcmdapi.Cluster{
-		Server:                   "https://kubernetes.svc.default.cluster.local",
+		Server:                   "https://kubernetes.default.svc.cluster.local",
 		CertificateAuthorityData: secret.Data["ca.crt"],
 	}
 

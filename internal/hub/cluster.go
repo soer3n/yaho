@@ -1,16 +1,25 @@
 package hub
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"time"
 
+	"helm.sh/helm/v3/pkg/repo"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -24,26 +33,33 @@ import (
 	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	yahochart "github.com/soer3n/yaho/internal/chart"
 	"github.com/soer3n/yaho/internal/utils"
+
+	kyaml "sigs.k8s.io/yaml"
 )
 
 const configMapLabelKey = "yaho.soer3n.dev/chart"
 const configMapRepoLabelKey = "yaho.soer3n.dev/repo"
 const configMapLabelType = "yaho.soer3n.dev/type"
 
-func NewClusterBackend(name, namespace string, kubeconfig []byte, localClient client.WithWatch, defaults Defaults, scheme *runtime.Scheme, logger logr.Logger, cancelFunc context.CancelFunc) (*Cluster, error) {
+func NewClusterBackend(name, namespace, agentName, agentNamespace string, secret *v1.Secret, deployAgent bool, localClient client.WithWatch, defaults Defaults, scheme *runtime.Scheme, logger logr.Logger, cancelFunc context.CancelFunc) (*Cluster, error) {
 
-	clusterClient, err := generateClusterClient(kubeconfig, scheme)
+	clusterClient, err := generateClusterClient(secret.Data["host"], []byte("/"), secret.Data["caData"], secret.Data["token"], secret.Data["kubeconfig"], false, scheme)
 
 	if err != nil {
 		return nil, err
 	}
 
 	cluster := &Cluster{
-		name:           name,
+		name: name,
+		agent: clusterAgent{
+			Name:      agentName,
+			Namespace: agentNamespace,
+			Deploy:    deployAgent,
+		},
 		channel:        make(chan []byte),
 		localClient:    localClient,
 		remoteClient:   clusterClient,
-		config:         kubeconfig,
+		config:         secret.Data["kubeconfig"],
 		WatchNamespace: namespace,
 		defaults:       defaults,
 		scheme:         scheme,
@@ -56,7 +72,7 @@ func NewClusterBackend(name, namespace string, kubeconfig []byte, localClient cl
 	return cluster, nil
 }
 
-func generateClusterClient(kubeconfig []byte, scheme *runtime.Scheme) (client.WithWatch, error) {
+func generateClusterClient(host, APIPath, caData, token, kubeconfig []byte, insecure bool, scheme *runtime.Scheme) (client.WithWatch, error) {
 
 	var clientCfg clientcmd.ClientConfig
 
@@ -65,14 +81,25 @@ func generateClusterClient(kubeconfig []byte, scheme *runtime.Scheme) (client.Wi
 		return nil, err
 	}
 
-	var restCfg *rest.Config
+	var cfg *rest.Config
 
-	restCfg, err = clientCfg.ClientConfig()
+	cfg, err = clientCfg.ClientConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := client.NewWithWatch(restCfg, client.Options{Scheme: scheme})
+	/*
+		cfg := &rest.Config{
+			Host:        string(host),
+			APIPath:     string(APIPath),
+			BearerToken: string(token),
+			TLSClientConfig: rest.TLSClientConfig{
+				Insecure: insecure,
+				CAData:   caData,
+			},
+		}
+	*/
+	c, err := client.NewWithWatch(cfg, client.Options{Scheme: scheme})
 
 	if err != nil {
 		return nil, err
@@ -82,7 +109,7 @@ func generateClusterClient(kubeconfig []byte, scheme *runtime.Scheme) (client.Wi
 }
 
 func (c *Cluster) IsActive() bool {
-	return c.channel != nil
+	return c.agentIsAvailable()
 }
 
 func (c *Cluster) GetName() string {
@@ -105,8 +132,9 @@ func (c *Cluster) GetScheme() *runtime.Scheme {
 	return c.scheme
 }
 
-func (c *Cluster) Update(defaults Defaults, kubeconfig []byte, scheme *runtime.Scheme) error {
-	clusterClient, err := generateClusterClient(kubeconfig, scheme)
+func (c *Cluster) Update(defaults Defaults, secret *v1.Secret, scheme *runtime.Scheme) error {
+	//TODO: rethink client building
+	clusterClient, err := generateClusterClient(secret.Data["host"], []byte("/"), secret.Data["caData"], secret.Data["token"], secret.Data["kubeconfig"], false, scheme)
 
 	if err != nil {
 		return err
@@ -114,6 +142,12 @@ func (c *Cluster) Update(defaults Defaults, kubeconfig []byte, scheme *runtime.S
 
 	if !reflect.DeepEqual(c.remoteClient, clusterClient) {
 		c.remoteClient = clusterClient
+	}
+
+	if c.agent.Deploy && !c.agentIsAvailable() {
+		if err := c.deployAgent(); err != nil {
+			return err
+		}
 	}
 
 	currentReleaseList := &yahov1alpha2.ReleaseList{}
@@ -148,12 +182,37 @@ func (c *Cluster) Update(defaults Defaults, kubeconfig []byte, scheme *runtime.S
 
 func (c *Cluster) Start(tickerCtx context.Context, d time.Duration) {
 
+	if c.agent.Deploy && !c.agentIsAvailable() {
+		if err := c.deployAgent(); err != nil {
+			c.logger.Error(err, "error on deploying agent before starting watcher")
+			return
+		}
+	}
+
 	c.logger.V(0).Info("initiate watcher", "cluster", c.name)
 	releaseList := &yahov1alpha2.ReleaseList{}
 	w, err := c.remoteClient.Watch(tickerCtx, releaseList, &client.ListOptions{})
 
 	if err != nil {
 		c.logger.V(0).Error(err, "error on creating watcher for cluster", "name", c.name)
+		initList := &yahov1alpha2.ReleaseList{}
+		ctx := context.TODO()
+		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		for {
+			select {
+			case <-ctx.Done():
+				c.logger.Error(ctx.Err(), "timeout on waiting for release resources", "cluster", c.name)
+				return
+			default:
+				if err := c.remoteClient.List(tickerCtx, initList, &client.ListOptions{}); err == nil {
+					c.logger.V(0).Info("got initial release resource list for cluster", "name", c.name)
+					break
+				}
+				time.Sleep(1 * time.Second)
+			}
+		}
+
 	}
 
 	go func(ctx context.Context) {
@@ -180,9 +239,216 @@ func (c *Cluster) Start(tickerCtx context.Context, d time.Duration) {
 					c.logger.V(0).Error(err, "error on release in event loop for cluster")
 					continue
 				}
+				c.logger.V(0).Info("finished sync loop", "cluster", c.name, "chart", r.Spec.Chart, "version", r.Spec.Version)
 			}
 		}
 	}(tickerCtx)
+}
+
+func (c *Cluster) agentIsAvailable() bool {
+
+	agent := &appsv1.Deployment{}
+
+	if err := c.remoteClient.Get(context.TODO(), types.NamespacedName{Name: c.agent.Name, Namespace: c.agent.Namespace}, agent, &client.GetOptions{}); err != nil {
+		c.logger.Error(err, "error on try to get agent deployment", "cluster", c.name, "agent", c.agent.Name, "agent_namespace", c.agent.Namespace)
+		return false
+	}
+
+	return true
+}
+
+func (c *Cluster) deployAgent() error {
+
+	var err error
+	controllerManagerConfigmap := &v1.ConfigMap{}
+
+	c.logger.Info("try to get remote agent config", "cluster", c.name, "name", c.agent.Name, "namespace", c.agent.Namespace)
+	err = c.remoteClient.Get(context.TODO(), types.NamespacedName{Name: "yaho-agent-config", Namespace: c.agent.Namespace}, controllerManagerConfigmap, &client.GetOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		c.logger.Error(err, "other error than not found on getting remote agent config", "cluster", c.name, "name", c.agent.Name, "namespace", c.agent.Namespace)
+		return err
+	}
+
+	if errors.IsNotFound(err) {
+		c.logger.Info("create remote agent config", "cluster", c.name, "name", c.agent.Name, "namespace", c.agent.Namespace)
+		controllerManagerConfig := `
+---
+apiVersion: yaho.soer3n.dev/v1alpha1
+kind: ControllerManagerConfig
+healthProbeBindAddress: ":8081"
+metricsBindAddress: "127.0.0.1:8080"
+webhookPort: 9443
+leaderElection:
+  leaderElect: true
+  resourceName: bb07iekd.soer3n.dev
+`
+
+		controllerManagerConfigmap = &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "yaho-agent-config",
+				Namespace: c.agent.Namespace,
+			},
+			Data: map[string]string{
+				"controller_manager_config.yaml": controllerManagerConfig,
+			},
+		}
+
+		if err := c.remoteClient.Create(context.TODO(), controllerManagerConfigmap, &client.CreateOptions{}); err != nil {
+			return err
+		}
+	}
+
+	c.logger.Info("read and install crds for remote agent", "cluster", c.name, "name", c.agent.Name, "namespace", c.agent.Namespace)
+	fs, err := os.ReadDir("config/crd/bases/")
+
+	if err != nil {
+		return err
+	}
+
+	for _, file := range fs {
+		f, err := os.ReadFile("config/crd/bases/" + file.Name())
+
+		if err != nil {
+			return err
+		}
+
+		crd := &apiextensionsv1.CustomResourceDefinition{}
+		d := []byte("---")
+		new := bytes.ReplaceAll(f, d, []byte(""))
+
+		j, err := kyaml.YAMLToJSON(new)
+
+		if err != nil {
+			return err
+		}
+
+		if err := json.Unmarshal(j, crd); err != nil {
+			return err
+		}
+
+		if crd.Spec.Names.Kind != "Hub" {
+			if err := c.remoteClient.Get(context.TODO(), types.NamespacedName{Name: crd.Name}, crd, &client.GetOptions{}); err != nil {
+				if errors.IsNotFound(err) {
+					if err := c.remoteClient.Create(context.TODO(), crd, &client.CreateOptions{}); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	userId := int64(65532)
+	allowPrivilegeEscalation := false
+
+	localObjRef := v1.LocalObjectReference{
+		Name: "yaho-agent-config",
+	}
+
+	volumeSource := v1.VolumeSource{
+		ConfigMap: &v1.ConfigMapVolumeSource{
+			LocalObjectReference: localObjRef,
+		},
+	}
+
+	agent := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      c.agent.Name,
+			Namespace: c.agent.Namespace,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"yaho.soer3n.dev/agent": c.agent.Name},
+			},
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"yaho.soer3n.dev/agent": c.agent.Name},
+				},
+				Spec: v1.PodSpec{
+					ServiceAccountName: "yaho-agent",
+					SecurityContext: &v1.PodSecurityContext{
+						RunAsUser: &userId,
+					},
+					Volumes: []v1.Volume{
+						{
+							VolumeSource: volumeSource,
+							Name:         "agent-config",
+						},
+					},
+					Containers: []v1.Container{
+						{
+							Name:    "agent",
+							Image:   "soer3n/yaho:0.0.3",
+							Command: []string{"/manager", "agent", "run"},
+							Args:    []string{"--leader-elect", "--config=controller_manager_config.yaml", "--health-probe-bind-address=:8081", "--metrics-bind-address=127.0.0.1:8080"},
+							Env: []v1.EnvVar{
+								{
+									Name:  "WATCH_NAMESPACE",
+									Value: c.agent.Namespace,
+								},
+							},
+							VolumeMounts: []v1.VolumeMount{
+								{
+									Name:      "agent-config",
+									MountPath: "/controller_manager_config.yaml",
+									SubPath:   "controller_manager_config.yaml",
+								},
+							},
+							Resources: v1.ResourceRequirements{},
+							SecurityContext: &v1.SecurityContext{
+								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+							},
+							ReadinessProbe: &v1.Probe{
+								InitialDelaySeconds: int32(5),
+								PeriodSeconds:       int32(10),
+								ProbeHandler: v1.ProbeHandler{
+									HTTPGet: &v1.HTTPGetAction{
+										Path: "/readyz",
+										Port: intstr.FromInt(8081),
+									},
+								},
+							},
+							LivenessProbe: &v1.Probe{
+								InitialDelaySeconds: int32(15),
+								PeriodSeconds:       int32(20),
+								ProbeHandler: v1.ProbeHandler{
+									HTTPGet: &v1.HTTPGetAction{
+										Path: "/healthz",
+										Port: intstr.FromInt(8081),
+									},
+								},
+							},
+						},
+						{
+							Name:      "kube-rbac-proxy",
+							Image:     "gcr.io/kubebuilder/kube-rbac-proxy:v0.11.0",
+							Args:      []string{"--secure-listen-address=0.0.0.0:8443", "--upstream=http://127.0.0.1:8080/", "--logtostderr=true", "--v=0"},
+							Resources: v1.ResourceRequirements{},
+							SecurityContext: &v1.SecurityContext{
+								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	c.logger.Info("create and install remote agent deployment", "cluster", c.name, "name", c.agent.Name, "namespace", c.agent.Namespace)
+	if err := c.remoteClient.Create(context.TODO(), agent, &client.CreateOptions{}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Cluster) deleteAgent() error {
+
+	agent := &appsv1.Deployment{}
+
+	if err := c.remoteClient.Get(context.TODO(), types.NamespacedName{Name: c.agent.Name, Namespace: c.agent.Namespace}, agent, &client.GetOptions{}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func syncChartDependencyResources(cluster, chartname, repository, version, namespace string, hc *chart.Chart, localClient, remoteClient client.WithWatch, scheme *runtime.Scheme, logger logr.Logger) error {
@@ -204,7 +470,12 @@ func syncChartDependencyResources(cluster, chartname, repository, version, names
 			return err
 		}
 
-		if len(hc.Dependencies()) > 0 {
+		if err := yahochart.LoadDependencies(dhc, namespace, utils.GetEnvSettings(map[string]string{}), scheme, logger, localClient); err != nil {
+			logger.V(0).Error(err, "error on loading dependencies for cluster", "cluster", cluster, "repository", repository, "chart", hc.Name(), "dependencies", hc.Metadata.Dependencies)
+			return err
+		}
+
+		if len(dhc.Dependencies()) > 0 {
 			if err := syncChartDependencyResources(cluster, chartname, repository, version, namespace, dhc, localClient, remoteClient, scheme, logger); err != nil {
 				return err
 			}
@@ -335,6 +606,33 @@ func syncChartResources(cluster, chartname, repository, version, namespace strin
 		return err
 	}
 
+	/*
+		logger.V(0).Info("loading dependencies for cluster.", "cluster", cluster, "repository", repository, "chart", hc.Name(), "dependencies", hc.Metadata.Dependencies)
+		if err := yahochart.LoadDependencies(hc, namespace, utils.GetEnvSettings(map[string]string{}), scheme, logger, localClient); err != nil {
+			logger.V(0).Error(err, "error on loading dependencies for cluster", "cluster", cluster, "repository", repository, "chart", hc.Name(), "dependencies", hc.Metadata.Dependencies)
+			return err
+		}
+				//TODO: we need to render also children of child charts
+				for _, dep := range hc.Dependencies() {
+					logger.V(0).Info("manage subresources for dependency chart", "dependency_chart", dep.Name(), "cluster", cluster, "repository", repository, "chart", hc.Name(), "template_count", len(hc.Templates), "value_count", len(hc.Values))
+					if err := yahochart.ManageSubResources(hc, cv, repository, namespace, localClient, remoteClient, false, scheme, logger); err != nil {
+						logger.V(0).Error(err, "error on loading configmaps related to dependecy chart...", "dependency_chart", dep.Name(), "repository", repository, "chart", chartname, "version", version, "cluster", cluster)
+						return err
+					}
+				}
+
+			logger.V(0).Info("manage dependencies for cluster", "cluster", cluster, "repository", repository, "chart", hc.Name(), "template_count", len(hc.Templates), "values_count", len(hc.Values))
+			if err := manageDependencyCharts(cluster, chartname, repository, version, namespace, hc, cv, localClient, remoteClient, scheme, logger); err != nil {
+				logger.V(0).Error(err, "error on managing dependency charts related to chart.", "repository", repository, "chart", chartname, "version", version, "cluster", cluster)
+				return err
+			}
+	*/
+
+	return nil
+}
+
+func manageDependencyCharts(cluster, chartname, repository, version, namespace string, hc *chart.Chart, cv *repo.ChartVersion, localClient, remoteClient client.WithWatch, scheme *runtime.Scheme, logger logr.Logger) error {
+
 	logger.V(0).Info("loading dependencies for cluster.", "cluster", cluster, "repository", repository, "chart", hc.Name(), "dependencies", hc.Metadata.Dependencies)
 	if err := yahochart.LoadDependencies(hc, namespace, utils.GetEnvSettings(map[string]string{}), scheme, logger, localClient); err != nil {
 		logger.V(0).Error(err, "error on loading dependencies for cluster", "cluster", cluster, "repository", repository, "chart", hc.Name(), "dependencies", hc.Metadata.Dependencies)
@@ -342,11 +640,39 @@ func syncChartResources(cluster, chartname, repository, version, namespace strin
 	}
 
 	for _, dep := range hc.Dependencies() {
-		logger.V(0).Info("manage subresources for dependency chart", "dependency_chart", dep.Name(), "cluster", cluster, "repository", repository, "chart", hc.Name(), "template_count", len(hc.Templates), "value_count", len(hc.Values))
-		if err := yahochart.ManageSubResources(hc, cv, repository, namespace, localClient, remoteClient, false, scheme, logger); err != nil {
+		repoURL := ""
+		for _, depStruct := range hc.Metadata.Dependencies {
+			if depStruct.Name == dep.Name() {
+				repoURL = depStruct.Repository
+			}
+		}
+
+		if repoURL == "" {
+			return fmt.Errorf("repository url not found")
+		}
+
+		repo, err := yahochart.GetRepositoryNameByUrl(repoURL, localClient)
+
+		if err != nil {
+			return err
+		}
+
+		if err := yahochart.ManageSubResources(hc, cv, repo, namespace, localClient, remoteClient, false, scheme, logger); err != nil {
 			logger.V(0).Error(err, "error on loading configmaps related to dependecy chart...", "dependency_chart", dep.Name(), "repository", repository, "chart", chartname, "version", version, "cluster", cluster)
 			return err
 		}
+
+		if err := yahochart.LoadDependencies(dep, namespace, utils.GetEnvSettings(map[string]string{}), scheme, logger, localClient); err != nil {
+			logger.V(0).Error(err, "error on loading dependencies for cluster", "cluster", cluster, "repository", repository, "chart", hc.Name(), "dependencies", hc.Metadata.Dependencies)
+			return err
+		}
+
+		/*
+			// inner loop
+			if err := manageDependencyCharts(cluster, dep.Name(), repo, dep.Metadata.Version, namespace, dep, cv, localClient, remoteClient, scheme, logger); err != nil {
+				return err
+			}
+		*/
 	}
 
 	return nil

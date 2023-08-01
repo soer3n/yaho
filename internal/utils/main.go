@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	"helm.sh/helm/v3/pkg/repo"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -110,25 +109,25 @@ func WatchForSubResourceSync(subResource interface{}, gvr schema.GroupVersionRes
 
 	defer watcher.Stop()
 
-	select {
-	case res := <-watcher.ResultChan():
-		ch := res.Object.(*yahov1alpha2.Chart)
+	for {
+		select {
+		case res := <-watcher.ResultChan():
+			ch := res.Object.(*metav1.Status)
 
-		if res.Type == eventType {
+			if res.Type == eventType {
 
-			klog.V(0).Infof("check conditions for chart %s. Current conditions: %v", ch.ObjectMeta.Name, ch.Status.Conditions)
-			for _, condition := range ch.Status.Conditions {
-				if condition.Status == metav1.ConditionFalse {
-					return false
+				klog.V(0).Infof("check conditions for chart. Message: %s. Details: %v", ch.Message, ch.Details)
+				if ch.Status == metav1.StatusSuccess {
+					return true
 				}
+				//synced := "synced"
+				//if *ch.Status.Dependencies == synced && *ch.Status.Versions == synced {
+				// return false
+				//}
 			}
-			//synced := "synced"
-			//if *ch.Status.Dependencies == synced && *ch.Status.Versions == synced {
-			return true
-			//}
+		case <-time.After(10 * time.Second):
+			return false
 		}
-	case <-time.After(10 * time.Second):
-		return false
 	}
 
 	return false

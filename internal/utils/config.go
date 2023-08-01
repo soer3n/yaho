@@ -67,10 +67,10 @@ func parseOperatorConfig(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-func BuildKubeconfigSecret(path, address, name, namespace string, scheme *runtime.Scheme) (*v1.Secret, error) {
+func BuildKubeconfigSecret(path, address, name, namespace string, deployEnabled bool, scheme *runtime.Scheme) (*v1.Secret, error) {
 
 	klog.V(0).Infof("creating client from config path %s", path)
-	config, err := clientcmd.BuildConfigFromFlags("", path)
+	config, err := clientcmd.BuildConfigFromFlags(address, path)
 
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func BuildKubeconfigSecret(path, address, name, namespace string, scheme *runtim
 		if !k8serrors.IsNotFound(err) {
 			return nil, err
 		}
-		klog.V(0).Info("creating service account")
+		klog.V(0).Info("creating service account", "name", "yaho-agent", "namespace", namespace)
 		serviceAccount = &v1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "yaho-agent",
@@ -193,49 +193,6 @@ func BuildKubeconfigSecret(path, address, name, namespace string, scheme *runtim
 		secret = tokenSecret
 	}
 
-	rawToken := secret.Data["token"]
-
-	klog.V(0).Info("set cluster in config")
-	clusters := make(map[string]*clientcmdapi.Cluster)
-	clusters["default-cluster"] = &clientcmdapi.Cluster{
-		Server:                   address,
-		CertificateAuthorityData: secret.Data["ca.crt"],
-	}
-
-	klog.V(0).Info("set context in config")
-	contexts := make(map[string]*clientcmdapi.Context)
-	contexts["default-context"] = &clientcmdapi.Context{
-		Cluster:   "default-cluster",
-		Namespace: namespace,
-		AuthInfo:  "yaho-agent",
-	}
-
-	klog.V(0).Info("set auth info in config")
-	authinfos := make(map[string]*clientcmdapi.AuthInfo)
-	authinfos["yaho-agent"] = &clientcmdapi.AuthInfo{
-		Token: string(rawToken),
-	}
-
-	klog.V(0).Info("set config struct")
-	clientConfig := clientcmdapi.Config{
-		Kind:           "Config",
-		APIVersion:     "v1",
-		Clusters:       clusters,
-		Contexts:       contexts,
-		CurrentContext: "default-context",
-		AuthInfos:      authinfos,
-	}
-
-	overrides := &clientcmd.ConfigOverrides{ClusterDefaults: clientcmd.ClusterDefaults}
-	overrides.Context.Namespace = namespace
-
-	klog.V(0).Info("encode config")
-	rawConfig, err := runtime.Encode(clientcmdlatest.Codec, &clientConfig)
-
-	if err != nil {
-		return nil, err
-	}
-
 	klog.V(0).Info("try to get deployment role role")
 	role := &rbacv1.Role{}
 
@@ -254,15 +211,23 @@ func BuildKubeconfigSecret(path, address, name, namespace string, scheme *runtim
 			Rules: []rbacv1.PolicyRule{
 				{
 					APIGroups: []string{""},
-					Resources: []string{"configmaps", "serviceaccounts"},
+					Resources: []string{"configmaps", "serviceaccounts", "secrets"},
 					Verbs:     []string{"create", "update", "get", "list", "watch"},
 				},
 				{
-					APIGroups: []string{""},
-					Resources: []string{"serviceaccounts"},
+					APIGroups: []string{"yaho.soer3n.dev"},
+					Resources: []string{"configs"},
 					Verbs:     []string{"get", "list", "watch"},
 				},
 			},
+		}
+
+		if deployEnabled {
+			role.Rules = append(role.Rules, rbacv1.PolicyRule{
+				APIGroups: []string{"apps"},
+				Resources: []string{"deployments"},
+				Verbs:     []string{"create", "update", "get", "list", "watch"},
+			})
 		}
 
 		klog.V(0).Info("deploy deployment role")
@@ -287,8 +252,8 @@ func BuildKubeconfigSecret(path, address, name, namespace string, scheme *runtim
 			},
 			Rules: []rbacv1.PolicyRule{
 				{
-					APIGroups: []string{"apps"},
-					Resources: []string{"deployments"},
+					APIGroups: []string{"apiextensions.k8s.io"},
+					Resources: []string{"customresourcedefinitions"},
 					Verbs:     []string{"create", "update", "get", "list", "watch"},
 				},
 				{
@@ -381,10 +346,56 @@ func BuildKubeconfigSecret(path, address, name, namespace string, scheme *runtim
 		}
 	}
 
+	rawToken := secret.Data["token"]
+
+	klog.V(0).Info("set cluster in config")
+	clusters := make(map[string]*clientcmdapi.Cluster)
+	clusters["default-cluster"] = &clientcmdapi.Cluster{
+		Server:                   address,
+		CertificateAuthorityData: secret.Data["ca.crt"],
+	}
+
+	klog.V(0).Info("set context in config")
+	contexts := make(map[string]*clientcmdapi.Context)
+	contexts["default-context"] = &clientcmdapi.Context{
+		Cluster:   "default-cluster",
+		Namespace: namespace,
+		AuthInfo:  "yaho-agent",
+	}
+
+	klog.V(0).Info("set auth info in config")
+	authinfos := make(map[string]*clientcmdapi.AuthInfo)
+	authinfos["yaho-agent"] = &clientcmdapi.AuthInfo{
+		Token: string(rawToken),
+	}
+
+	klog.V(0).Info("set config struct")
+	clientConfig := clientcmdapi.Config{
+		Kind:           "Config",
+		APIVersion:     "v1",
+		Clusters:       clusters,
+		Contexts:       contexts,
+		CurrentContext: "default-context",
+		AuthInfos:      authinfos,
+	}
+
+	klog.V(0).Info("encode config")
+	rawConfig, err := runtime.Encode(clientcmdlatest.Codec, &clientConfig)
+
+	if err != nil {
+		return nil, err
+	}
+
 	str := base64.StdEncoding.EncodeToString(rawConfig)
 
 	data, err := base64.StdEncoding.DecodeString(str)
 	if err != nil {
+		return nil, err
+	}
+
+	if clientConfig.Clusters["default-cluster"] == nil || clientConfig.Clusters["default-cluster"].CertificateAuthorityData == nil || clientConfig.AuthInfos["yaho-agent"] == nil || clientConfig.AuthInfos["yaho-agent"].Token == "" || clientConfig.CurrentContext == "" {
+		klog.V(0).Info("failed to build kubeconfig")
+		return nil, err
 	}
 
 	agentSecret := &v1.Secret{
@@ -394,6 +405,9 @@ func BuildKubeconfigSecret(path, address, name, namespace string, scheme *runtim
 		},
 		Data: map[string][]byte{
 			"kubeconfig": []byte(string(data)),
+			"token":      rawToken,
+			"caData":     secret.Data["ca.crt"],
+			"host":       []byte(config.Host),
 		},
 	}
 

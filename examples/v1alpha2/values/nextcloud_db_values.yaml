@@ -49,9 +49,10 @@ spec:
       enabled: true
       global:
         postgresql:
-          postgresqlUsername: nextcloud
-          postgresqlPassword: changeme
-          postgresqlDatabase: nextcloud
+          auth:
+            postgresUsername: nextcloud
+            postgresPassword: changeme
+            postgresDatabase: nextcloud
       persistence:
         enabled: true
         storageClass: "standard"

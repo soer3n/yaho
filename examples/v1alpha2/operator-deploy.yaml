@@ -1,0 +1,405 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: yaho-controller-manager
+  namespace: helm
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: yaho-leader-election-role
+  namespace: helm
+rules:
+- apiGroups:
+  - ""
+  - coordination.k8s.io
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: yaho-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - charts
+  - hubs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - charts/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - charts/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releasegroups
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releasegroups/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releasegroups/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releases
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releases/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - releases/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - repogroups
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - repogroups/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - hubs/status
+  - repogroups/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - repositories
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - repositories/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - repositories/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - values
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - values/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - yaho.soer3n.dev
+  resources:
+  - values/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: yaho-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: yaho-proxy-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: yaho-leader-election-rolebinding
+  namespace: helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: yaho-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: yaho-controller-manager
+  namespace: helm
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: yaho-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: yaho-manager-role
+subjects:
+- kind: ServiceAccount
+  name: yaho-controller-manager
+  namespace: helm
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: yaho-proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: yaho-proxy-role
+subjects:
+- kind: ServiceAccount
+  name: yaho-controller-manager
+  namespace: helm
+---
+apiVersion: v1
+data:
+  controller_manager_config.yaml: |
+    ---
+    apiVersion: soer3n.dev/v1alpha1
+    kind: ControllerManagerConfig
+    healthProbeBindAddress: ":8081"
+    metricsBindAddress: "127.0.0.1:8080"
+    webhookPort: 9443
+    leaderElection:
+      leaderElect: true
+      resourceName: bb07b8f2.soer3n.dev
+kind: ConfigMap
+metadata:
+  name: yaho-manager-config
+  namespace: helm
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    operators.soeren.dev: yaho
+  name: yaho-controller-manager-metrics-service
+  namespace: helm
+spec:
+  ports:
+  - name: https
+    port: 8443
+    protocol: TCP
+    targetPort: https
+  selector:
+    operators.soeren.dev: yaho
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+    operators.soeren.dev: yaho
+  name: yaho-controller-manager
+  namespace: helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      operators.soeren.dev: yaho
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        operators.soeren.dev: yaho
+    spec:
+      containers:
+      - args:
+        - --config=controller_manager_config.yaml
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=127.0.0.1:8080
+        - --leader-elect
+        env:
+        - name: "WATCH_NAMESPACE"
+          value: helm
+        command:
+        - /manager
+        - operator
+        - run
+        image: soer3n/yaho:0.0.3
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 768Mi
+          requests:
+            cpu: 10m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /controller_manager_config.yaml
+          name: manager-config
+          subPath: controller_manager_config.yaml
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8080/
+        - --logtostderr=true
+        - --v=0
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.11.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 5m
+            memory: 64Mi
+      securityContext:
+        runAsUser: 65532
+      serviceAccountName: yaho-controller-manager
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - configMap:
+          name: yaho-manager-config
+        name: manager-config

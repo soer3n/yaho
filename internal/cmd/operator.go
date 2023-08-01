@@ -178,6 +178,7 @@ func runOperator(scheme *runtime.Scheme, configFile string, isLocal bool, metric
 		setupLog.Info(err.Error())
 		if errors.IsNotFound(err) {
 			setupLog.Info("creating local hub because it was not found")
+			enableDeployment := false
 			localHub = &yahov1alpha2.Hub{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "local",
@@ -187,6 +188,9 @@ func runOperator(scheme *runtime.Scheme, configFile string, isLocal bool, metric
 					Clusters: []yahov1alpha2.HubCluster{
 						{
 							Name: "local",
+							Agent: &yahov1alpha2.HubClusterAgent{
+								Deploy: &enableDeployment,
+							},
 							Secret: yahov1alpha2.Secret{
 								Name:      "yaho-local-kubeconfig",
 								Key:       "kubeconfig",
