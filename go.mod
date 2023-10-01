@@ -70,6 +70,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
+	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.3.0 // indirect
@@ -169,5 +170,5 @@ require (
 replace (
 	github.com/docker/cli => github.com/docker/cli v24.0.5+incompatible
 	github.com/docker/docker => github.com/docker/docker v23.0.6+incompatible
-	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20230127205639-68031ae9242a
+	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20230928205116-a78145627833
 )
