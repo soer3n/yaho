@@ -170,5 +170,5 @@ require (
 )
 
 replace (
-	github.com/docker/docker => github.com/docker/docker v23.0.6+incompatible
+	github.com/docker/docker => github.com/docker/docker v23.0.7+incompatible
 )
