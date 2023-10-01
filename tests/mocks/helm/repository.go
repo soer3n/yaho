@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"k8s.io/utils/pointer"
+	pointer "k8s.io/utils/ptr"
 
 	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
 	"github.com/soer3n/yaho/tests/mocks"
@@ -109,8 +109,8 @@ func setRepository(clientMock *unstructuredmocks.K8SClientMock, httpMock *mocks.
 					APIVersion:         "yaho.soer3n.dev/v1alpha1",
 					Kind:               "Repository",
 					Name:               repositoryMock.Name,
-					Controller:         pointer.Bool(true),
-					BlockOwnerDeletion: pointer.Bool(true),
+					Controller:         pointer.To[bool](true),
+					BlockOwnerDeletion: pointer.To[bool](true),
 				},
 			},
 		}

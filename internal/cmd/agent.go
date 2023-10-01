@@ -22,28 +22,17 @@ func NewAgentCmd(scheme *runtime.Scheme) *cobra.Command {
 	}
 
 	cmd.AddCommand(newAgentRunCmd(scheme))
+	cmd.AddCommand(newAgentKubeconfigCmd(scheme))
 	return cmd
 }
 
 func newAgentKubeconfigCmd(scheme *runtime.Scheme) *cobra.Command {
-
-	var metricsAddr string
-	var isLocal bool
-	var enableLeaderElection bool
-	var probeAddr string
-	var configFile string
 
 	cmd := &cobra.Command{
 		Use:   "kubeconfig",
 		Short: "parse and store agent kubeconfig",
 		Long:  `parse and store agent kubeconfig`,
 		Run: func(cmd *cobra.Command, args []string) {
-			configFile, _ = cmd.Flags().GetString("config")
-			metricsAddr, _ = cmd.Flags().GetString("metrics-bind-address")
-			probeAddr, _ = cmd.Flags().GetString("health-probe-bind-address")
-			enableLeaderElection, _ = cmd.Flags().GetBool("leader-elect")
-			isLocal, _ = cmd.Flags().GetBool("is-local")
-			runAgent(scheme, configFile, isLocal, metricsAddr, probeAddr, enableLeaderElection)
 		},
 	}
 	return cmd
