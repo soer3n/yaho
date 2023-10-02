@@ -20,7 +20,7 @@ require (
 	k8s.io/client-go v0.28.2
 	k8s.io/kubectl v0.28.2
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
-	sigs.k8s.io/controller-runtime v0.15.0
+	sigs.k8s.io/controller-runtime v0.16.2
 	sigs.k8s.io/yaml v1.3.0
 
 )
@@ -139,8 +139,9 @@ require (
 	go.starlark.net v0.0.0-20230525235612-a134d8f9ddca // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
+	go.uber.org/zap v1.25.0 // indirect
 	golang.org/x/crypto v0.13.0 // indirect
+	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/net v0.15.0 // indirect
 	golang.org/x/oauth2 v0.8.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
@@ -149,7 +150,7 @@ require (
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.13.0 // indirect
-	gomodules.xyz/jsonpatch/v2 v2.3.0 // indirect
+	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	google.golang.org/grpc v1.55.0 // indirect
@@ -169,6 +170,4 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )
 
-replace (
-	github.com/docker/docker => github.com/docker/docker v23.0.7+incompatible
-)
+replace github.com/docker/docker => github.com/docker/docker v23.0.7+incompatible
