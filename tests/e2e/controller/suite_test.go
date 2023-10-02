@@ -31,7 +31,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	helmv1alpha1 "github.com/soer3n/yaho/apis/yaho/v1alpha1"
@@ -52,6 +52,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -140,7 +141,7 @@ func setupNamespace() *v1.Namespace {
 
 		logf.Log.Info("namespace:", "namespace", ns)
 
-		mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme, MetricsBindAddress: "0", HealthProbeBindAddress: "0"})
+		mgr, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme, Metrics: metricsserver.Options{BindAddress: "0"}, HealthProbeBindAddress: "0"})
 		Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 		config := mgr.GetConfig()
@@ -210,11 +211,11 @@ func setupNamespace() *v1.Namespace {
 			Expect(err).NotTo(HaveOccurred(), "failed to start helm manager")
 		}()
 
-	}, 60)
+	})
 
 	AfterEach(func() {
 		cancelFn()
-	}, 60)
+	})
 
 	return &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -254,7 +255,7 @@ var _ = BeforeSuite(func() {
 	testClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
-}, 60)
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

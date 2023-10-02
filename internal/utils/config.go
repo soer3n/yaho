@@ -17,6 +17,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 func ManagerOptions(config string) (*manager.Options, error) {
@@ -31,7 +32,9 @@ func ManagerOptions(config string) (*manager.Options, error) {
 		HealthProbeBindAddress: c.HealthProbeBindAddress,
 		LeaderElection:         c.LeaderElection.Enabled,
 		LeaderElectionID:       c.LeaderElection.ResourceID,
-		MetricsBindAddress:     c.MetricsBindAddress,
+		Metrics: metricsserver.Options{
+			BindAddress: c.MetricsBindAddress,
+		},
 	}, nil
 }
 
