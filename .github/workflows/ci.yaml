@@ -40,11 +40,11 @@ jobs:
       fail-fast: false
       matrix:
         version:
-        - v1.27.1
-        - v1.26.3
-        - v1.25.8
-        - v1.24.12
-        - v1.23.17
+        - v1.28.0
+        - v1.27.2
+        - v1.26.6
+        - v1.25.11
+        - v1.24.15
     runs-on: ubuntu-latest
     if: ${{ (github.event.review.state == 'approved') || github.ref == 'refs/heads/master' }}
     name: test-e2e-k8s-${{ matrix.version }}
