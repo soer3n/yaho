@@ -7,7 +7,8 @@ require (
 	github.com/go-logr/logr v1.2.4
 	github.com/google/go-cmp v0.5.9
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.27.10
+	github.com/onsi/ginkgo/v2 v2.12.1
+	github.com/onsi/gomega v1.28.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
@@ -169,5 +170,5 @@ require (
 )
 
 replace (
-	github.com/docker/docker => github.com/docker/docker v23.0.6+incompatible
+	github.com/docker/docker => github.com/docker/docker v23.0.7+incompatible
 )
