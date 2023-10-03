@@ -1,14 +1,15 @@
+---
 apiVersion: yaho.soer3n.dev/v1alpha2
 kind: Release
 metadata:
   name: release
   namespace: helm
   annotations:
-    yaho.soer3n.dev/approval: "manual"
+    yaho.soer3n.dev/approval: "manual" # can also be set to auto for approveless updates
 spec:
   name: nextcloud
   namespace: share
-  config: nextcloud-config
+  config: nextcloud-config # can also be set in related hub cr
   repo: nextcloud
   chart: nextcloud
   version: 3.5.*

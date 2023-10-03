@@ -248,13 +248,9 @@ func (c *Cluster) Start(tickerCtx context.Context, d time.Duration) {
 func (c *Cluster) agentIsAvailable() bool {
 
 	agent := &appsv1.Deployment{}
+	err := c.remoteClient.Get(context.TODO(), types.NamespacedName{Name: c.agent.Name, Namespace: c.agent.Namespace}, agent, &client.GetOptions{})
 
-	if err := c.remoteClient.Get(context.TODO(), types.NamespacedName{Name: c.agent.Name, Namespace: c.agent.Namespace}, agent, &client.GetOptions{}); err != nil {
-		c.logger.Error(err, "error on try to get agent deployment", "cluster", c.name, "agent", c.agent.Name, "agent_namespace", c.agent.Namespace)
-		return false
-	}
-
-	return true
+	return err != nil
 }
 
 func (c *Cluster) deployAgent() error {
@@ -448,6 +444,10 @@ func (c *Cluster) deleteAgent() error {
 		return err
 	}
 
+	if err := c.remoteClient.Delete(context.TODO(), agent, &client.DeleteOptions{}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -612,21 +612,21 @@ func syncChartResources(cluster, chartname, repository, version, namespace strin
 			logger.V(0).Error(err, "error on loading dependencies for cluster", "cluster", cluster, "repository", repository, "chart", hc.Name(), "dependencies", hc.Metadata.Dependencies)
 			return err
 		}
-				//TODO: we need to render also children of child charts
-				for _, dep := range hc.Dependencies() {
-					logger.V(0).Info("manage subresources for dependency chart", "dependency_chart", dep.Name(), "cluster", cluster, "repository", repository, "chart", hc.Name(), "template_count", len(hc.Templates), "value_count", len(hc.Values))
-					if err := yahochart.ManageSubResources(hc, cv, repository, namespace, localClient, remoteClient, false, scheme, logger); err != nil {
-						logger.V(0).Error(err, "error on loading configmaps related to dependecy chart...", "dependency_chart", dep.Name(), "repository", repository, "chart", chartname, "version", version, "cluster", cluster)
-						return err
-					}
-				}
-
-			logger.V(0).Info("manage dependencies for cluster", "cluster", cluster, "repository", repository, "chart", hc.Name(), "template_count", len(hc.Templates), "values_count", len(hc.Values))
-			if err := manageDependencyCharts(cluster, chartname, repository, version, namespace, hc, cv, localClient, remoteClient, scheme, logger); err != nil {
-				logger.V(0).Error(err, "error on managing dependency charts related to chart.", "repository", repository, "chart", chartname, "version", version, "cluster", cluster)
+		//TODO: we need to render also children of child charts
+		for _, dep := range hc.Dependencies() {
+			logger.V(0).Info("manage subresources for dependency chart", "dependency_chart", dep.Name(), "cluster", cluster, "repository", repository, "chart", hc.Name(), "template_count", len(hc.Templates), "value_count", len(hc.Values))
+			if err := yahochart.ManageSubResources(hc, cv, repository, namespace, localClient, remoteClient, false, scheme, logger); err != nil {
+				logger.V(0).Error(err, "error on loading configmaps related to dependecy chart...", "dependency_chart", dep.Name(), "repository", repository, "chart", chartname, "version", version, "cluster", cluster)
 				return err
 			}
+		}
 	*/
+
+	logger.V(0).Info("manage dependencies for cluster", "cluster", cluster, "repository", repository, "chart", hc.Name(), "template_count", len(hc.Templates), "values_count", len(hc.Values))
+	if err := manageDependencyCharts(cluster, chartname, repository, version, namespace, hc, cv, localClient, remoteClient, scheme, logger); err != nil {
+		logger.V(0).Error(err, "error on managing dependency charts related to chart.", "repository", repository, "chart", chartname, "version", version, "cluster", cluster)
+		return err
+	}
 
 	return nil
 }
@@ -667,12 +667,10 @@ func manageDependencyCharts(cluster, chartname, repository, version, namespace s
 			return err
 		}
 
-		/*
-			// inner loop
-			if err := manageDependencyCharts(cluster, dep.Name(), repo, dep.Metadata.Version, namespace, dep, cv, localClient, remoteClient, scheme, logger); err != nil {
-				return err
-			}
-		*/
+		// inner loop
+		if err := manageDependencyCharts(cluster, dep.Name(), repo, dep.Metadata.Version, namespace, dep, cv, localClient, remoteClient, scheme, logger); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -680,5 +678,14 @@ func manageDependencyCharts(cluster, chartname, repository, version, namespace s
 
 func (c *Cluster) Stop() error {
 	c.cancelFunc()
+
+	if !c.agent.Deploy {
+		return nil
+	}
+
+	if err := c.deleteAgent(); err != nil {
+		c.logger.Error(err, "error on deleting agent")
+		return err
+	}
 	return nil
 }

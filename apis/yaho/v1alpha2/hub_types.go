@@ -28,16 +28,17 @@ type HubSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Clusters []HubCluster `json:"clusters,omitempty"`
-	Interval string       `json:"interval,omitempty"`
-	Defaults HubDefaults  `json:"defaults,omitempty"`
+	HubSelector HubSelector      `json:"selector,omitempty"`
+	Agent       *HubClusterAgent `json:"agent,omitempty"`
+	Interval    string           `json:"interval,omitempty"`
+	Config      string           `json:"config,omitempty"`
+	Defaults    []HubDefault     `json:"defaults,omitempty"`
 }
 
-type HubCluster struct {
-	Name     string           `json:"name,omitempty"`
-	Agent    *HubClusterAgent `json:"agent,omitempty"`
-	Secret   Secret           `json:"secret,omitempty"`
-	Defaults HubDefaults      `json:"defaults,omitempty"`
+type HubSelector struct {
+	Kind      string            `json:"kind,omitempty"`
+	Namespace string            `json:"namespace,omitempty"`
+	Labels    map[string]string `json:"labels,omitempty"`
 }
 
 type HubClusterAgent struct {
@@ -46,13 +47,11 @@ type HubClusterAgent struct {
 	Namespace string `json:"namespace,omitempty"`
 }
 
-type Secret struct {
-	Name      string `json:"name,omitempty"`
-	Key       string `json:"key,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
+type HubDefault struct {
+	Chart  string `json:"chart,omitempty"`
+	Repo   string `json:"repo,omitempty"`
+	Values string `json:"values,omitempty"`
 }
-
-type HubDefaults struct{}
 
 // HubStatus defines the observed state of Hub
 type HubStatus struct {

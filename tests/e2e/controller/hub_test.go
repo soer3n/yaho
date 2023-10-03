@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	yahov1alpha2 "github.com/soer3n/yaho/apis/yaho/v1alpha2"
 	v1 "k8s.io/api/core/v1"
@@ -98,6 +98,7 @@ var _ = Context("Install a release", func() {
 			time.Sleep(3 * time.Second)
 
 			By("creating needed hub resource")
+			enableDeployment := false
 
 			localHub := &yahov1alpha2.Hub{
 				ObjectMeta: metav1.ObjectMeta{
@@ -105,15 +106,15 @@ var _ = Context("Install a release", func() {
 				},
 				Spec: yahov1alpha2.HubSpec{
 					Interval: "10s",
-					Clusters: []yahov1alpha2.HubCluster{
-						{
-							Name: "local",
-							Secret: yahov1alpha2.Secret{
-								Name:      "yaho-local-kubeconfig",
-								Key:       "kubeconfig",
-								Namespace: namespace,
-							},
+					HubSelector: yahov1alpha2.HubSelector{
+						Kind:      "Secret",
+						Namespace: namespace,
+						Labels: map[string]string{
+							"yaho.soer3n.dev/hub": "local",
 						},
+					},
+					Agent: &yahov1alpha2.HubClusterAgent{
+						Deploy: &enableDeployment,
 					},
 				},
 			}

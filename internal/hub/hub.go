@@ -9,6 +9,7 @@ import (
 )
 
 func NewHub() *Hub {
+	// TODO: we need to initiate a watcher for related configs here due to selector mechanism
 	return &Hub{
 		Backends: make(map[string]BackendInterface),
 	}

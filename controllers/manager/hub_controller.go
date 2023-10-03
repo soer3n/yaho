@@ -27,8 +27,9 @@ import (
 	"github.com/soer3n/yaho/internal/hub"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,13 +47,6 @@ type HubReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the Chart object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *HubReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.Log.WithValues("hubs", req.NamespacedName)
 	_ = r.Log.WithValues("hubsreq", req)
@@ -76,6 +70,10 @@ func (r *HubReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	// TODO: we need to set and handle a finalizer here for canceling the secrets watcher which will be later initiated
+	// and to remove managed clusters properly
+
+	// set stored hub if found or initialize new hub
 	currentHub, ok := r.Hubs[instance.ObjectMeta.Name]
 	if !ok {
 		r.Log.Info("setting current hub", "hub", instance.ObjectMeta.Name)
@@ -85,42 +83,54 @@ func (r *HubReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		r.Hubs[instance.ObjectMeta.Name] = currentHub
 	}
 
-	// validate if specified clusters have an active channel
-	for _, item := range instance.Spec.Clusters {
+	clusterConfigs := &v1.SecretList{}
+	selector := labels.NewSelector()
+
+	// parse specified label selectors
+	for k, v := range instance.Spec.HubSelector.Labels {
+		requirement, _ := labels.ParseToRequirements(k + "=" + v)
+		selector = selector.Add(requirement[0])
+	}
+
+	// get list of cluster configs by label selector
+	if err := r.WithWatch.List(context.TODO(), clusterConfigs, &client.ListOptions{
+		LabelSelector: selector,
+	}); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// validate if selected clusters have an active channel / backend
+	for _, item := range clusterConfigs.Items {
 		r.Log.Info("parsing specified cluster", "hub", instance.ObjectMeta.Name, "cluster", item.Name)
-		localCluster, ok := currentHub.Backends[item.Name]
+
 		// TODO: use constants
 		clusterAgentName := "yaho-agent"
 		clusterAgentNamespace := "helm"
 
-		if item.Agent != nil {
-			if item.Agent.Name != "" {
-				clusterAgentName = item.Agent.Name
-			}
-			if item.Agent.Namespace != "" {
-				clusterAgentNamespace = item.Agent.Namespace
-			}
+		clientCfg, err := clientcmd.NewClientConfigFromBytes(item.Data["kubeconfig"])
+		if err != nil {
+			return r.syncStatus(ctx, instance, currentHub, *clusterConfigs, err)
 		}
 
-		secret := &v1.Secret{}
-
-		if err := r.WithWatch.Get(ctx, types.NamespacedName{Name: item.Secret.Name, Namespace: item.Secret.Namespace}, secret, &client.GetOptions{}); err != nil {
-			return ctrl.Result{}, err
-		}
+		rawConfig, _ := clientCfg.RawConfig()
+		localCluster, ok := currentHub.Backends[rawConfig.CurrentContext]
+		secret := &item
 
 		if !ok {
+			// backend not found in current map
 			r.Log.Info("initializing specified cluster", "hub", instance.ObjectMeta.Name, "cluster", item.Name)
 			r.Log.Info("initiate cluster", "name", item.Name, "namespace", r.WatchNamespace)
 
 			ctx, cancelFunc := context.WithCancel(context.Background())
 			deployAgent := false
 
-			if item.Agent != nil {
-				if item.Agent.Deploy != nil {
-					deployAgent = *item.Agent.Deploy
+			if instance.Spec.Agent != nil {
+				if instance.Spec.Agent.Deploy != nil {
+					deployAgent = *instance.Spec.Agent.Deploy
 				}
 			}
-			localCluster, err = hub.NewClusterBackend(item.Name, r.WatchNamespace, clusterAgentName, clusterAgentNamespace, secret, deployAgent, r.WithWatch, hub.Defaults{}, r.Scheme, r.Log, cancelFunc)
+
+			localCluster, err = hub.NewClusterBackend(rawConfig.CurrentContext, r.WatchNamespace, clusterAgentName, clusterAgentNamespace, secret, deployAgent, r.WithWatch, hub.Defaults{}, r.Scheme, r.Log, cancelFunc)
 
 			r.Log.Info("new cluster", "cluster", localCluster)
 
@@ -132,14 +142,14 @@ func (r *HubReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 			duration, _ := time.ParseDuration(instance.Spec.Interval)
 			if err := currentHub.AddBackend(localCluster, ctx, duration); err != nil {
-				return r.syncStatus(ctx, instance, currentHub, err)
+				return r.syncStatus(ctx, instance, currentHub, *clusterConfigs, err)
 			}
 		}
 
 		r.Log.Info("updating specified cluster", "hub", instance.ObjectMeta.Name, "cluster", item.Name)
 		r.Hubs[instance.ObjectMeta.Name] = currentHub
 		if err := currentHub.UpdateBackend(localCluster, secret); err != nil {
-			return r.syncStatus(ctx, instance, currentHub, err)
+			return r.syncStatus(ctx, instance, currentHub, *clusterConfigs, err)
 		}
 	}
 
@@ -147,31 +157,43 @@ func (r *HubReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	for key := range instance.Status.Backends {
 		r.Log.Info("parsing cluster from status for validate deletion", "hub", instance.ObjectMeta.Name, "cluster", key)
 		markedToDelete := true
-		for _, i := range instance.Spec.Clusters {
-			if i.Name == key {
+		for _, i := range clusterConfigs.Items {
+			clientCfg, err := clientcmd.NewClientConfigFromBytes(i.Data["kubeconfig"])
+			if err != nil {
+				return r.syncStatus(ctx, instance, currentHub, *clusterConfigs, err)
+			}
+			rawConfig, _ := clientCfg.RawConfig()
+			if rawConfig.CurrentContext == key {
 				markedToDelete = false
 				break
 			}
 		}
-		if markedToDelete || len(instance.Spec.Clusters) < 1 {
+		// TODO: do we need second condition?
+		if markedToDelete || len(clusterConfigs.Items) < 1 {
 			r.Log.Info("remove cluster", "hub", instance.ObjectMeta.Name, "cluster", key)
 			if err := currentHub.RemoveBackend(key); err != nil {
-				return r.syncStatus(ctx, instance, currentHub, err)
+				return r.syncStatus(ctx, instance, currentHub, *clusterConfigs, err)
 			}
 		}
 	}
 
 	r.Hubs[instance.ObjectMeta.Name] = currentHub
-	return r.syncStatus(ctx, instance, currentHub, nil)
+	return r.syncStatus(ctx, instance, currentHub, *clusterConfigs, nil)
 }
 
-func (r *HubReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.Hub, hub hub.Hub, err error) (ctrl.Result, error) {
+func (r *HubReconciler) syncStatus(ctx context.Context, instance *yahov1alpha2.Hub, hub hub.Hub, clusterConfigs v1.SecretList, err error) (ctrl.Result, error) {
 	currentBackends := make(map[string]yahov1alpha2.HubBackend)
 
-	for _, b := range instance.Spec.Clusters {
-		currentBackends[b.Name] = yahov1alpha2.HubBackend{
-			Address: "",
-			InSync:  true,
+	for _, b := range clusterConfigs.Items {
+		clientCfg, err := clientcmd.NewClientConfigFromBytes(b.Data["kubeconfig"])
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		// TODO: is it really safe that following keys are set?
+		rawConfig, _ := clientCfg.RawConfig()
+		currentBackends[rawConfig.CurrentContext] = yahov1alpha2.HubBackend{
+			Address: rawConfig.Clusters[rawConfig.Contexts[rawConfig.CurrentContext].Cluster].Server,
+			InSync:  hub.Backends[rawConfig.CurrentContext].IsActive(),
 		}
 	}
 

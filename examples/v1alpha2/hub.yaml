@@ -5,14 +5,21 @@ metadata:
   name: remote
 spec:
   interval: 10s
-  clusters:
-  - name: remote
-    agent:
-      deploy: true
-      name: yaho-agent
-      namespace: helm
-    secret:
-      name: yaho-remote-kubeconfig
-      namespace: helm
-      key: kubeconfig
-  defaults: {}
+  config: nextcloud-config.helm # default settings for releases, can also be specified in release cr
+  agent:
+    deploy: true
+    name: yaho-agent
+    namespace: helm
+  selector:
+    kind: Secret # can be Secret or ServiceAccount if in cluster address can be used
+    namespace: helm # if not specified the operator will watch in all namespaces
+    labels:
+      yaho.soer3n.dev/hub: "remote"
+    key: kubeconfig
+  defaults:
+  - chart: cilium
+    repo: cilium
+    values: cilium-values.helm
+  - chart: ingress-nginx
+    repo: ingress-nginx
+    values: ingress-nginx-values.helm

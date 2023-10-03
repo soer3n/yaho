@@ -185,18 +185,15 @@ func runOperator(scheme *runtime.Scheme, configFile string, isLocal bool, metric
 				},
 				Spec: yahov1alpha2.HubSpec{
 					Interval: "10s",
-					Clusters: []yahov1alpha2.HubCluster{
-						{
-							Name: "local",
-							Agent: &yahov1alpha2.HubClusterAgent{
-								Deploy: &enableDeployment,
-							},
-							Secret: yahov1alpha2.Secret{
-								Name:      "yaho-local-kubeconfig",
-								Key:       "kubeconfig",
-								Namespace: getWatchNamespace(),
-							},
+					HubSelector: yahov1alpha2.HubSelector{
+						Kind:      "Secret",
+						Namespace: getWatchNamespace(),
+						Labels: map[string]string{
+							"yaho.soer3n.dev/hub": "local",
 						},
+					},
+					Agent: &yahov1alpha2.HubClusterAgent{
+						Deploy: &enableDeployment,
 					},
 				},
 			}

@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	conf "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 func ManagerOptions(config string) (*manager.Options, error) {
@@ -47,7 +48,9 @@ func ManagerOptions(config string) (*manager.Options, error) {
 		HealthProbeBindAddress: c.HealthProbeBindAddress,
 		LeaderElection:         c.LeaderElection.Enabled,
 		LeaderElectionID:       c.LeaderElection.ResourceID,
-		MetricsBindAddress:     c.MetricsBindAddress,
+		Metrics: metricsserver.Options{
+			BindAddress: c.MetricsBindAddress,
+		},
 	}, nil
 }
 

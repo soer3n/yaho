@@ -34,37 +34,41 @@ spec:
           spec:
             description: HubSpec defines the desired state of Hub
             properties:
-              clusters:
+              agent:
+                properties:
+                  deploy:
+                    type: boolean
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+              config:
+                type: string
+              defaults:
                 items:
                   properties:
-                    agent:
-                      properties:
-                        deploy:
-                          type: boolean
-                        name:
-                          type: string
-                        namespace:
-                          type: string
-                      type: object
-                    defaults:
-                      type: object
-                    name:
+                    chart:
                       type: string
-                    secret:
-                      properties:
-                        key:
-                          type: string
-                        name:
-                          type: string
-                        namespace:
-                          type: string
-                      type: object
+                    repo:
+                      type: string
+                    values:
+                      type: string
                   type: object
                 type: array
-              defaults:
-                type: object
               interval:
                 type: string
+              selector:
+                properties:
+                  kind:
+                    type: string
+                  labels:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  namespace:
+                    type: string
+                type: object
             type: object
           status:
             description: HubStatus defines the observed state of Hub

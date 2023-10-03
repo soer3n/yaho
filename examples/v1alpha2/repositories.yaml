@@ -5,8 +5,9 @@ metadata:
   name: nextcloud
 spec:
   mode: configmap # could be configmap or pvc
+  # authSecret: privat-repo-secret # keys user and password should be used for basic auth
   source:
-    type: helm
+    type: helm # can be helm, git, s3 in future
     url: https://nextcloud.github.io/helm/
   charts:
     sync:
@@ -19,9 +20,10 @@ kind: Repository
 metadata:
   name: bitnami
 spec:
-  mode: configmap
+  mode: configmap # could be configmap or pvc
+  # authSecret: privat-repo-secret # keys user and password should be used for basic auth
   source:
-    type: helm
+    type: helm # can be helm, git, s3 in future
     url: https://charts.bitnami.com/bitnami
   charts: # here index configmaps can be limited to requested charts
     sync:

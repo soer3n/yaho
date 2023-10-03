@@ -10,6 +10,8 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
+COPY config/crd config/crd
+COPY config/agent config/agent
 COPY internal/ internal/
 COPY apis/ apis/
 COPY controllers/ controllers/
