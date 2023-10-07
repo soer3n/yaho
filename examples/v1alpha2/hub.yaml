@@ -12,7 +12,7 @@ spec:
     namespace: helm
   selector:
     kind: Secret # can be Secret or ServiceAccount if in cluster address can be used
-    namespace: helm # if not specified the operator will watch in all namespaces
+    # namespace: helm # if not specified the operator will watch in all namespaces
     labels:
       yaho.soer3n.dev/hub: "remote"
     key: kubeconfig

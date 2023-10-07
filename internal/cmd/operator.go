@@ -125,6 +125,8 @@ func runOperator(scheme *runtime.Scheme, configFile string, isLocal bool, metric
 		os.Exit(1)
 	}
 
+	hubs := make(map[string]hub.Hub)
+
 	if err = (&helmcontrollers.RepoReconciler{
 		Client:         rc,
 		WatchNamespace: ns,
@@ -139,7 +141,17 @@ func runOperator(scheme *runtime.Scheme, configFile string, isLocal bool, metric
 		WatchNamespace: ns,
 		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("Hub"),
 		Scheme:         mgr.GetScheme(),
-		Hubs:           make(map[string]hub.Hub),
+		Hubs:           hubs,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Hub")
+		os.Exit(1)
+	}
+	if err = (&helmcontrollers.SecretReconciler{
+		WithWatch:      rc,
+		WatchNamespace: ns,
+		Log:            ctrl.Log.WithName("controllers").WithName("helm").WithName("Secret"),
+		Scheme:         mgr.GetScheme(),
+		Hubs:           hubs,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Hub")
 		os.Exit(1)
