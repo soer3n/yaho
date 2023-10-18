@@ -13,10 +13,10 @@ require (
 	github.com/stretchr/testify v1.8.4
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.13.1
-	k8s.io/api v0.28.2
-	k8s.io/apimachinery v0.28.2
-	k8s.io/cli-runtime v0.28.2
-	k8s.io/client-go v0.28.2
+	k8s.io/api v0.28.3
+	k8s.io/apimachinery v0.28.3
+	k8s.io/cli-runtime v0.28.3
+	k8s.io/client-go v0.28.3
 	k8s.io/kubectl v0.28.2
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	sigs.k8s.io/controller-runtime v0.16.2
