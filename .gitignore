@@ -14,7 +14,6 @@ package-lock.json
 bin
 testbin/*
 bundle*
-!bundle.Dockerfile
 artifacts*
 
 # Test binary, build with `go test -c`
