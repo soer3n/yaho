@@ -62,6 +62,6 @@ jobs:
         node_image: kindest/node:${{ matrix.version }}
         cluster_name:  cluster-${{ matrix.version }}
         config: testutils/kind.yaml
-        version: v0.18.0
+        version: v0.20.0
     - name: test controllers
       run: go test -coverpkg ./controllers/... ./tests/e2e/controller/...
