@@ -48,6 +48,7 @@ jobs:
       env:
         VERSION: ${{ steps.vars.outputs.tag }}
         CHANNEL: stable-v0
+        GOPATH: /home/runner/work/yaho/go
 
     - name: Build and push bundle image
       uses: docker/build-push-action@v5
@@ -62,6 +63,7 @@ jobs:
       env:
         VERSION: ${{ steps.vars.outputs.tag }}
         CHANNEL: stable-v0
+        GOPATH: /home/runner/work/yaho/go
 
     - name: Rebuild catalog and update image
       uses: docker/build-push-action@v5
@@ -76,6 +78,7 @@ jobs:
       env:
         VERSION: ${{ steps.vars.outputs.tag }}
         CHANNEL: stable-v0
+        GOPATH: /home/runner/work/yaho/go
 
     - name: Release artifacts
       uses: softprops/action-gh-release@v1
