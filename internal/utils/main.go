@@ -130,5 +130,4 @@ func WatchForSubResourceSync(subResource interface{}, gvr schema.GroupVersionRes
 		}
 	}
 
-	return false
 }

@@ -260,7 +260,7 @@ var _ = AfterSuite(func() {
 })
 
 func init() {
-	mr.Seed(time.Now().UnixNano())
+	mr.New(mr.NewSource(time.Now().UnixNano()))
 }
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz1234567890")

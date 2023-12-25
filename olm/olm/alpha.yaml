@@ -2,8 +2,10 @@
 entries:
 - name: yaho.v0.0.1
 - name: yaho.v0.0.2
+- name: yaho.v0.0.3
   skips:
   - yaho.v0.0.1
+  - yaho.v0.0.2
 name: alpha
 package: yaho
 schema: olm.channel

@@ -16,9 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.19
+          go-version: '1.20'
 
       - name: check out code
         uses: actions/checkout@v4
@@ -26,6 +26,6 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.52.2
+          version: v1.55.0
           args: --issues-exit-code=1 --timeout=5m0s
           only-new-issues: true
