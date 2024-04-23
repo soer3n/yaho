@@ -22,7 +22,7 @@ jobs:
       with:
         go-version: '1.20'
     - name: create k8s Kind cluster
-      uses: helm/kind-action@v1.8.0
+      uses: helm/kind-action@v1.10.0
       with:
         node_image: kindest/node:v1.24.12
         cluster_name:  cluster-coverage
